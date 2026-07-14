@@ -16,6 +16,7 @@ import { CandlestickChart } from '../components/CandlestickChart'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
 import { MarketList } from '../components/MarketList'
 import { OrderPanel } from '../components/OrderPanel'
+import { SpriteIcon } from '../components/SpriteIcon'
 import { useRoundClock } from '../hooks/useRoundClock'
 import { formatKstDateTime, formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
@@ -131,7 +132,7 @@ export function DashboardPage() {
             <section className="panel chart-panel">
               <div className="chart-panel__heading">
                 <div className="stock-title-block">
-                  <span className="ticker-mark ticker-mark--large">{selectedStock.ticker.slice(0, 2)}</span>
+                  <SpriteIcon kind="stock" index={selectedStock.logoSpriteIndex} size="lg" label={`${selectedStock.name} 종목 이미지`} />
                   <div>
                     <span className="eyebrow">{selectedStock.ticker} · {selectedStock.theme}</span>
                     <h2>{selectedStock.name}</h2>

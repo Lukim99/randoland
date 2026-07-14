@@ -2,6 +2,7 @@ import { ArrowLeft, Building2, Layers3, UserRound } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router'
 import { CandlestickChart } from '../components/CandlestickChart'
 import { OrderPanel } from '../components/OrderPanel'
+import { SpriteIcon } from '../components/SpriteIcon'
 import { formatKstDateTime, formatPercent, formatPrice, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 
@@ -22,7 +23,7 @@ export function StockDetailPage() {
       <Link className="back-link" to="/"><ArrowLeft size={16} /> 거래소로 돌아가기</Link>
       <header className="stock-detail-header">
         <div className="stock-title-block">
-          <span className="ticker-mark ticker-mark--xl">{stock.ticker.slice(0, 2)}</span>
+          <SpriteIcon kind="stock" index={stock.logoSpriteIndex} size="xl" label={`${stock.name} 종목 이미지`} />
           <div>
             <span className="eyebrow">{stock.ticker} · {market.round?.number ?? 0}라운드</span>
             <h1>{stock.name}</h1>

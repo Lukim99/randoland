@@ -2,6 +2,7 @@ import { Activity, Banknote, Clock3, Scale, WalletCards } from 'lucide-react'
 import { formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import { ParticipantGate } from './ParticipantGate'
+import { SpriteIcon } from '../components/SpriteIcon'
 
 const ledgerLabels: Record<string, string> = {
   initial_balance: '초기 자금',
@@ -15,7 +16,7 @@ const ledgerLabels: Record<string, string> = {
 }
 
 export function PortfolioView() {
-  const { myState } = useMarket()
+  const { market, myState } = useMarket()
   const participant = myState?.participant
 
   return (
@@ -37,12 +38,13 @@ export function PortfolioView() {
             {myState.positions.length > 0 ? (
               <div className="data-list">
                 {myState.positions.map((position) => {
+                  const logoSpriteIndex = market?.stocks.find((stock) => stock.id === position.stockId)?.logoSpriteIndex ?? 0
                   const ownCost = position.quantity * position.averagePrice - position.leveragePrincipal
                   const profit = position.netValue - ownCost
                   const returnPercent = ownCost > 0 ? (profit / ownCost) * 100 : 0
                   return (
                     <article className="data-row position-row" key={position.id}>
-                      <span className="ticker-mark">{position.ticker.slice(0, 2)}</span>
+                      <SpriteIcon kind="stock" index={logoSpriteIndex} size="md" label={`${position.stockName} 종목 이미지`} />
                       <div className="data-row__identity"><strong>{position.stockName}</strong><small>{position.ticker} · {position.quantity}주 · {position.holdingRounds}라운드 보유</small></div>
                       <div><small>평균가</small><strong>{formatPrice(position.averagePrice)}</strong></div>
                       <div><small>순평가액</small><strong>{formatRp(position.netValue)}</strong></div>

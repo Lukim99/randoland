@@ -1,9 +1,9 @@
 import {
   Building2,
   ChevronDown,
-  CircleUserRound,
   ClipboardList,
   Gift,
+  ImageIcon,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -17,6 +17,8 @@ import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { useMarket } from '../market/useMarket'
 import { Brand } from './Brand'
+import { SpriteIcon } from './SpriteIcon'
+import { SpritePickerDialog } from './SpritePickerDialog'
 
 const navigation = [
   { to: '/', label: '거래소', icon: LayoutDashboard, end: true },
@@ -29,9 +31,13 @@ const navigation = [
 
 export function AppShell() {
   const { signOut } = useAuth()
-  const { market, myState, refreshing, refresh } = useMarket()
+  const { market, myState, refreshing, refresh, setProfileSprite } = useMarket()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [profilePickerOpen, setProfilePickerOpen] = useState(false)
+  const [profileSaving, setProfileSaving] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
   const nickname = myState?.participant?.nickname ?? '리그 참가 전'
+  const profileSpriteIndex = myState?.participant?.profileSpriteIndex ?? 0
   const marketStatus = market?.league?.status === 'active'
     ? '거래소 운영 중'
     : market?.league?.status === 'registration'
@@ -39,6 +45,19 @@ export function AppShell() {
       : market?.league?.status === 'finished'
         ? '리그 종료'
         : '리그 준비 중'
+
+  async function handleProfileConfirm(index: number) {
+    setProfileSaving(true)
+    setProfileError(null)
+    try {
+      await setProfileSprite(index)
+      setProfilePickerOpen(false)
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : '프로필 이미지 변경에 실패했습니다.')
+    } finally {
+      setProfileSaving(false)
+    }
+  }
 
   return (
     <div className="app-shell">
@@ -66,9 +85,7 @@ export function AppShell() {
             </div>
           </div>
           <button className="user-card" type="button" onClick={() => void signOut()} title="로그아웃">
-            <span className="user-avatar" aria-hidden="true">
-              <CircleUserRound size={20} />
-            </span>
+            <SpriteIcon kind="profile" index={profileSpriteIndex} size="md" className="user-avatar" />
             <span className="user-card__copy">
               <strong>{nickname}</strong>
               <small>로그아웃</small>
@@ -98,7 +115,7 @@ export function AppShell() {
               <RefreshCw size={18} />
             </button>
             <button className="profile-trigger" type="button" onClick={() => setMenuOpen((open) => !open)}>
-              <span className="profile-trigger__avatar">{nickname.slice(0, 1)}</span>
+              <SpriteIcon kind="profile" index={profileSpriteIndex} size="sm" className="profile-trigger__avatar" />
               <span>{nickname}</span>
               <ChevronDown size={15} aria-hidden="true" />
             </button>
@@ -114,8 +131,25 @@ export function AppShell() {
           </div>
           {menuOpen && (
             <div className="account-menu">
-              <strong>{nickname}</strong>
-              <span>{myState?.joined ? '익명 닉네임으로 참여 중' : '카카오 로그인 완료'}</span>
+              <div className="account-menu__identity">
+                <SpriteIcon kind="profile" index={profileSpriteIndex} size="lg" />
+                <span>
+                  <strong>{nickname}</strong>
+                  <small>{myState?.joined ? '익명 닉네임으로 참여 중' : '카카오 로그인 완료'}</small>
+                </span>
+              </div>
+              {myState?.joined && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setProfileError(null)
+                    setProfilePickerOpen(true)
+                    setMenuOpen(false)
+                  }}
+                >
+                  <ImageIcon size={16} /> 프로필 이미지 변경
+                </button>
+              )}
               <button type="button" onClick={() => void signOut()}>
                 <LogOut size={16} /> 로그아웃
               </button>
@@ -136,6 +170,18 @@ export function AppShell() {
           </NavLink>
         ))}
       </nav>
+
+      {profilePickerOpen && (
+        <SpritePickerDialog
+          kind="profile"
+          value={profileSpriteIndex}
+          title="프로필 이미지 선택"
+          busy={profileSaving}
+          error={profileError}
+          onClose={() => setProfilePickerOpen(false)}
+          onConfirm={(index) => void handleProfileConfirm(index)}
+        />
+      )}
     </div>
   )
 }

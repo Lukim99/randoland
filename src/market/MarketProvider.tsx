@@ -9,6 +9,8 @@ import {
   loadRankings,
   placeOrder as placeOrderRequest,
   playLadder as playLadderRequest,
+  setProfileSprite as setProfileSpriteRequest,
+  setStockLogo as setStockLogoRequest,
   submitListing as submitListingRequest,
 } from '../services/market'
 import type { ListingSubmission, MarketSnapshot, MyState, OrderSide, RankingsSnapshot } from '../types/market'
@@ -137,6 +139,16 @@ export function MarketProvider({ children }: PropsWithChildren) {
     await refreshData(true)
   }, [refreshData, requireLeagueId])
 
+  const setProfileSprite = useCallback(async (profileSpriteIndex: number) => {
+    await setProfileSpriteRequest(requireLeagueId(), profileSpriteIndex)
+    await refreshData(true)
+  }, [refreshData, requireLeagueId])
+
+  const setStockLogo = useCallback(async (stockId: string, logoSpriteIndex: number) => {
+    await setStockLogoRequest(stockId, logoSpriteIndex)
+    await refreshData(true)
+  }, [refreshData])
+
   const claimAttendance = useCallback(async () => {
     const result = await claimAttendanceRequest(requireLeagueId())
     await refreshData(true)
@@ -162,6 +174,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
       placeOrder,
       cancelOrder,
       submitListing,
+      setProfileSprite,
+      setStockLogo,
       claimAttendance,
       playLadder,
     }),
@@ -178,6 +192,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
       rankings,
       refresh,
       refreshing,
+      setProfileSprite,
+      setStockLogo,
       submitListing,
     ],
   )

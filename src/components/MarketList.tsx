@@ -3,6 +3,7 @@ import { Link } from 'react-router'
 import { formatPercent, formatPrice, movementClass } from '../lib/format'
 import type { StockSummary } from '../types/market'
 import { MiniCandles } from './MiniCandles'
+import { SpriteIcon } from './SpriteIcon'
 
 interface MarketListProps {
   stocks: StockSummary[]
@@ -31,7 +32,7 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
               <tr key={stock.id} className={stock.id === selectedId ? 'is-selected' : undefined}>
                 <td>
                   <button className="stock-identity" type="button" onClick={() => onSelect?.(stock)}>
-                    <span className="ticker-mark">{stock.ticker.slice(0, 2)}</span>
+                    <SpriteIcon kind="stock" index={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                     <span>
                       <strong>{stock.name}</strong>
                       <small>{stock.ticker}</small>
@@ -67,7 +68,7 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
           <article key={stock.id} className={`mobile-stock-card${stock.id === selectedId ? ' is-selected' : ''}`}>
             <button className="mobile-stock-card__main" type="button" onClick={() => onSelect?.(stock)}>
               <span className="stock-identity">
-                <span className="ticker-mark">{stock.ticker.slice(0, 2)}</span>
+                <SpriteIcon kind="stock" index={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                 <span>
                   <strong>{stock.name}</strong>
                   <small>{stock.ticker} · {stock.theme}</small>

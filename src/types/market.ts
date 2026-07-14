@@ -38,6 +38,7 @@ export interface RoundSummary {
 
 export interface StockSummary {
   id: string
+  logoSpriteIndex: number
   ticker: string
   name: string
   description: string
@@ -77,6 +78,7 @@ export interface MarketSnapshot {
 
 export interface ParticipantSummary {
   id: string
+  profileSpriteIndex: number
   nickname: string
   cashBalance: number
   reservedCash: number
@@ -246,6 +248,7 @@ export interface RankingsSnapshot {
 }
 
 export interface ListingSubmission {
+  logoSpriteIndex: number
   ticker: string
   name: string
   initialPrice: number

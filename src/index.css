@@ -3140,6 +3140,292 @@ button:disabled {
   to { background-position-x: -200%; }
 }
 
+/* Sprite avatars and stock logos */
+.sprite-icon {
+  display: inline-block;
+  flex: 0 0 auto;
+  overflow: hidden;
+  background-color: #0c1211;
+  background-repeat: no-repeat;
+  background-size: 1000% 1000%;
+  border: 1px solid rgba(118, 150, 140, 0.2);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.015);
+}
+
+.sprite-icon--profile {
+  border-radius: 28%;
+}
+
+.sprite-icon--stock {
+  border-radius: 24%;
+}
+
+.sprite-icon--xs { width: 24px; height: 24px; }
+.sprite-icon--sm { width: 29px; height: 29px; }
+.sprite-icon--md { width: 34px; height: 34px; }
+.sprite-icon--lg { width: 42px; height: 42px; }
+.sprite-icon--xl { width: 58px; height: 58px; }
+
+.user-avatar,
+.profile-trigger__avatar,
+.listed-stock-card__mark {
+  padding: 0;
+  color: transparent;
+}
+
+.account-menu__identity {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 10px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.account-menu__identity > span {
+  display: grid;
+  min-width: 0;
+  gap: 4px;
+}
+
+.account-menu__identity small {
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sprite-field {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  margin: 17px 0;
+  padding: 13px;
+  background: rgba(255, 255, 255, 0.018);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+.sprite-field > div {
+  display: grid;
+  gap: 4px;
+}
+
+.sprite-field strong {
+  font-size: 11px;
+}
+
+.sprite-field span {
+  color: var(--muted);
+  font-size: 9px;
+}
+
+.sprite-field button,
+.inline-image-button,
+.secondary-action-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 11px;
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  font-size: 9px;
+  font-weight: 750;
+  white-space: nowrap;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+
+.sprite-field button:hover,
+.inline-image-button:hover,
+.secondary-action-button:hover:not(:disabled) {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(0, 255, 191, 0.22);
+}
+
+.inline-image-button {
+  margin-top: 10px;
+}
+
+.sprite-picker-backdrop {
+  position: fixed;
+  z-index: 300;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(9px);
+  animation: picker-backdrop-in 160ms ease both;
+}
+
+.sprite-picker-dialog {
+  display: grid;
+  gap: 15px;
+  width: min(620px, 100%);
+  max-height: min(760px, calc(100vh - 40px));
+  padding: 19px;
+  background: #0b100f;
+  border: 1px solid var(--border-strong);
+  border-radius: 16px;
+  box-shadow: 0 28px 90px rgba(0, 0, 0, 0.62);
+  animation: picker-dialog-in 180ms ease both;
+}
+
+.sprite-picker-dialog > header,
+.sprite-picker-dialog > footer,
+.sprite-picker-preview {
+  display: flex;
+  align-items: center;
+}
+
+.sprite-picker-dialog > header {
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.sprite-picker-dialog h2 {
+  margin-top: 4px;
+  font-size: 17px;
+}
+
+.sprite-picker-preview {
+  gap: 12px;
+  min-height: 72px;
+  padding: 7px 10px;
+  background: rgba(255, 255, 255, 0.016);
+  border: 1px solid var(--border);
+  border-radius: 11px;
+}
+
+.sprite-picker-preview > span {
+  display: grid;
+  gap: 4px;
+}
+
+.sprite-picker-preview small {
+  color: var(--muted);
+  font-size: 8px;
+}
+
+.sprite-picker-preview strong {
+  color: var(--accent);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.sprite-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(10, minmax(0, 1fr));
+  gap: 6px;
+  max-height: min(50vh, 430px);
+  padding: 4px;
+  overflow-y: auto;
+  scrollbar-color: var(--border-strong) transparent;
+}
+
+.sprite-picker-grid > button {
+  position: relative;
+  display: grid;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 0;
+  padding: 5px;
+  background: #070a09;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  transition: transform 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.sprite-picker-grid > button:hover:not(:disabled) {
+  z-index: 1;
+  transform: translateY(-1px);
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
+}
+
+.sprite-picker-grid > button.is-selected {
+  background: var(--accent-soft);
+  border-color: rgba(0, 255, 191, 0.6);
+  box-shadow: 0 0 0 1px rgba(0, 255, 191, 0.12);
+}
+
+.sprite-picker-grid > button > svg {
+  position: absolute;
+  right: 2px;
+  bottom: 2px;
+  padding: 2px;
+  color: #001a13;
+  background: var(--accent);
+  border-radius: 999px;
+}
+
+.sprite-picker-dialog > .form-message {
+  margin: 0;
+}
+
+.sprite-picker-dialog > footer {
+  justify-content: flex-end;
+  gap: 8px;
+  padding-top: 2px;
+}
+
+.sprite-picker-dialog > footer .action-button,
+.sprite-picker-dialog > footer .secondary-action-button {
+  min-width: 104px;
+}
+
+@keyframes picker-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes picker-dialog-in {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@media (max-width: 767px) {
+  .sprite-picker-backdrop {
+    align-items: end;
+    padding: 0;
+  }
+
+  .sprite-picker-dialog {
+    width: 100%;
+    max-height: 88vh;
+    padding: 16px;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 17px 17px 0 0;
+  }
+
+  .sprite-picker-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    max-height: 48vh;
+  }
+
+  .sprite-picker-grid > button {
+    min-height: 54px;
+  }
+
+  .sprite-field {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .sprite-field > button {
+    grid-column: 1 / -1;
+    width: 100%;
+  }
+}
+
 @media (min-width: 1500px) {
   :root {
     --sidebar-width: 260px;

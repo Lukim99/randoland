@@ -36,6 +36,9 @@ const errorTranslations: Array<[string, string]> = [
   ['Ticker must contain', '티커는 영문 대문자와 숫자 2~8자로 입력해 주세요.'],
   ['Description must contain', '종목 설명은 10~1,000자로 입력해 주세요.'],
   ['Each weekly story must contain', '각 주차 이야기는 5~2,000자로 입력해 주세요.'],
+  ['Profile sprite index must be between', '프로필 이미지를 다시 선택해 주세요.'],
+  ['Stock logo sprite index must be between', '종목 이미지를 다시 선택해 주세요.'],
+  ['Only the listing owner can select its stock logo', '본인이 상장한 종목 이미지만 변경할 수 있습니다.'],
 ]
 
 export function readableSupabaseError(error: PostgrestError | Error | string): string {
@@ -56,10 +59,26 @@ export async function loadMarketSnapshot(leagueId?: string | null): Promise<Mark
   throwIfError(error)
 
   const snapshot = data as unknown as MarketSnapshot
+  const stockIds = (snapshot.stocks ?? []).map((stock) => stock.id)
+  const spriteIndexByStockId = new Map<string, number>()
+
+  if (stockIds.length > 0) {
+    const { data: spriteRows, error: spriteError } = await client
+      .from('randoland_stocks')
+      .select('id, logo_sprite_index')
+      .in('id', stockIds)
+    throwIfError(spriteError)
+
+    spriteRows?.forEach((row) => {
+      spriteIndexByStockId.set(row.id, row.logo_sprite_index)
+    })
+  }
+
   return {
     ...snapshot,
     stocks: (snapshot.stocks ?? []).map((stock) => ({
       ...stock,
+      logoSpriteIndex: spriteIndexByStockId.get(stock.id) ?? 0,
       owner: stock.listedBy ?? stock.owner ?? (stock.isBaseStock ? '기본 상장' : '상장자 비공개'),
       candles: (stock.candles ?? []).map((candle) => ({
         ...candle,
@@ -76,7 +95,24 @@ export async function loadMyState(leagueId: string): Promise<MyState> {
     p_league_id: leagueId,
   })
   throwIfError(error)
-  return data as unknown as MyState
+
+  const state = data as unknown as MyState
+  if (!state.participant) return state
+
+  const { data: participantSprite, error: spriteError } = await client
+    .from('randoland_participants')
+    .select('profile_sprite_index')
+    .eq('id', state.participant.id)
+    .maybeSingle()
+  throwIfError(spriteError)
+
+  return {
+    ...state,
+    participant: {
+      ...state.participant,
+      profileSpriteIndex: participantSprite?.profile_sprite_index ?? 0,
+    },
+  }
 }
 
 export async function loadRankings(leagueId: string): Promise<RankingsSnapshot> {
@@ -134,14 +170,35 @@ export async function cancelOrder(orderId: string) {
 
 export async function submitListing(leagueId: string, submission: ListingSubmission) {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_submit_listing', {
+  const { data, error } = await client.rpc('randoland_submit_listing_with_logo', {
     p_league_id: leagueId,
+    p_logo_sprite_index: submission.logoSpriteIndex,
     p_ticker: submission.ticker,
     p_name: submission.name,
     p_initial_price: submission.initialPrice,
     p_description: submission.description,
     p_theme: submission.theme,
     p_weekly_stories: submission.weeklyStories,
+  })
+  throwIfError(error)
+  return data
+}
+
+export async function setProfileSprite(leagueId: string, profileSpriteIndex: number) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_set_profile_sprite', {
+    p_league_id: leagueId,
+    p_profile_sprite_index: profileSpriteIndex,
+  })
+  throwIfError(error)
+  return data
+}
+
+export async function setStockLogo(stockId: string, logoSpriteIndex: number) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_set_stock_logo', {
+    p_stock_id: stockId,
+    p_logo_sprite_index: logoSpriteIndex,
   })
   throwIfError(error)
   return data
