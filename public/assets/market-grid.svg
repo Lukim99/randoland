@@ -1,0 +1,14 @@
+<svg width="1440" height="900" viewBox="0 0 1440 900" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <g opacity="0.34">
+    <path d="M0 90H1440M0 180H1440M0 270H1440M0 360H1440M0 450H1440M0 540H1440M0 630H1440M0 720H1440M0 810H1440" stroke="#16362E"/>
+    <path d="M90 0V900M180 0V900M270 0V900M360 0V900M450 0V900M540 0V900M630 0V900M720 0V900M810 0V900M900 0V900M990 0V900M1080 0V900M1170 0V900M1260 0V900M1350 0V900" stroke="#16362E"/>
+  </g>
+  <path d="M0 642C118 613 194 670 303 602C412 534 467 586 576 511C685 436 757 497 865 405C973 313 1064 372 1161 256C1258 140 1340 189 1440 92" stroke="#00FFBF" stroke-width="3" opacity="0.34"/>
+  <path d="M0 642C118 613 194 670 303 602C412 534 467 586 576 511C685 436 757 497 865 405C973 313 1064 372 1161 256C1258 140 1340 189 1440 92V900H0V642Z" fill="url(#fade)" opacity="0.24"/>
+  <defs>
+    <linearGradient id="fade" x1="720" y1="92" x2="720" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00FFBF"/>
+      <stop offset="1" stop-color="#00FFBF" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+</svg>
