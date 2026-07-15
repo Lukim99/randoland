@@ -19,7 +19,7 @@ const ledgerLabels: Record<string, string> = {
   buy: '매수 체결',
   sell: '매도 체결',
   short_open: '공매도 체결',
-  short_cover: '공매도 청산',
+  short_cover: '청산',
   short_profit: '공매도 이익',
   short_loss: '공매도 손실',
   receivable_created: '미수 RP 발생',

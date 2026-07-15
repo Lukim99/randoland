@@ -140,7 +140,7 @@ export function RewardsView() {
         <div className="feature-stack">
           <section className="panel attendance-card">
             <span className="attendance-card__icon"><CalendarCheck2 size={25} /></span>
-            <div><span className="eyebrow">매일 한 번</span><h2>오늘의 출석</h2><p>출석하면 홀짝 게임 토큰 1개를 받습니다.</p></div>
+            <div><h2>오늘의 출석</h2><p>출석하면 홀짝 게임 토큰 1개를 받습니다.</p></div>
             <div className="token-balance"><TicketCheck size={17} /><span><small>보유 토큰</small><strong>{participant.attendanceTokens}개</strong></span></div>
             <button className="action-button" type="button" disabled={participant.attendedToday || attendanceBusy} onClick={() => void handleAttendance()}>
               {participant.attendedToday ? '오늘 출석 완료' : attendanceBusy ? '처리 중' : '출석 토큰 받기'}
@@ -149,7 +149,7 @@ export function RewardsView() {
 
           <section className="panel ladder-card">
             <div className="section-heading section-heading--compact">
-              <div><span className="eyebrow">토큰 1개</span><h2>홀짝 Go or Stop</h2></div>
+              <div><h2>홀짝 Go or Stop</h2></div>
               <Route size={20} />
             </div>
 
@@ -231,7 +231,7 @@ export function RewardsView() {
           </section>
 
           <section className="panel live-section">
-            <div className="section-heading section-heading--compact"><div><span className="eyebrow">완료된 게임</span><h2>홀짝 결과</h2></div><Clock3 size={18} /></div>
+            <div className="section-heading section-heading--compact"><div><h2>홀짝 결과</h2></div><Clock3 size={18} /></div>
             {myState.ladderGames.length > 0 ? (
               <div className="compact-history">
                 {myState.ladderGames.map((game) => {

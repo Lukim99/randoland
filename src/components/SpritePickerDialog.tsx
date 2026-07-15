@@ -48,7 +48,6 @@ export function SpritePickerDialog({
       <section className="sprite-picker-dialog" role="dialog" aria-modal="true" aria-labelledby={titleId}>
         <header>
           <div>
-            <span className="eyebrow">100개 중 선택</span>
             <h2 id={titleId}>{title}</h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose} disabled={busy} aria-label="선택 창 닫기">

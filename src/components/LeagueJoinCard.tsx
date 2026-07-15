@@ -19,7 +19,6 @@ export function LeagueJoinCard({ compact = false }: LeagueJoinCardProps) {
       <section className={`panel league-join-card${compact ? ' is-compact' : ''}`}>
         <ShieldCheck size={24} />
         <div>
-          <span className="eyebrow">리그 준비 중</span>
           <h2>참가 가능한 리그가 아직 없습니다</h2>
           <p>운영자가 리그 일정을 열면 이 화면에서 바로 참가할 수 있습니다.</p>
         </div>
@@ -37,7 +36,6 @@ export function LeagueJoinCard({ compact = false }: LeagueJoinCardProps) {
       <section className={`panel league-join-card${compact ? ' is-compact' : ''}`}>
         <Clock3 size={24} />
         <div>
-          <span className="eyebrow">참가 접수 마감</span>
           <h2>리그 참가 기간이 종료되었습니다</h2>
           <p>리그 시작 후 첫 주까지만 참가할 수 있습니다.</p>
         </div>
@@ -70,7 +68,6 @@ export function LeagueJoinCard({ compact = false }: LeagueJoinCardProps) {
     <section className={`panel league-join-card${compact ? ' is-compact' : ''}`}>
       <span className="league-join-card__icon"><UserRoundPlus size={25} /></span>
       <div className="league-join-card__copy">
-        <span className="eyebrow">한 계정당 한 번 참가</span>
         <h2>{market.league.name} 참가하기</h2>
         <p>리그 참가 시 1,000,000 RP가 지급됩니다.</p>
         <label className="join-nickname-field" htmlFor="league-nickname">

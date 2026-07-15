@@ -118,7 +118,7 @@ export function ListingView() {
             <section className="panel listed-stock-card">
               <StockLogo src={currentLogoImageUrl} spriteIndex={currentLogoSpriteIndex} size="xl" className="listed-stock-card__mark" label={`${listing.name} 종목 이미지`} />
               <div>
-                <span className="eyebrow">{listing.ticker} · 상장 완료</span>
+                <span className="eyebrow">{listing.ticker}</span>
                 <h2>{listing.name}</h2>
                 <p>{listing.description}</p>
                 <small className="listed-stock-card__immutable-note">상장 시 확정한 이미지와 로고는 변경할 수 없습니다.</small>
@@ -131,7 +131,7 @@ export function ListingView() {
             </section>
             {message && <p className="form-message" role="status">{message}</p>}
             <section className="panel live-section">
-              <div className="section-heading section-heading--compact"><div><span className="eyebrow">AI 뉴스 기반 자료</span><h2>주차별 흐름</h2></div><Layers3 size={18} /></div>
+              <div className="section-heading section-heading--compact"><div><h2>주차별 흐름</h2></div><Layers3 size={18} /></div>
               <div className="story-timeline">
                 {listing.stories.map((story) => (
                   <article key={story.weekNumber}><span>{story.weekNumber}주차</span><p>{story.story}</p></article>
@@ -143,14 +143,13 @@ export function ListingView() {
         ) : listingClosed ? (
           <section className="panel listing-closed-state">
             <Clock3 size={28} />
-            <span className="eyebrow">신규 상장 마감</span>
             <h2>상장 가능 기간이 종료되었습니다</h2>
             <p>리그 시작 후 첫 주까지만 종목을 상장할 수 있습니다.</p>
           </section>
         ) : (
           <form className="panel listing-form" onSubmit={(event) => void handleSubmit(event)}>
             <div className="section-heading section-heading--compact">
-              <div><span className="eyebrow">참가자당 한 종목</span><h2>상장 정보 입력</h2></div>
+              <div><h2>상장 정보 입력</h2></div>
               <Building2 size={19} />
             </div>
 

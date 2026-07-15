@@ -22,7 +22,7 @@ const orderTypeLabel: Record<OrderSide, string> = {
   buy: '매수',
   sell: '매도',
   short: '공매도',
-  cover: '공매도 청산',
+  cover: '청산',
 }
 
 function orderTone(side: OrderSide) {
@@ -151,7 +151,6 @@ export function OrderPanel({ stock }: OrderPanelProps) {
     <aside className="panel order-panel" aria-label={`${stock.name} 주문`}>
       <div className="panel-heading">
         <div>
-          <span className="eyebrow">주문서</span>
           <h2>주문</h2>
         </div>
       </div>

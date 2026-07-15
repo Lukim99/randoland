@@ -72,7 +72,6 @@ export function ProfileImageUploadDialog({
       >
         <header>
           <div>
-            <span className="eyebrow">내 프로필</span>
             <h2 id={titleId}>프로필 이미지 변경</h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose} disabled={busy} aria-label="창 닫기">

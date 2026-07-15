@@ -24,7 +24,6 @@ export function StockDetailPage() {
         <div className="stock-title-block">
           <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="xl" label={`${stock.name} 종목 이미지`} />
           <div>
-            <span className="eyebrow">{stock.ticker} · {market.round?.number ?? 0}라운드</span>
             <h1>{stock.name}</h1>
             <p>{stock.description}</p>
           </div>
@@ -40,7 +39,7 @@ export function StockDetailPage() {
         <div className="stock-detail-main">
           <section className="panel detail-chart-panel">
             <div className="section-heading section-heading--compact">
-              <div><span className="eyebrow">일봉 차트</span><h2>가격 흐름</h2></div>
+              <div><h2>가격 흐름</h2></div>
               <span className="theme-pill">1라운드 = 1일</span>
             </div>
             <CandlestickChart candles={stock.candles} label={stock.name} height={400} />

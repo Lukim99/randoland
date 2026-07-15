@@ -15,7 +15,7 @@ export function NewsPage() {
       <div className="news-page">
         <header className="news-page-header">
           <span className="news-masthead-mark"><Newspaper size={26} /></span>
-          <div><span className="eyebrow">란도랜드2 시장 뉴스</span><h1>란도일보</h1></div>
+          <div><h1>란도일보</h1></div>
         </header>
         <section className="panel news-page-empty">
           <Newspaper size={30} />

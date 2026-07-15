@@ -220,7 +220,7 @@ export function AppShell() {
           }}
         >
           <section id="mobile-more-menu" className="mobile-more-menu" role="dialog" aria-modal="true" aria-label="더보기 메뉴">
-            <header><span className="eyebrow">란도랜드2</span><h2>더보기</h2></header>
+            <header><h2>더보기</h2></header>
             <nav aria-label="추가 메뉴">
               {mobileMoreNavigation.map(({ to, label, icon: Icon }) => (
                 <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'is-active' : '')}>

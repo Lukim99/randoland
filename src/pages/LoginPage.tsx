@@ -16,7 +16,6 @@ export function LoginPage() {
           <Brand />
         </div>
         <div className="login-visual__content">
-          <span className="eyebrow">WELCOME</span>
           <h1>
             란도랜드2에 오신 것을
             <br />환영합니다.
@@ -28,7 +27,6 @@ export function LoginPage() {
       <section className="login-form-section">
         <div className="login-form-card">
           <div className="mobile-login-brand"><Brand /></div>
-          <span className="eyebrow">카카오 로그인</span>
           <h2>리그에 입장하기</h2>
           <p>로그인 후 리그에서 사용할 닉네임을 설정합니다.</p>
           <button

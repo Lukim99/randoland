@@ -75,7 +75,6 @@ export function StockLogoUploadDialog({
       >
         <header>
           <div>
-            <span className="eyebrow">내 상장 종목</span>
             <h2 id={titleId}>종목 로고 업로드</h2>
           </div>
           <button className="icon-button" type="button" onClick={onClose} disabled={busy} aria-label="창 닫기">

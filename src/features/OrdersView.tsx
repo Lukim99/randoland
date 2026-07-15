@@ -9,7 +9,7 @@ const orderTypeLabel: Record<OrderSide, string> = {
   buy: '매수',
   sell: '매도',
   short: '공매도',
-  cover: '공매도 청산',
+  cover: '청산',
 }
 
 function orderTone(side: OrderSide) {
@@ -51,7 +51,7 @@ export function OrdersView() {
 
         <section className="panel live-section">
           <div className="section-heading section-heading--compact orders-heading">
-            <div><span className="eyebrow">다음 정산</span><h2>체결 대기</h2></div>
+            <div><h2>체결 대기</h2></div>
             <span className="count-chip"><Clock3 size={14} /> {waitingOrders.length}건</span>
           </div>
           {waitingOrders.length > 0 ? (
@@ -80,7 +80,7 @@ export function OrdersView() {
 
         <section className="panel live-section">
           <div className="section-heading section-heading--compact orders-heading">
-            <div><span className="eyebrow">실제 체결 기준</span><h2>체결 기록</h2></div>
+            <div><h2>체결 기록</h2></div>
             <span className="count-chip"><CheckCircle2 size={14} /> {executedOrderCount}건</span>
           </div>
           {executedOrders.length > 0 ? (

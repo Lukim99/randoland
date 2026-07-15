@@ -59,7 +59,6 @@ export function FeaturePage({ kind }: FeaturePageProps) {
     <div className="feature-page">
       <header className="feature-header">
         <span className="feature-icon"><Icon size={28} /></span>
-        <span className="eyebrow">{page.eyebrow}</span>
         <h1>{page.title}</h1>
       </header>
       <div className="feature-layout feature-layout--live">

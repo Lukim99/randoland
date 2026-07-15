@@ -28,7 +28,6 @@ export function RankingView() {
       <section className="panel ranking-locked-card">
         <span><EyeOff size={27} /></span>
         <div>
-          <span className="eyebrow">다음 공개까지 비공개</span>
           <h2>첫 주간 순위를 집계하고 있습니다</h2>
           <p>순위는 과도한 눈치 싸움을 막기 위해 매주 일요일 오전 9시에만 새 스냅샷으로 공개됩니다.</p>
         </div>
@@ -49,7 +48,7 @@ export function RankingView() {
       {rankings.awards.length > 0 && (
         <section className="panel live-section award-section">
           <div className="section-heading section-heading--compact">
-            <div><span className="eyebrow">리그 종료 결과</span><h2>수상자와 칭호</h2></div>
+            <div><h2>수상자와 칭호</h2></div>
             <Trophy size={19} />
           </div>
           <div className="award-grid">
@@ -67,7 +66,7 @@ export function RankingView() {
         </section>
       )}
       <section className="panel live-section">
-        <div className="section-heading section-heading--compact"><div><span className="eyebrow">{rankings.isFinal ? '최종 스냅샷' : '주간 스냅샷'}</span><h2>{rankings.isFinal ? '최종 순위' : '공개 순위'}</h2></div><Award size={19} /></div>
+        <div className="section-heading section-heading--compact"><div><h2>{rankings.isFinal ? '최종 순위' : '공개 순위'}</h2></div><Award size={19} /></div>
         <div className="ranking-list">
           {rankings.rankings.map((entry) => (
             <article className={`ranking-row${entry.nickname === ownNickname ? ' is-me' : ''}`} key={`${entry.rank}-${entry.nickname}`}>

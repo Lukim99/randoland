@@ -10,7 +10,6 @@ import { useMarket } from '../market/useMarket'
 import type { DiscussionPost, StockSummary } from '../types/market'
 
 interface DiscussionComposerModalProps {
-  stockName: string
   title: string
   content: string
   message: string | null
@@ -22,7 +21,6 @@ interface DiscussionComposerModalProps {
 }
 
 function DiscussionComposerModal({
-  stockName,
   title,
   content,
   message,
@@ -73,7 +71,6 @@ function DiscussionComposerModal({
       >
         <header>
           <div>
-            <span className="eyebrow">{stockName} 토론방</span>
             <h2 id={titleId}>글쓰기</h2>
             <p id={descriptionId}>제목과 내용을 읽기 쉽게 작성해 주세요.</p>
           </div>
@@ -128,7 +125,6 @@ function DiscussionStockList({ stocks }: { stocks: StockSummary[] }) {
     <section className="panel discussion-stock-directory" aria-labelledby="discussion-stock-list-title">
       <div className="section-heading">
         <div>
-          <span className="eyebrow">전체 종목</span>
           <h2 id="discussion-stock-list-title">토론할 종목을 선택하세요</h2>
         </div>
         <span className="count-chip">{stocks.length}</span>
@@ -242,7 +238,6 @@ export function DiscussionPage() {
       <div className="discussion-page">
         <header className="discussion-page-header">
           <span className="feature-icon"><MessageSquareText size={28} /></span>
-          <span className="eyebrow">상장 종목 이야기</span>
           <h1>종목토론방</h1>
         </header>
         <section className="panel news-page-empty">
@@ -259,7 +254,6 @@ export function DiscussionPage() {
       <div className="discussion-page">
         <header className="discussion-page-header">
           <span className="feature-icon"><MessageSquareText size={28} /></span>
-          <span className="eyebrow">종목토론방</span>
           <h1>종목을 찾을 수 없습니다</h1>
         </header>
         <section className="panel discussion-empty">
@@ -276,7 +270,6 @@ export function DiscussionPage() {
         <>
           <header className="discussion-page-header">
             <span className="feature-icon"><MessageSquareText size={28} /></span>
-            <span className="eyebrow">상장 종목 이야기</span>
             <h1>종목토론방</h1>
           </header>
           <DiscussionStockList stocks={market.stocks} />
@@ -348,7 +341,6 @@ export function DiscussionPage() {
 
           {composerOpen && (
             <DiscussionComposerModal
-              stockName={selectedStock.name}
               title={title}
               content={content}
               message={formMessage}

@@ -80,13 +80,6 @@ export function DashboardPage() {
               : '운영 일정을 준비하고 있습니다.'}
           </p>
         </div>
-        <div className="settlement-badge" aria-label="다음 정산 시각">
-          <CalendarClock size={20} />
-          <span>
-            <small>일일 정산</small>
-            <strong>09:00 KST</strong>
-          </span>
-        </div>
       </section>
 
       {error && <p className="page-error" role="alert">{error}</p>}
@@ -114,7 +107,7 @@ export function DashboardPage() {
           <div>
             <small>완료 매매 사이클</small>
             <strong>{participant ? `${participant.completedTradeCycles}회` : '-'}</strong>
-            <span>매수·공매도 포지션 전량 청산</span>
+            <span>매수 / 공매도 포지션 전량 청산</span>
           </div>
         </article>
         <article className="stat-card">
@@ -135,7 +128,7 @@ export function DashboardPage() {
                 <div className="stock-title-block">
                   <StockLogo src={selectedStock.logoImageUrl} spriteIndex={selectedStock.logoSpriteIndex} size="lg" label={`${selectedStock.name} 종목 이미지`} />
                   <div>
-                    <span className="eyebrow">{selectedStock.ticker} · {selectedStock.theme}</span>
+                    <span className="eyebrow">{selectedStock.ticker}</span>
                     <h2>{selectedStock.name}</h2>
                   </div>
                 </div>
@@ -148,7 +141,6 @@ export function DashboardPage() {
               </div>
               <div className="chart-subnav">
                 <span className="is-active">일봉</span>
-                <span>1라운드 = 1일</span>
                 {latestCandle && (
                   <span className="ohlc-summary">
                     시 {formatPrice(latestCandle.open)} · 고 {formatPrice(latestCandle.high)} · 저{' '}
@@ -171,7 +163,6 @@ export function DashboardPage() {
           <section className="panel market-section">
             <div className="section-heading">
               <div>
-                <span className="eyebrow">상장 종목</span>
                 <h2>상장기업 현황</h2>
                 <p>종목을 선택하면 위 차트와 주문서가 함께 변경됩니다.</p>
               </div>
@@ -196,7 +187,6 @@ export function DashboardPage() {
       <section className="news-section">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">오늘의 시장 소식</span>
             <h2>란도일보</h2>
             <p>메인뉴스와 시장의 개별 소식을 한곳에서 확인합니다.</p>
           </div>
