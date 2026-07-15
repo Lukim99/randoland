@@ -16,13 +16,13 @@ import { CandlestickChart } from '../components/CandlestickChart'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
 import { MarketList } from '../components/MarketList'
 import { OrderPanel } from '../components/OrderPanel'
-import { SpriteIcon } from '../components/SpriteIcon'
+import { StockLogo } from '../components/StockLogo'
 import { useRoundClock } from '../hooks/useRoundClock'
 import { formatKstDateTime, formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 
 export function DashboardPage() {
-  const { market, myState, loading, refreshing, error, refresh } = useMarket()
+  const { market, myState, newsFeed, loading, refreshing, error, refresh } = useMarket()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const { nextSettlement, remaining, elapsed } = useRoundClock(market?.round?.settlesAt)
   const selectedStock = market?.stocks.find((stock) => stock.id === selectedId) ?? market?.stocks[0]
@@ -58,6 +58,7 @@ export function DashboardPage() {
     (order) => order.status === 'pending' || order.status === 'locked',
   ).length
   const latestCandle = selectedStock?.candles.at(-1)
+  const latestEdition = newsFeed?.editions[0]
 
   return (
     <div className="dashboard-page">
@@ -132,7 +133,7 @@ export function DashboardPage() {
             <section className="panel chart-panel">
               <div className="chart-panel__heading">
                 <div className="stock-title-block">
-                  <SpriteIcon kind="stock" index={selectedStock.logoSpriteIndex} size="lg" label={`${selectedStock.name} 종목 이미지`} />
+                  <StockLogo src={selectedStock.logoImageUrl} spriteIndex={selectedStock.logoSpriteIndex} size="lg" label={`${selectedStock.name} 종목 이미지`} />
                   <div>
                     <span className="eyebrow">{selectedStock.ticker} · {selectedStock.theme}</span>
                     <h2>{selectedStock.name}</h2>
@@ -196,30 +197,28 @@ export function DashboardPage() {
         <div className="section-heading">
           <div>
             <span className="eyebrow">오늘의 시장 소식</span>
-            <h2>AI 시장 뉴스</h2>
-            <p>새 라운드가 시작될 때 종목별 이야기와 함께 갱신됩니다.</p>
+            <h2>란도일보</h2>
+            <p>메인뉴스와 시장의 개별 소식을 한곳에서 확인합니다.</p>
           </div>
           <span className="news-time"><Newspaper size={15} /> 09:00 업데이트</span>
         </div>
         <div className="news-grid">
-          {market.news.length > 0 ? (
-            market.news.slice(0, 4).map((item, index) => (
-              <article className={index === 0 ? 'news-card news-card--lead' : 'news-card'} key={item.id}>
-                <div className="news-card__meta">
-                  <span>{item.stockName}</span>
-                  <time dateTime={item.publishedAt}>{formatKstDateTime(item.publishedAt)}</time>
-                </div>
-                <h3>{item.headline}</h3>
-                <p>{item.summary}</p>
-                <Link to={`/stock/${item.stockId}`}>
-                  종목 보기 <ArrowRight size={15} />
-                </Link>
-              </article>
-            ))
+          {latestEdition ? (
+            <article className="news-card news-card--lead dashboard-news-lead">
+              <div className="news-card__meta">
+                <span>메인뉴스</span>
+                <time dateTime={latestEdition.publishedAt}>{formatKstDateTime(latestEdition.publishedAt)}</time>
+              </div>
+              <h3>{latestEdition.mainHeadline}</h3>
+              <p>{latestEdition.mainSummary}</p>
+              <Link to="/news">
+                전체 뉴스 보기 <ArrowRight size={15} />
+              </Link>
+            </article>
           ) : (
             <div className="news-empty panel">
               <Newspaper size={24} />
-              <p>첫 라운드가 정산되면 AI 시장 뉴스가 게시됩니다.</p>
+              <p>다음 정산에서 첫 란도일보가 게시됩니다.</p>
             </div>
           )}
         </div>

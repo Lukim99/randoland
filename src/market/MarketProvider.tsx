@@ -4,10 +4,13 @@ import {
   cancelOrder as cancelOrderRequest,
   chooseLadderAction as chooseLadderActionRequest,
   claimAttendance as claimAttendanceRequest,
+  createDiscussionPost as createDiscussionPostRequest,
   getOrderCapacity as getOrderCapacityRequest,
   joinLeague,
+  loadDiscussionPosts as loadDiscussionPostsRequest,
   loadMarketSnapshot,
   loadMyState,
+  loadNewsFeed,
   loadRankings,
   placeOrder as placeOrderRequest,
   playLadder as playLadderRequest,
@@ -15,8 +18,9 @@ import {
   setStockLogo as setStockLogoRequest,
   submitListing as submitListingRequest,
   uploadProfileImage as uploadProfileImageRequest,
+  uploadStockLogo as uploadStockLogoRequest,
 } from '../services/market'
-import type { LadderChoice, ListingSubmission, MarketSnapshot, MyState, OrderSide, RankingsSnapshot } from '../types/market'
+import type { LadderChoice, ListingSubmission, MarketSnapshot, MyState, NewsFeed, OrderSide, RankingsSnapshot } from '../types/market'
 import { MarketContext, type MarketContextValue } from './market-context'
 
 const realtimeTables = [
@@ -25,6 +29,9 @@ const realtimeTables = [
   'randoland_stocks',
   'randoland_price_candles',
   'randoland_news',
+  'randoland_news_editions',
+  'randoland_news_briefs',
+  'randoland_discussion_posts',
   'randoland_participants',
   'randoland_orders',
   'randoland_positions',
@@ -60,6 +67,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
   const [market, setMarket] = useState<MarketSnapshot | null>(null)
   const [myState, setMyState] = useState<MyState | null>(null)
   const [rankings, setRankings] = useState<RankingsSnapshot | null>(null)
+  const [newsFeed, setNewsFeed] = useState<NewsFeed | null>(null)
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -77,11 +85,13 @@ export function MarketProvider({ children }: PropsWithChildren) {
       const nextMarket = await loadMarketSnapshot()
       let nextMyState: MyState | null = null
       let nextRankings: RankingsSnapshot | null = null
+      let nextNewsFeed: NewsFeed | null = null
 
       if (nextMarket.league) {
-        ;[nextMyState, nextRankings] = await Promise.all([
+        ;[nextMyState, nextRankings, nextNewsFeed] = await Promise.all([
           loadMyState(nextMarket.league.id),
           loadRankings(nextMarket.league.id),
+          loadNewsFeed(nextMarket.league.id),
         ])
       }
 
@@ -89,6 +99,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       setMarket(nextMarket)
       setMyState(nextMyState)
       setRankings(nextRankings)
+      setNewsFeed(nextNewsFeed)
     } catch (refreshError) {
       if (requestSequence.current !== requestId) return
       setError(refreshError instanceof Error ? refreshError.message : '시장 정보를 불러오지 못했습니다.')
@@ -183,9 +194,21 @@ export function MarketProvider({ children }: PropsWithChildren) {
     await refreshData(true)
   }, [refreshData])
 
-  const submitListing = useCallback(async (submission: ListingSubmission) => {
-    await submitListingRequest(requireLeagueId(), submission)
+  const submitListing = useCallback(async (submission: ListingSubmission, logoFile?: File | null) => {
+    const listing = await submitListingRequest(requireLeagueId(), submission)
+    let logoUploadError: unknown
+    if (logoFile) {
+      try {
+        await uploadStockLogoRequest(listing.id, null, logoFile)
+      } catch (error) {
+        logoUploadError = error
+      }
+    }
     await refreshData(true)
+    if (logoUploadError) {
+      const detail = logoUploadError instanceof Error ? logoUploadError.message : '알 수 없는 오류'
+      throw new Error(`종목은 상장되었지만 로고 업로드에 실패했습니다. 다시 업로드해 주세요. (${detail})`)
+    }
   }, [refreshData, requireLeagueId])
 
   const uploadProfileImage = useCallback(async (file: File) => {
@@ -199,6 +222,22 @@ export function MarketProvider({ children }: PropsWithChildren) {
     await setStockLogoRequest(stockId, logoSpriteIndex)
     await refreshData(true)
   }, [refreshData])
+
+  const uploadStockLogo = useCallback(async (stockId: string, file: File) => {
+    const currentLogoImagePath = market?.stocks.find((stock) => stock.id === stockId)?.logoImagePath ?? null
+    await uploadStockLogoRequest(stockId, currentLogoImagePath, file)
+    await refreshData(true)
+  }, [market?.stocks, refreshData])
+
+  const loadDiscussionPosts = useCallback(
+    (stockId: string) => loadDiscussionPostsRequest(stockId),
+    [],
+  )
+
+  const createDiscussionPost = useCallback(async (stockId: string, title: string, content: string) => {
+    const post = await createDiscussionPostRequest(stockId, title, content)
+    return post
+  }, [])
 
   const claimAttendance = useCallback(async () => {
     const result = await claimAttendanceRequest(requireLeagueId())
@@ -240,6 +279,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       market,
       myState,
       rankings,
+      newsFeed,
       loading,
       refreshing,
       error,
@@ -250,7 +290,10 @@ export function MarketProvider({ children }: PropsWithChildren) {
       cancelOrder,
       submitListing,
       uploadProfileImage,
+      uploadStockLogo,
       setStockLogo,
+      loadDiscussionPosts,
+      createDiscussionPost,
       claimAttendance,
       playLadder,
       chooseLadderAction,
@@ -270,10 +313,14 @@ export function MarketProvider({ children }: PropsWithChildren) {
       chooseLadderAction,
       playLadderSecond,
       rankings,
+      newsFeed,
       refresh,
       refreshing,
       uploadProfileImage,
+      uploadStockLogo,
       setStockLogo,
+      loadDiscussionPosts,
+      createDiscussionPost,
       submitListing,
     ],
   )

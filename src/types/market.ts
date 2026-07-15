@@ -28,6 +28,8 @@ export interface LeagueSummary {
   initialBalance: number
   timezone: string
   settlementHour: number
+  joinClosesAt: string | null
+  listingClosesAt: string | null
 }
 
 export interface RoundSummary {
@@ -43,6 +45,8 @@ export interface RoundSummary {
 export interface StockSummary {
   id: string
   logoSpriteIndex: number
+  logoImagePath: string | null
+  logoImageUrl: string | null
   ticker: string
   name: string
   description: string
@@ -78,6 +82,39 @@ export interface MarketSnapshot {
   round: RoundSummary | null
   stocks: StockSummary[]
   news: MarketNews[]
+}
+
+export interface NewsBrief {
+  id: string
+  headline: string
+  summary: string
+}
+
+export interface NewsEdition {
+  id: string
+  roundId: string
+  roundNumber: number
+  mainHeadline: string
+  mainSummary: string
+  mainBody: string
+  globalEventTitle: string | null
+  publishedAt: string
+  briefs: NewsBrief[]
+}
+
+export interface NewsFeed {
+  editions: NewsEdition[]
+}
+
+export interface DiscussionPost {
+  id: string
+  stockId: string
+  authorNickname: string
+  authorProfileImagePath: string | null
+  authorProfileImageUrl: string | null
+  title: string
+  content: string
+  createdAt: string
 }
 
 export interface ParticipantSummary {

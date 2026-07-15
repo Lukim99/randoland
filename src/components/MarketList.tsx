@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { formatPercent, formatPrice, movementClass } from '../lib/format'
 import type { StockSummary } from '../types/market'
 import { MiniCandles } from './MiniCandles'
-import { SpriteIcon } from './SpriteIcon'
+import { StockLogo } from './StockLogo'
 
 interface MarketListProps {
   stocks: StockSummary[]
@@ -23,7 +23,6 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
               <th className="align-right">현재가</th>
               <th className="align-right">등락률</th>
               <th>14R 차트</th>
-              <th>상장자</th>
               <th aria-label="상세" />
             </tr>
           </thead>
@@ -32,7 +31,7 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
               <tr key={stock.id} className={stock.id === selectedId ? 'is-selected' : undefined}>
                 <td>
                   <button className="stock-identity" type="button" onClick={() => onSelect?.(stock)}>
-                    <SpriteIcon kind="stock" index={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
+                    <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                     <span>
                       <strong>{stock.name}</strong>
                       <small>{stock.ticker}</small>
@@ -50,9 +49,6 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
                   <MiniCandles candles={stock.candles} label={stock.name} />
                 </td>
                 <td>
-                  <span className="owner-code">{stock.owner}</span>
-                </td>
-                <td>
                   <Link className="row-link" to={`/stock/${stock.id}`} aria-label={`${stock.name} 상세 보기`}>
                     <ArrowUpRight size={17} />
                   </Link>
@@ -68,7 +64,7 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
           <article key={stock.id} className={`mobile-stock-card${stock.id === selectedId ? ' is-selected' : ''}`}>
             <button className="mobile-stock-card__main" type="button" onClick={() => onSelect?.(stock)}>
               <span className="stock-identity">
-                <SpriteIcon kind="stock" index={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
+                <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                 <span>
                   <strong>{stock.name}</strong>
                   <small>{stock.ticker} · {stock.theme}</small>

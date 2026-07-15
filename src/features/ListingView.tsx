@@ -1,7 +1,8 @@
-import { Building2, FileText, ImageIcon, Layers3 } from 'lucide-react'
-import { useState, type FormEvent } from 'react'
-import { SpriteIcon } from '../components/SpriteIcon'
+import { Building2, Clock3, FileText, ImageIcon, Layers3, Upload } from 'lucide-react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { SpritePickerDialog } from '../components/SpritePickerDialog'
+import { StockLogo } from '../components/StockLogo'
+import { StockLogoUploadDialog } from '../components/StockLogoUploadDialog'
 import { formatPrice } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import { ParticipantGate } from './ParticipantGate'
@@ -9,7 +10,7 @@ import { ParticipantGate } from './ParticipantGate'
 const initialStories = ['', '', '', '', '']
 
 export function ListingView() {
-  const { market, myState, submitListing, setStockLogo } = useMarket()
+  const { market, myState, submitListing, setStockLogo, uploadStockLogo } = useMarket()
   const listing = myState?.listing
   const listingStock = listing ? market?.stocks.find((stock) => stock.id === listing.id) : null
   const [ticker, setTicker] = useState('')
@@ -19,11 +20,27 @@ export function ListingView() {
   const [description, setDescription] = useState('')
   const [stories, setStories] = useState(initialStories)
   const [logoSpriteIndex, setLogoSpriteIndex] = useState(0)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null)
   const [spritePickerOpen, setSpritePickerOpen] = useState(false)
+  const [logoUploadOpen, setLogoUploadOpen] = useState(false)
   const [spriteSaving, setSpriteSaving] = useState(false)
+  const [logoSaving, setLogoSaving] = useState(false)
   const [spriteError, setSpriteError] = useState<string | null>(null)
+  const [logoError, setLogoError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!logoFile) {
+      setLogoPreviewUrl(null)
+      return undefined
+    }
+
+    const nextPreviewUrl = URL.createObjectURL(logoFile)
+    setLogoPreviewUrl(nextPreviewUrl)
+    return () => URL.revokeObjectURL(nextPreviewUrl)
+  }, [logoFile])
 
   function updateStory(index: number, value: string) {
     setStories((current) => current.map((story, storyIndex) => storyIndex === index ? value : story))
@@ -71,7 +88,7 @@ export function ListingView() {
         description: description.trim(),
         theme: theme.trim(),
         weeklyStories: submittedStories,
-      })
+      }, logoFile)
       setMessage('종목이 상장되었습니다.')
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '종목 상장에 실패했습니다.')
@@ -100,7 +117,32 @@ export function ListingView() {
     }
   }
 
+  async function handleUploadConfirm(file: File) {
+    if (!listing) {
+      setLogoFile(file)
+      setLogoUploadOpen(false)
+      return
+    }
+
+    setLogoSaving(true)
+    setLogoError(null)
+    try {
+      await uploadStockLogo(listing.id, file)
+      setMessage('종목 로고가 변경되었습니다.')
+      setLogoUploadOpen(false)
+    } catch (error) {
+      setLogoError(error instanceof Error ? error.message : '종목 로고 변경에 실패했습니다.')
+    } finally {
+      setLogoSaving(false)
+    }
+  }
+
   const currentLogoSpriteIndex = listingStock?.logoSpriteIndex ?? logoSpriteIndex
+  const currentLogoImageUrl = listingStock?.logoImageUrl ?? logoPreviewUrl
+  const listingClosed = Boolean(
+    market?.league?.listingClosesAt
+    && new Date(market.serverTime).getTime() >= new Date(market.league.listingClosesAt).getTime(),
+  )
 
   return (
     <ParticipantGate>
@@ -108,21 +150,33 @@ export function ListingView() {
         {listing ? (
           <div className="feature-stack">
             <section className="panel listed-stock-card">
-              <SpriteIcon kind="stock" index={currentLogoSpriteIndex} size="xl" className="listed-stock-card__mark" label={`${listing.name} 종목 이미지`} />
+              <StockLogo src={currentLogoImageUrl} spriteIndex={currentLogoSpriteIndex} size="xl" className="listed-stock-card__mark" label={`${listing.name} 종목 이미지`} />
               <div>
                 <span className="eyebrow">{listing.ticker} · 상장 완료</span>
                 <h2>{listing.name}</h2>
                 <p>{listing.description}</p>
-                <button
-                  className="inline-image-button"
-                  type="button"
-                  onClick={() => {
-                    setSpriteError(null)
-                    setSpritePickerOpen(true)
-                  }}
-                >
-                  <ImageIcon size={14} /> 종목 이미지 변경
-                </button>
+                <div className="listed-stock-card__actions">
+                  <button
+                    className="inline-image-button"
+                    type="button"
+                    onClick={() => {
+                      setLogoError(null)
+                      setLogoUploadOpen(true)
+                    }}
+                  >
+                    <Upload size={14} /> 로고 업로드
+                  </button>
+                  <button
+                    className="inline-image-button"
+                    type="button"
+                    onClick={() => {
+                      setSpriteError(null)
+                      setSpritePickerOpen(true)
+                    }}
+                  >
+                    <ImageIcon size={14} /> 기본 이미지 선택
+                  </button>
+                </div>
               </div>
               <dl>
                 <div><dt>현재가</dt><dd>{formatPrice(listing.currentPrice)} RP</dd></div>
@@ -141,6 +195,13 @@ export function ListingView() {
             </section>
             <p className="feature-footnote">참가자당 한 종목만 상장할 수 있으며 본인 종목은 주문할 수 없습니다.</p>
           </div>
+        ) : listingClosed ? (
+          <section className="panel listing-closed-state">
+            <Clock3 size={28} />
+            <span className="eyebrow">신규 상장 마감</span>
+            <h2>상장 가능 기간이 종료되었습니다</h2>
+            <p>리그 시작 후 첫 주까지만 종목을 상장할 수 있습니다.</p>
+          </section>
         ) : (
           <form className="panel listing-form" onSubmit={(event) => void handleSubmit(event)}>
             <div className="section-heading section-heading--compact">
@@ -148,18 +209,32 @@ export function ListingView() {
               <Building2 size={19} />
             </div>
 
-            <div className="sprite-field">
-              <SpriteIcon kind="stock" index={logoSpriteIndex} size="xl" label="선택한 종목 이미지" />
-              <div><strong>종목 이미지</strong><span>종목을 구분할 심볼을 선택합니다.</span></div>
-              <button
-                type="button"
-                onClick={() => {
-                  setSpriteError(null)
-                  setSpritePickerOpen(true)
-                }}
-              >
-                <ImageIcon size={14} /> 이미지 선택
-              </button>
+            <div className="sprite-field stock-logo-field">
+              <StockLogo src={logoPreviewUrl} spriteIndex={logoSpriteIndex} size="xl" label="선택한 종목 이미지" />
+              <div>
+                <strong>종목 로고</strong>
+                <span>{logoFile ? logoFile.name : '직접 업로드하거나 기본 이미지를 선택합니다.'}</span>
+              </div>
+              <div className="stock-logo-actions">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setLogoError(null)
+                    setLogoUploadOpen(true)
+                  }}
+                >
+                  <Upload size={14} /> 파일 업로드
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSpriteError(null)
+                    setSpritePickerOpen(true)
+                  }}
+                >
+                  <ImageIcon size={14} /> 기본 이미지
+                </button>
+              </div>
             </div>
 
             <div className="form-grid form-grid--three">
@@ -193,6 +268,17 @@ export function ListingView() {
             error={spriteError}
             onClose={() => setSpritePickerOpen(false)}
             onConfirm={(index) => void handleLogoConfirm(index)}
+          />
+        )}
+
+        {logoUploadOpen && (
+          <StockLogoUploadDialog
+            currentImageUrl={currentLogoImageUrl}
+            fallbackSpriteIndex={currentLogoSpriteIndex}
+            busy={logoSaving}
+            error={logoError}
+            onClose={() => setLogoUploadOpen(false)}
+            onConfirm={(file) => void handleUploadConfirm(file)}
           />
         )}
       </>

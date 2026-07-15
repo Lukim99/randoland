@@ -1,18 +1,22 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { getProfileImageExtension, validateProfileImageFile } from '../lib/profile-image'
+import { getStockLogoExtension, validateStockLogoFile } from '../lib/stock-logo'
 import { supabase } from '../lib/supabase'
 import type {
+  DiscussionPost,
   LadderChoice,
   LadderResult,
   ListingSubmission,
   MarketSnapshot,
   MyState,
+  NewsFeed,
   OrderCapacity,
   OrderSide,
   RankingsSnapshot,
 } from '../types/market'
 
 const PROFILE_IMAGE_BUCKET = 'randoland-profile-images'
+const STOCK_LOGO_BUCKET = 'randoland-stock-logos'
 
 function requireSupabase() {
   if (!supabase) {
@@ -26,6 +30,8 @@ const errorTranslations: Array<[string, string]> = [
   ['Authentication is required', '로그인이 필요합니다.'],
   ['Join the league before placing an order', '먼저 리그에 참가해 주세요.'],
   ['League is not open for participation', '현재 참가할 수 있는 리그가 아닙니다.'],
+  ['League participation window has closed', '리그 참가 기간이 종료되었습니다.'],
+  ['Stock listing window has closed', '신규 상장 기간이 종료되었습니다.'],
   ['This account is banned from Randoland participation', '운영 정책 위반으로 이후 리그 참가가 제한된 계정입니다.'],
   ['The stock is not available for trading', '현재 거래할 수 없는 종목입니다.'],
   ['A participant cannot trade their own listed stock', '본인이 상장한 종목은 매매할 수 없습니다.'],
@@ -66,6 +72,50 @@ const errorTranslations: Array<[string, string]> = [
   ['Profile sprite index must be between', '프로필 이미지를 다시 선택해 주세요.'],
   ['Stock logo sprite index must be between', '종목 이미지를 다시 선택해 주세요.'],
   ['Only the listing owner can select its stock logo', '본인이 상장한 종목 이미지만 변경할 수 있습니다.'],
+  ['Only the listing owner can upload its stock logo', '본인이 상장한 종목 로고만 변경할 수 있습니다.'],
+  ['Stock logo path is invalid', '종목 로고 경로를 확인하지 못했습니다. 다시 업로드해 주세요.'],
+  ['Uploaded stock logo was not found', '업로드한 종목 로고를 확인하지 못했습니다.'],
+  ['Join the league before writing a discussion post', '리그 참가 후 게시글을 작성할 수 있습니다.'],
+  ['Discussion title must contain', '제목은 1~80자로 입력해 주세요.'],
+  ['Discussion content must contain', '내용은 1~2,000자로 입력해 주세요.'],
+  ['Randoland administrator access is required', '리그 관리자 권한이 필요합니다.'],
+  ['Another Randoland league is already operating', '현재 운영 중인 리그를 종료하거나 중단한 뒤 새 리그를 개최할 수 있습니다.'],
+  ['League start date cannot be in the past', '리그 시작일은 오늘보다 이전일 수 없습니다.'],
+  ['League name must contain', '리그명은 2자 이상 60자 이하로 입력해 주세요.'],
+  ['League slug must use', '주소 식별자는 영문 소문자, 숫자, 하이픈 3~50자로 입력해 주세요.'],
+  ['League dates must include', '종료일은 시작일보다 늦어야 합니다.'],
+  ['League stop reason must contain', '리그 중단 사유는 5자 이상 500자 이하로 입력해 주세요.'],
+  ['Only an operating league can be stopped', '현재 운영 중인 리그만 중단할 수 있습니다.'],
+  ['League cannot be stopped while settlement is running', '정산이 진행 중입니다. 정산 완료 후 리그를 중단해 주세요.'],
+  ['A disqualification reason must contain', '제재 사유는 5자 이상 500자 이하로 입력해 주세요.'],
+  ['Participant is already disqualified', '이미 제재된 참가자입니다.'],
+  ['A revocation reason must contain', '제한 해제 사유는 5자 이상 500자 이하로 입력해 주세요.'],
+  ['An active ban was not found', '해제할 이후 리그 참가 제한이 없습니다.'],
+  ['Event title must contain', '이벤트 제목은 5자 이상 140자 이하로 입력해 주세요.'],
+  ['Event scenario must contain', '이벤트 시나리오는 20자 이상 6,000자 이하로 입력해 주세요.'],
+  ['Event intensity must be', '이벤트 영향 강도는 0부터 1 사이여야 합니다.'],
+  ['Only an operating league can receive a new stock', '운영 또는 참가 접수 중인 리그에만 종목을 상장할 수 있습니다.'],
+  ['Stock name must contain', '종목명은 2자 이상 40자 이하로 입력해 주세요.'],
+  ['Initial price must be', '초기 가격은 1 RP 이상의 정수로 입력해 주세요.'],
+  ['Exactly five weekly stories are required', '주차별 이야기를 5주차까지 모두 입력해 주세요.'],
+  ['Stock removal reason must contain', '종목 제거 사유는 5자 이상 500자 이하로 입력해 주세요.'],
+  ['Stock with an open position cannot be removed', '보유 또는 공매도 포지션이 남아 있어 이 종목을 제거할 수 없습니다.'],
+  ['Stock is already removed', '이미 시장에서 제거된 종목입니다.'],
+  ['Manual settlement league was not found', '수동 정산 대상 리그를 찾지 못했습니다.'],
+  ['Manual settlement requires an active league', '진행 중인 리그만 수동 정산할 수 있습니다.'],
+  ['A manual settlement request key is required', '수동 정산 요청을 식별하지 못했습니다. 다시 시도해 주세요.'],
+  ['Manual settlement payload is invalid', '뉴스 또는 가격 입력 형식이 올바르지 않습니다.'],
+  ['Manual settlement request key was reused with different content', '같은 정산 요청의 내용이 달라졌습니다. 입력을 다시 확인해 주세요.'],
+  ['Manual settlement round was not found', '수동 정산 대상 라운드를 찾지 못했습니다.'],
+  ['This round has already been settled', '이미 정산이 완료된 라운드입니다.'],
+  ['Settlement is already running', '자동 정산이 진행 중입니다. 잠시 후 상태를 다시 확인해 주세요.'],
+  ['This round is not available for manual settlement', '현재 라운드는 수동 정산할 수 없는 상태입니다.'],
+  ['AI settlement must contain exactly one item for every active stock', '모든 활성 종목의 등락률을 빠짐없이 입력해 주세요.'],
+  ['Main article text is missing or outside the allowed length', '메인뉴스 제목·요약·본문의 입력 길이를 확인해 주세요.'],
+  ['News brief text is missing or outside the allowed length', '개별뉴스 제목과 요약의 입력 길이를 확인해 주세요.'],
+  ['Each news brief must contain affected stock IDs', '각 개별뉴스에 영향 종목을 선택해 주세요.'],
+  ['News brief affected stock IDs are invalid', '개별뉴스의 영향 종목 선택을 다시 확인해 주세요.'],
+  ['News briefs must not expose an affected stock name or ticker', '개별뉴스 본문에서 영향 종목명과 티커를 직접 언급할 수 없습니다.'],
 ]
 
 export function readableSupabaseError(error: PostgrestError | Error | string): string {
@@ -88,24 +138,49 @@ export async function loadMarketSnapshot(leagueId?: string | null): Promise<Mark
   const snapshot = data as unknown as MarketSnapshot
   const stockIds = (snapshot.stocks ?? []).map((stock) => stock.id)
   const spriteIndexByStockId = new Map<string, number>()
+  const logoImagePathByStockId = new Map<string, string | null>()
 
   if (stockIds.length > 0) {
     const { data: spriteRows, error: spriteError } = await client
       .from('randoland_stocks')
-      .select('id, logo_sprite_index')
+      .select('id, logo_sprite_index, logo_image_path')
       .in('id', stockIds)
     throwIfError(spriteError)
 
     spriteRows?.forEach((row) => {
       spriteIndexByStockId.set(row.id, row.logo_sprite_index)
+      logoImagePathByStockId.set(row.id, row.logo_image_path)
     })
+  }
+
+  let joinClosesAt: string | null = null
+  let listingClosesAt: string | null = null
+  if (snapshot.league?.id) {
+    const { data: leagueWindows, error: leagueWindowsError } = await client
+      .from('randoland_leagues')
+      .select('join_closes_at, listing_closes_at')
+      .eq('id', snapshot.league.id)
+      .single()
+    throwIfError(leagueWindowsError)
+    if (!leagueWindows) throw new Error('리그 참가 기간 정보를 불러오지 못했습니다.')
+    joinClosesAt = leagueWindows.join_closes_at
+    listingClosesAt = leagueWindows.listing_closes_at
   }
 
   return {
     ...snapshot,
+    league: snapshot.league ? {
+      ...snapshot.league,
+      joinClosesAt,
+      listingClosesAt,
+    } : null,
     stocks: (snapshot.stocks ?? []).map((stock) => ({
       ...stock,
       logoSpriteIndex: spriteIndexByStockId.get(stock.id) ?? 0,
+      logoImagePath: logoImagePathByStockId.get(stock.id) ?? null,
+      logoImageUrl: logoImagePathByStockId.get(stock.id)
+        ? client.storage.from(STOCK_LOGO_BUCKET).getPublicUrl(logoImagePathByStockId.get(stock.id)!).data.publicUrl
+        : null,
       owner: stock.listedBy ?? stock.owner ?? (stock.isBaseStock ? '기본 상장' : '상장자 비공개'),
       candles: (stock.candles ?? []).map((candle) => ({
         ...candle,
@@ -113,6 +188,22 @@ export async function loadMarketSnapshot(leagueId?: string | null): Promise<Mark
       })),
     })),
     news: snapshot.news ?? [],
+  }
+}
+
+export async function loadNewsFeed(leagueId: string): Promise<NewsFeed> {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_get_news_feed', {
+    p_league_id: leagueId,
+  })
+  throwIfError(error)
+
+  const feed = data as unknown as NewsFeed
+  return {
+    editions: (feed.editions ?? []).map((edition) => ({
+      ...edition,
+      briefs: edition.briefs ?? [],
+    })),
   }
 }
 
@@ -281,7 +372,7 @@ export async function submitListing(leagueId: string, submission: ListingSubmiss
     p_weekly_stories: submission.weeklyStories,
   })
   throwIfError(error)
-  return data
+  return data as unknown as { id: string }
 }
 
 export async function uploadProfileImage(
@@ -338,6 +429,84 @@ export async function setStockLogo(stockId: string, logoSpriteIndex: number) {
   })
   throwIfError(error)
   return data
+}
+
+export async function uploadStockLogo(
+  stockId: string,
+  currentLogoImagePath: string | null,
+  file: File,
+) {
+  const client = requireSupabase()
+  const validationError = validateStockLogoFile(file)
+  if (validationError) throw new Error(validationError)
+
+  const { data: authData, error: authError } = await client.auth.getUser()
+  if (authError) throw new Error(authError.message)
+  if (!authData.user) throw new Error('로그인이 필요합니다.')
+
+  const imageId = globalThis.crypto?.randomUUID?.()
+  if (!imageId) throw new Error('이 브라우저에서는 이미지 업로드를 지원하지 않습니다.')
+
+  const extension = getStockLogoExtension(file)
+  const logoImagePath = `${authData.user.id}/stock-${imageId}.${extension}`
+  const bucket = client.storage.from(STOCK_LOGO_BUCKET)
+  const { error: uploadError } = await bucket.upload(logoImagePath, file, {
+    cacheControl: '31536000',
+    contentType: file.type,
+    upsert: false,
+  })
+  if (uploadError) throw new Error(uploadError.message)
+
+  const { data, error: updateError } = await client.rpc('randoland_set_stock_logo_image', {
+    p_stock_id: stockId,
+    p_logo_image_path: logoImagePath,
+  })
+
+  if (updateError) {
+    await bucket.remove([logoImagePath])
+    throw new Error(readableSupabaseError(updateError))
+  }
+
+  if (currentLogoImagePath && currentLogoImagePath !== logoImagePath) {
+    await bucket.remove([currentLogoImagePath])
+  }
+
+  return data
+}
+
+export async function loadDiscussionPosts(stockId: string): Promise<DiscussionPost[]> {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_get_discussion_posts', {
+    p_stock_id: stockId,
+    p_limit: 100,
+  })
+  throwIfError(error)
+
+  const payload = data as unknown as { posts?: Array<Omit<DiscussionPost, 'authorProfileImageUrl'>> }
+  return (payload.posts ?? []).map((post) => {
+    const authorProfileImagePath = post.authorProfileImagePath ?? null
+    const authorProfileImageUrl = authorProfileImagePath
+      ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
+      : null
+
+    return { ...post, authorProfileImagePath, authorProfileImageUrl }
+  })
+}
+
+export async function createDiscussionPost(stockId: string, title: string, content: string) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_create_discussion_post', {
+    p_stock_id: stockId,
+    p_title: title,
+    p_content: content,
+  })
+  throwIfError(error)
+  const post = data as unknown as Omit<DiscussionPost, 'authorProfileImageUrl'>
+  const authorProfileImagePath = post.authorProfileImagePath ?? null
+  const authorProfileImageUrl = authorProfileImagePath
+    ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
+    : null
+  return { ...post, authorProfileImagePath, authorProfileImageUrl }
 }
 
 export async function claimAttendance(leagueId: string) {

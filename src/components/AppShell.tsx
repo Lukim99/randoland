@@ -1,19 +1,24 @@
 import {
   Building2,
   ChevronDown,
+  ChevronRight,
   ClipboardList,
   Gift,
   ImageIcon,
   LayoutDashboard,
   LogOut,
   Menu,
+  MessageSquareText,
+  MoreHorizontal,
+  Newspaper,
   RefreshCw,
+  ShieldCheck,
   Trophy,
   WalletCards,
   X,
 } from 'lucide-react'
-import { useState } from 'react'
-import { NavLink, Outlet } from 'react-router'
+import { useEffect, useState } from 'react'
+import { NavLink, Outlet, useLocation } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { useMarket } from '../market/useMarket'
 import { Brand } from './Brand'
@@ -22,20 +27,28 @@ import { ProfileImageUploadDialog } from './ProfileImageUploadDialog'
 
 const navigation = [
   { to: '/', label: '거래소', icon: LayoutDashboard, end: true },
+  { to: '/news', label: '뉴스', icon: Newspaper },
   { to: '/portfolio', label: '내 자산', icon: WalletCards },
   { to: '/orders', label: '주문 내역', icon: ClipboardList },
   { to: '/listing', label: '종목 상장', icon: Building2 },
+  { to: '/discussion', label: '종목토론방', icon: MessageSquareText },
   { to: '/ranking', label: '주간 순위', icon: Trophy },
   { to: '/rewards', label: '리워드', icon: Gift },
 ]
+const adminNavigation = { to: '/admin', label: '리그 관리', icon: ShieldCheck, end: false }
 
 export function AppShell() {
-  const { signOut } = useAuth()
+  const { signOut, isAdmin, adminRole } = useAuth()
   const { market, myState, refreshing, refresh, uploadProfileImage } = useMarket()
+  const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [mobileMoreOpen, setMobileMoreOpen] = useState(false)
   const [profileUploadOpen, setProfileUploadOpen] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
+  const visibleNavigation = isAdmin ? [...navigation, adminNavigation] : navigation
+  const mobilePrimaryNavigation = visibleNavigation.filter(({ to }) => ['/', '/news', '/portfolio', '/discussion'].includes(to))
+  const mobileMoreNavigation = visibleNavigation.filter(({ to }) => ['/orders', '/listing', '/ranking', '/rewards', '/admin'].includes(to))
   const nickname = myState?.participant?.nickname ?? '리그 참가 전'
   const profileImageUrl = myState?.participant?.profileImageUrl
   const marketStatus = market?.league?.status === 'active'
@@ -45,6 +58,22 @@ export function AppShell() {
       : market?.league?.status === 'finished'
         ? '리그 종료'
         : '리그 준비 중'
+  const moreActive = mobileMoreNavigation.some(({ to }) => location.pathname === to || location.pathname.startsWith(`${to}/`))
+
+  useEffect(() => {
+    setMobileMoreOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!mobileMoreOpen) return undefined
+
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === 'Escape') setMobileMoreOpen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [mobileMoreOpen])
 
   async function handleProfileConfirm(file: File) {
     setProfileSaving(true)
@@ -68,7 +97,7 @@ export function AppShell() {
       <aside className="desktop-sidebar">
         <Brand />
         <nav className="sidebar-nav" aria-label="주요 메뉴">
-          {navigation.map(({ to, label, icon: Icon, end }) => (
+          {visibleNavigation.map(({ to, label, icon: Icon, end }) => (
             <NavLink key={to} to={to} end={end} className={({ isActive }) => (isActive ? 'is-active' : '')}>
               <Icon aria-hidden="true" size={19} />
               <span>{label}</span>
@@ -128,7 +157,13 @@ export function AppShell() {
                 <ProfileImage src={profileImageUrl} size="lg" />
                 <span>
                   <strong>{nickname}</strong>
-                  <small>{myState?.joined ? '리그 참가 중' : '카카오 로그인 완료'}</small>
+                  <small>
+                    {isAdmin
+                      ? `리그 관리자 · ${adminRole === 'owner' ? '소유자' : '운영자'}`
+                      : myState?.joined
+                        ? '리그 참가 중'
+                        : '카카오 로그인 완료'}
+                  </small>
                 </span>
               </div>
               {myState?.joined && (
@@ -156,13 +191,48 @@ export function AppShell() {
       </div>
 
       <nav className="mobile-bottom-nav" aria-label="모바일 주요 메뉴">
-        {navigation.map(({ to, label, icon: Icon, end }) => (
+        {mobilePrimaryNavigation.map(({ to, label, icon: Icon, end }) => (
           <NavLink key={to} to={to} end={end} className={({ isActive }) => (isActive ? 'is-active' : '')}>
             <Icon aria-hidden="true" size={20} />
             <span>{label}</span>
           </NavLink>
         ))}
+        <button
+          className={moreActive || mobileMoreOpen ? 'is-active' : undefined}
+          type="button"
+          aria-expanded={mobileMoreOpen}
+          aria-controls="mobile-more-menu"
+          onClick={() => {
+            setMenuOpen(false)
+            setMobileMoreOpen((open) => !open)
+          }}
+        >
+          <MoreHorizontal aria-hidden="true" size={20} />
+          <span>더보기</span>
+        </button>
       </nav>
+
+      {mobileMoreOpen && (
+        <div
+          className="mobile-more-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setMobileMoreOpen(false)
+          }}
+        >
+          <section id="mobile-more-menu" className="mobile-more-menu" role="dialog" aria-modal="true" aria-label="더보기 메뉴">
+            <header><span className="eyebrow">란도랜드2</span><h2>더보기</h2></header>
+            <nav aria-label="추가 메뉴">
+              {mobileMoreNavigation.map(({ to, label, icon: Icon }) => (
+                <NavLink key={to} to={to} className={({ isActive }) => (isActive ? 'is-active' : '')}>
+                  <Icon aria-hidden="true" size={19} />
+                  <span>{label}</span>
+                  <ChevronRight aria-hidden="true" className="mobile-more-menu__arrow" size={15} />
+                </NavLink>
+              ))}
+            </nav>
+          </section>
+        </div>
+      )}
 
       {profileUploadOpen && (
         <ProfileImageUploadDialog
