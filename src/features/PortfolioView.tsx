@@ -9,7 +9,7 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
-import { SpriteIcon } from '../components/SpriteIcon'
+import { StockLogo } from '../components/StockLogo'
 import { formatKstDateTime, formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import { ParticipantGate } from './ParticipantGate'
@@ -146,10 +146,10 @@ export function PortfolioView() {
                         <thead><tr><th>종목</th><th>구분</th><th>수량</th><th>평균가</th><th>현재가</th><th>매입·진입금액</th><th>평가·상환금액</th><th>평가손익</th><th>수익률</th><th>레버리지·부채</th></tr></thead>
                         <tbody>
                           {holdings.map((holding) => {
-                            const logoSpriteIndex = market?.stocks.find((stock) => stock.id === holding.stockId)?.logoSpriteIndex ?? 0
+                            const stock = market?.stocks.find((item) => item.id === holding.stockId)
                             return (
                               <tr key={holding.key}>
-                                <td><span className="holding-stock"><SpriteIcon kind="stock" index={logoSpriteIndex} size="sm" label="" /><span><strong>{holding.name}</strong><small>{holding.ticker} · {holding.holdingRounds}라운드</small></span></span></td>
+                                <td><span className="holding-stock"><StockLogo src={stock?.logoImageUrl} spriteIndex={stock?.logoSpriteIndex ?? 0} size="sm" label="" /><span><strong>{holding.name}</strong><small>{holding.ticker} · {holding.holdingRounds}라운드</small></span></span></td>
                                 <td><span className={`position-type ${holding.type}`}>{holding.type === 'long' ? '매수' : '공매도'}</span></td>
                                 <td>{formatPrice(holding.quantity)}주</td>
                                 <td>{formatPrice(holding.averagePrice)}</td>
@@ -167,11 +167,11 @@ export function PortfolioView() {
                     </div>
                     <div className="holding-mobile-list">
                       {holdings.map((holding) => {
-                        const logoSpriteIndex = market?.stocks.find((stock) => stock.id === holding.stockId)?.logoSpriteIndex ?? 0
+                        const stock = market?.stocks.find((item) => item.id === holding.stockId)
                         return (
                           <article className="holding-mobile-card" key={holding.key}>
                             <div className="holding-mobile-card__head">
-                              <span className="holding-stock"><SpriteIcon kind="stock" index={logoSpriteIndex} size="sm" label="" /><span><strong>{holding.name}</strong><small>{holding.ticker} · {holding.quantity}주</small></span></span>
+                              <span className="holding-stock"><StockLogo src={stock?.logoImageUrl} spriteIndex={stock?.logoSpriteIndex ?? 0} size="sm" label="" /><span><strong>{holding.name}</strong><small>{holding.ticker} · {holding.quantity}주</small></span></span>
                               <span className={`position-type ${holding.type}`}>{holding.type === 'long' ? '매수' : '공매도'}</span>
                             </div>
                             <dl>

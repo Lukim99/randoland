@@ -67,7 +67,6 @@ export function NewsPage() {
                 <article className="panel brief-news-item" key={brief.id}>
                   <span className="brief-news-item__dot" aria-hidden="true" />
                   <div>
-                    <span className="brief-news-item__stocks">{brief.affectedStockNames.join(' · ')}</span>
                     <h3>{brief.headline}</h3>
                     <p>{brief.summary}</p>
                   </div>
