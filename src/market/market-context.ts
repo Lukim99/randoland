@@ -32,7 +32,7 @@ export interface MarketContextValue {
   ) => Promise<void>
   cancelOrder: (orderId: string) => Promise<void>
   submitListing: (submission: ListingSubmission) => Promise<void>
-  setProfileSprite: (profileSpriteIndex: number) => Promise<void>
+  uploadProfileImage: (file: File) => Promise<void>
   setStockLogo: (stockId: string, logoSpriteIndex: number) => Promise<void>
   claimAttendance: () => Promise<{ date: string; awarded: boolean; tokens: number }>
   playLadder: (choice: LadderChoice) => Promise<LadderResult>

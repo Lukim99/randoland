@@ -12,9 +12,9 @@ import {
   placeOrder as placeOrderRequest,
   playLadder as playLadderRequest,
   playLadderSecond as playLadderSecondRequest,
-  setProfileSprite as setProfileSpriteRequest,
   setStockLogo as setStockLogoRequest,
   submitListing as submitListingRequest,
+  uploadProfileImage as uploadProfileImageRequest,
 } from '../services/market'
 import type { LadderChoice, ListingSubmission, MarketSnapshot, MyState, OrderSide, RankingsSnapshot } from '../types/market'
 import { MarketContext, type MarketContextValue } from './market-context'
@@ -188,10 +188,12 @@ export function MarketProvider({ children }: PropsWithChildren) {
     await refreshData(true)
   }, [refreshData, requireLeagueId])
 
-  const setProfileSprite = useCallback(async (profileSpriteIndex: number) => {
-    await setProfileSpriteRequest(requireLeagueId(), profileSpriteIndex)
+  const uploadProfileImage = useCallback(async (file: File) => {
+    const participant = myState?.participant
+    if (!participant) throw new Error('리그 참가 후 프로필 이미지를 변경할 수 있습니다.')
+    await uploadProfileImageRequest(participant.id, participant.profileImagePath, file)
     await refreshData(true)
-  }, [refreshData, requireLeagueId])
+  }, [myState?.participant, refreshData])
 
   const setStockLogo = useCallback(async (stockId: string, logoSpriteIndex: number) => {
     await setStockLogoRequest(stockId, logoSpriteIndex)
@@ -247,7 +249,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       placeOrder,
       cancelOrder,
       submitListing,
-      setProfileSprite,
+      uploadProfileImage,
       setStockLogo,
       claimAttendance,
       playLadder,
@@ -270,7 +272,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       rankings,
       refresh,
       refreshing,
-      setProfileSprite,
+      uploadProfileImage,
       setStockLogo,
       submitListing,
     ],

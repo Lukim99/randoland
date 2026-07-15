@@ -27,7 +27,7 @@ export function SpritePickerDialog({
 }: SpritePickerDialogProps) {
   const [selectedIndex, setSelectedIndex] = useState(value)
   const titleId = useId()
-  const kindLabel = kind === 'profile' ? '프로필 이미지' : '종목 이미지'
+  const kindLabel = '종목 이미지'
 
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {

@@ -17,8 +17,8 @@ import { NavLink, Outlet } from 'react-router'
 import { useAuth } from '../auth/useAuth'
 import { useMarket } from '../market/useMarket'
 import { Brand } from './Brand'
-import { SpriteIcon } from './SpriteIcon'
-import { SpritePickerDialog } from './SpritePickerDialog'
+import { ProfileImage } from './ProfileImage'
+import { ProfileImageUploadDialog } from './ProfileImageUploadDialog'
 
 const navigation = [
   { to: '/', label: '거래소', icon: LayoutDashboard, end: true },
@@ -31,13 +31,13 @@ const navigation = [
 
 export function AppShell() {
   const { signOut } = useAuth()
-  const { market, myState, refreshing, refresh, setProfileSprite } = useMarket()
+  const { market, myState, refreshing, refresh, uploadProfileImage } = useMarket()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [profilePickerOpen, setProfilePickerOpen] = useState(false)
+  const [profileUploadOpen, setProfileUploadOpen] = useState(false)
   const [profileSaving, setProfileSaving] = useState(false)
   const [profileError, setProfileError] = useState<string | null>(null)
   const nickname = myState?.participant?.nickname ?? '리그 참가 전'
-  const profileSpriteIndex = myState?.participant?.profileSpriteIndex ?? 0
+  const profileImageUrl = myState?.participant?.profileImageUrl
   const marketStatus = market?.league?.status === 'active'
     ? '거래소 운영 중'
     : market?.league?.status === 'registration'
@@ -46,12 +46,12 @@ export function AppShell() {
         ? '리그 종료'
         : '리그 준비 중'
 
-  async function handleProfileConfirm(index: number) {
+  async function handleProfileConfirm(file: File) {
     setProfileSaving(true)
     setProfileError(null)
     try {
-      await setProfileSprite(index)
-      setProfilePickerOpen(false)
+      await uploadProfileImage(file)
+      setProfileUploadOpen(false)
     } catch (error) {
       setProfileError(error instanceof Error ? error.message : '프로필 이미지 변경에 실패했습니다.')
     } finally {
@@ -78,7 +78,7 @@ export function AppShell() {
 
         <div className="sidebar-foot">
           <button className="user-card" type="button" onClick={() => void signOut()} title="로그아웃">
-            <SpriteIcon kind="profile" index={profileSpriteIndex} size="md" className="user-avatar" />
+            <ProfileImage src={profileImageUrl} size="md" className="user-avatar" />
             <span className="user-card__copy">
               <strong>{nickname}</strong>
               <small>로그아웃</small>
@@ -108,7 +108,7 @@ export function AppShell() {
               <RefreshCw size={18} />
             </button>
             <button className="profile-trigger" type="button" onClick={() => setMenuOpen((open) => !open)}>
-              <SpriteIcon kind="profile" index={profileSpriteIndex} size="sm" className="profile-trigger__avatar" />
+              <ProfileImage src={profileImageUrl} size="sm" className="profile-trigger__avatar" />
               <span>{nickname}</span>
               <ChevronDown size={15} aria-hidden="true" />
             </button>
@@ -125,7 +125,7 @@ export function AppShell() {
           {menuOpen && (
             <div className="account-menu">
               <div className="account-menu__identity">
-                <SpriteIcon kind="profile" index={profileSpriteIndex} size="lg" />
+                <ProfileImage src={profileImageUrl} size="lg" />
                 <span>
                   <strong>{nickname}</strong>
                   <small>{myState?.joined ? '리그 참가 중' : '카카오 로그인 완료'}</small>
@@ -136,7 +136,7 @@ export function AppShell() {
                   type="button"
                   onClick={() => {
                     setProfileError(null)
-                    setProfilePickerOpen(true)
+                    setProfileUploadOpen(true)
                     setMenuOpen(false)
                   }}
                 >
@@ -164,15 +164,13 @@ export function AppShell() {
         ))}
       </nav>
 
-      {profilePickerOpen && (
-        <SpritePickerDialog
-          kind="profile"
-          value={profileSpriteIndex}
-          title="프로필 이미지 선택"
+      {profileUploadOpen && (
+        <ProfileImageUploadDialog
+          currentImageUrl={profileImageUrl}
           busy={profileSaving}
           error={profileError}
-          onClose={() => setProfilePickerOpen(false)}
-          onConfirm={(index) => void handleProfileConfirm(index)}
+          onClose={() => setProfileUploadOpen(false)}
+          onConfirm={(file) => void handleProfileConfirm(file)}
         />
       )}
     </div>

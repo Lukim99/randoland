@@ -1,4 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js'
+import { getProfileImageExtension, validateProfileImageFile } from '../lib/profile-image'
 import { supabase } from '../lib/supabase'
 import type {
   LadderChoice,
@@ -10,6 +11,8 @@ import type {
   OrderSide,
   RankingsSnapshot,
 } from '../types/market'
+
+const PROFILE_IMAGE_BUCKET = 'randoland-profile-images'
 
 function requireSupabase() {
   if (!supabase) {
@@ -161,18 +164,24 @@ export async function loadMyState(leagueId: string): Promise<MyState> {
   }
   if (!state.participant) return state
 
-  const { data: participantSprite, error: spriteError } = await client
+  const { data: participantProfile, error: profileError } = await client
     .from('randoland_participants')
-    .select('profile_sprite_index')
+    .select('profile_image_path')
     .eq('id', state.participant.id)
     .maybeSingle()
-  throwIfError(spriteError)
+  throwIfError(profileError)
+
+  const profileImagePath = participantProfile?.profile_image_path ?? null
+  const profileImageUrl = profileImagePath
+    ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(profileImagePath).data.publicUrl
+    : null
 
   return {
     ...state,
     participant: {
       ...state.participant,
-      profileSpriteIndex: participantSprite?.profile_sprite_index ?? 0,
+      profileImagePath,
+      profileImageUrl,
       receivableRp: state.participant.receivableRp ?? 0,
       longMarketValue: state.participant.longMarketValue ?? state.participant.portfolioGrossValue ?? 0,
       longCostBasis: state.participant.longCostBasis ?? 0,
@@ -275,13 +284,49 @@ export async function submitListing(leagueId: string, submission: ListingSubmiss
   return data
 }
 
-export async function setProfileSprite(leagueId: string, profileSpriteIndex: number) {
+export async function uploadProfileImage(
+  participantId: string,
+  currentProfileImagePath: string | null,
+  file: File,
+) {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_set_profile_sprite', {
-    p_league_id: leagueId,
-    p_profile_sprite_index: profileSpriteIndex,
+  const validationError = validateProfileImageFile(file)
+  if (validationError) throw new Error(validationError)
+
+  const { data: authData, error: authError } = await client.auth.getUser()
+  if (authError) throw new Error(authError.message)
+  if (!authData.user) throw new Error('로그인이 필요합니다.')
+
+  const imageId = globalThis.crypto?.randomUUID?.()
+  if (!imageId) throw new Error('이 브라우저에서는 이미지 업로드를 지원하지 않습니다.')
+
+  const extension = getProfileImageExtension(file)
+  const profileImagePath = `${authData.user.id}/profile-${imageId}.${extension}`
+  const bucket = client.storage.from(PROFILE_IMAGE_BUCKET)
+  const { error: uploadError } = await bucket.upload(profileImagePath, file, {
+    cacheControl: '31536000',
+    contentType: file.type,
+    upsert: false,
   })
-  throwIfError(error)
+  if (uploadError) throw new Error(uploadError.message)
+
+  const { data, error: updateError } = await client
+    .from('randoland_participants')
+    .update({ profile_image_path: profileImagePath })
+    .eq('id', participantId)
+    .eq('user_id', authData.user.id)
+    .select('profile_image_path')
+    .single()
+
+  if (updateError) {
+    await bucket.remove([profileImagePath])
+    throw new Error(readableSupabaseError(updateError))
+  }
+
+  if (currentProfileImagePath && currentProfileImagePath !== profileImagePath) {
+    await bucket.remove([currentProfileImagePath])
+  }
+
   return data
 }
 

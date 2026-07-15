@@ -82,7 +82,8 @@ export interface MarketSnapshot {
 
 export interface ParticipantSummary {
   id: string
-  profileSpriteIndex: number
+  profileImagePath: string | null
+  profileImageUrl: string | null
   nickname: string
   cashBalance: number
   reservedCash: number
