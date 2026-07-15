@@ -3,6 +3,7 @@ import { getProfileImageExtension, validateProfileImageFile } from '../lib/profi
 import { getStockLogoExtension, validateStockLogoFile } from '../lib/stock-logo'
 import { supabase } from '../lib/supabase'
 import type {
+  CandlePoint,
   DiscussionPost,
   LadderChoice,
   LadderResult,
@@ -17,6 +18,28 @@ import type {
 
 const PROFILE_IMAGE_BUCKET = 'randoland-profile-images'
 const STOCK_LOGO_BUCKET = 'randoland-stock-logos'
+const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000
+
+function normalizeCandleDates(candles: CandlePoint[]): CandlePoint[] {
+  let previousDay: number | null = null
+
+  return candles.map((candle) => {
+    const parsedTime = Date.parse(candle.time)
+    const sourceDay = Number.isFinite(parsedTime)
+      ? Math.floor(parsedTime / DAY_IN_MILLISECONDS) * DAY_IN_MILLISECONDS
+      : null
+    const normalizedDay = previousDay === null
+      ? sourceDay ?? Date.UTC(2000, 0, 1)
+      : Math.max(sourceDay ?? previousDay + DAY_IN_MILLISECONDS, previousDay + DAY_IN_MILLISECONDS)
+
+    previousDay = normalizedDay
+
+    return {
+      ...candle,
+      time: new Date(normalizedDay).toISOString().slice(0, 10),
+    }
+  })
+}
 
 function requireSupabase() {
   if (!supabase) {
@@ -182,10 +205,7 @@ export async function loadMarketSnapshot(leagueId?: string | null): Promise<Mark
         ? client.storage.from(STOCK_LOGO_BUCKET).getPublicUrl(logoImagePathByStockId.get(stock.id)!).data.publicUrl
         : null,
       owner: stock.listedBy ?? stock.owner ?? (stock.isBaseStock ? '기본 상장' : '상장자 비공개'),
-      candles: (stock.candles ?? []).map((candle) => ({
-        ...candle,
-        time: candle.time.slice(0, 10),
-      })),
+      candles: normalizeCandleDates(stock.candles ?? []),
     })),
     news: snapshot.news ?? [],
   }
