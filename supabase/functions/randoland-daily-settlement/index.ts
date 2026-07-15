@@ -17,10 +17,11 @@ interface ClaimedStock {
 }
 
 interface ClaimResult {
-  status: "idle" | "claimed";
+  status: "idle" | "claimed" | "busy" | "completed";
   serverTime?: string;
   executionKey?: string;
   attempt?: number;
+  recoverableAt?: string;
   league?: {
     id: string;
     name: string;
@@ -88,9 +89,23 @@ interface SettlementOutput {
   prices: PriceItem[];
 }
 
+interface AdminSettlementAuthorization {
+  userId: string;
+  role: "owner" | "operator";
+}
+
+interface SettlementRequestBody {
+  mode?: "admin_now";
+  leagueId?: string;
+  requestKey?: string;
+}
+
 const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const settlementInstructions = `
@@ -181,6 +196,31 @@ async function callRpc<T>(
     headers: {
       apikey: serviceRoleKey,
       Authorization: `Bearer ${serviceRoleKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const detail = (await response.text()).slice(0, 1000);
+    throw new Error(`${functionName} 실패 (${response.status}): ${detail}`);
+  }
+
+  return (await response.json()) as T;
+}
+
+async function callRpcAsUser<T>(
+  supabaseUrl: string,
+  serviceRoleKey: string,
+  authorization: string,
+  functionName: string,
+  body: JsonObject = {},
+): Promise<T> {
+  const response = await fetch(`${supabaseUrl}/rest/v1/rpc/${functionName}`, {
+    method: "POST",
+    headers: {
+      apikey: serviceRoleKey,
+      Authorization: authorization,
       "Content-Type": "application/json",
     },
     body: JSON.stringify(body),
@@ -366,7 +406,6 @@ async function generateSettlement(
             affectedStockIds: {
               type: "array",
               minItems: 1,
-              uniqueItems: true,
               items: { type: "string", enum: eligibleStockIds },
             },
           },
@@ -461,6 +500,10 @@ function createNoStockOutput(): SettlementOutput {
 }
 
 Deno.serve(async (request: Request) => {
+  if (request.method === "OPTIONS") {
+    return new Response(null, { status: 204, headers: jsonHeaders });
+  }
+
   if (request.method !== "POST") {
     return jsonResponse({ error: "POST 요청만 허용됩니다." }, 405);
   }
@@ -470,6 +513,7 @@ Deno.serve(async (request: Request) => {
   const openAiKey = Deno.env.get("OPENAI_API_KEY");
   const model = Deno.env.get("OPENAI_MODEL") ?? "gpt-5.6-luna";
   let executionKey: string | undefined;
+  let requestBody: SettlementRequestBody = {};
 
   if (!supabaseUrl || !serviceRoleKey) {
     return jsonResponse({ error: "Supabase 서버 환경 변수가 없습니다." }, 500);
@@ -479,14 +523,60 @@ Deno.serve(async (request: Request) => {
   }
 
   try {
-    const claim = await callRpc<ClaimResult>(
-      supabaseUrl,
-      serviceRoleKey,
-      "randoland_admin_claim_settlement",
-    );
+    requestBody = (await request.json()) as SettlementRequestBody;
+  } catch {
+    return jsonResponse({ error: "요청 본문은 JSON이어야 합니다." }, 400);
+  }
+
+  const isAdminRequest = requestBody.mode === "admin_now";
+  if (requestBody.mode && !isAdminRequest) {
+    return jsonResponse({ error: "지원하지 않는 정산 실행 방식입니다." }, 400);
+  }
+  if (isAdminRequest && (!requestBody.leagueId || !requestBody.requestKey)) {
+    return jsonResponse({ error: "리그와 요청 키가 필요합니다." }, 400);
+  }
+
+  try {
+    let claim: ClaimResult;
+    if (isAdminRequest) {
+      const authorization = request.headers.get("Authorization");
+      if (!authorization?.startsWith("Bearer ")) {
+        return jsonResponse({ error: "관리자 로그인이 필요합니다." }, 401);
+      }
+
+      const administrator = await callRpcAsUser<AdminSettlementAuthorization>(
+        supabaseUrl,
+        serviceRoleKey,
+        authorization,
+        "randoland_admin_console_authorize_settlement",
+      );
+
+      claim = await callRpc<ClaimResult>(
+        supabaseUrl,
+        serviceRoleKey,
+        "randoland_admin_claim_settlement_now",
+        {
+          p_league_id: requestBody.leagueId,
+          p_operator_user_id: administrator.userId,
+          p_request_key: requestBody.requestKey,
+        },
+      );
+    } else {
+      claim = await callRpc<ClaimResult>(
+        supabaseUrl,
+        serviceRoleKey,
+        "randoland_admin_claim_settlement",
+      );
+    }
 
     if (claim.status === "idle") {
       return jsonResponse({ status: "idle", serverTime: claim.serverTime });
+    }
+    if (claim.status === "busy") {
+      return jsonResponse({ status: "busy", recoverableAt: claim.recoverableAt });
+    }
+    if (claim.status === "completed") {
+      return jsonResponse({ status: "completed", alreadyCompleted: true });
     }
     if (!claim.executionKey) throw new Error("정산 실행 키가 반환되지 않았습니다.");
     executionKey = claim.executionKey;
@@ -515,7 +605,10 @@ Deno.serve(async (request: Request) => {
       },
     );
 
-    return jsonResponse(result);
+    return jsonResponse({
+      ...result,
+      trigger: isAdminRequest ? "admin" : "scheduled",
+    });
   } catch (error) {
     const message = safeErrorMessage(error);
 

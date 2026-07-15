@@ -1,9 +1,10 @@
+import { FunctionsHttpError } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import type {
   AdminAccess,
+  AdminAiSettlementInput,
+  AdminAiSettlementState,
   AdminConsoleState,
-  AdminManualSettlementInput,
-  AdminManualSettlementState,
   AdminStockListingInput,
   CreateLeagueInput,
   UpsertGlobalEventInput,
@@ -19,6 +20,23 @@ function requireSupabase() {
 
 function throwIfError(error: { message: string } | null) {
   if (error) throw new Error(readableSupabaseError(error.message))
+}
+
+async function throwIfFunctionError(error: { message: string } | null) {
+  if (!error) return
+
+  let functionMessage: string | null = null
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const payload = await error.context.json() as { error?: unknown; message?: unknown }
+      if (typeof payload.error === 'string') functionMessage = payload.error
+      else if (typeof payload.message === 'string') functionMessage = payload.message
+    } catch {
+      functionMessage = null
+    }
+  }
+
+  throw new Error(readableSupabaseError(functionMessage ?? error.message))
 }
 
 export function createAdminRequestKey() {
@@ -155,29 +173,47 @@ export async function delistAdminStock(stockId: string, reason: string) {
   return data
 }
 
-export async function loadAdminManualSettlementState(
+export async function loadAdminAiSettlementState(
   leagueId: string,
-): Promise<AdminManualSettlementState> {
+): Promise<AdminAiSettlementState> {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_admin_console_get_manual_settlement_state', {
+  const { data, error } = await client.rpc('randoland_admin_console_get_ai_settlement_state', {
     p_league_id: leagueId,
   })
   throwIfError(error)
 
-  const state = data as unknown as AdminManualSettlementState
-  return { ...state, stocks: state.stocks ?? [] }
+  return data as unknown as AdminAiSettlementState
 }
 
-export async function finalizeAdminRoundNow(input: AdminManualSettlementInput) {
+export async function runAdminAiSettlement(input: AdminAiSettlementInput) {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_admin_console_finalize_round_now', {
-    p_league_id: input.leagueId,
-    p_round_id: input.roundId,
-    p_request_key: input.requestKey,
-    p_price_items: input.priceItems,
-    p_main_article: input.mainArticle,
-    p_briefs: input.briefs,
+  const { data, error } = await client.functions.invoke('randoland-daily-settlement', {
+    body: {
+      mode: 'admin_now',
+      leagueId: input.leagueId,
+      requestKey: input.requestKey,
+    },
   })
-  throwIfError(error)
+  await throwIfFunctionError(error)
+
+  const result = data as {
+    status?: string
+    error?: string
+    recoverableAt?: string
+  } | null
+
+  if (result?.status === 'busy') {
+    throw new Error('AI 정산이 이미 진행 중입니다. 15분 이상 응답이 없을 때 다시 시도해 주세요.')
+  }
+  if (result?.status === 'idle') {
+    throw new Error('정산 가능한 현재 라운드가 없습니다.')
+  }
+  if (result?.status === 'failed') {
+    throw new Error(result.error || 'AI 정산을 완료하지 못했습니다.')
+  }
+  if (result?.status !== 'completed') {
+    throw new Error('AI 정산 결과를 확인할 수 없습니다.')
+  }
+
   return data
 }

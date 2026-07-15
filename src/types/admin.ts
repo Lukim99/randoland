@@ -85,7 +85,7 @@ export interface AdminConsoleState {
   auditLog: AdminAuditEntry[]
 }
 
-export interface AdminManualSettlementRound {
+export interface AdminAiSettlementRound {
   id: string
   roundNumber: number
   status: 'scheduled' | 'open' | 'locked' | 'settling' | 'failed'
@@ -98,47 +98,19 @@ export interface AdminManualSettlementRound {
   recoverableAt: string | null
 }
 
-export interface AdminManualSettlementStock {
-  id: string
-  ticker: string
-  name: string
-  currentPrice: number
-}
-
-export interface AdminManualSettlementState {
+export interface AdminAiSettlementState {
   serverTime: string
   leagueId: string
   leagueName: string
   canExecute: boolean
   blockedReason: string | null
-  round: AdminManualSettlementRound | null
-  stocks: AdminManualSettlementStock[]
+  activeStockCount: number
+  round: AdminAiSettlementRound | null
 }
 
-export interface AdminManualSettlementPriceItem {
-  stockId: string
-  sentiment: number
-  eventStrength: number
-  changePercent: number
-}
-
-export interface AdminManualSettlementBrief {
-  headline: string
-  summary: string
-  affectedStockIds: string[]
-}
-
-export interface AdminManualSettlementInput {
+export interface AdminAiSettlementInput {
   leagueId: string
-  roundId: string
   requestKey: string
-  priceItems: AdminManualSettlementPriceItem[]
-  mainArticle: {
-    headline: string
-    summary: string
-    body: string
-  }
-  briefs: AdminManualSettlementBrief[]
 }
 
 export interface CreateLeagueInput {

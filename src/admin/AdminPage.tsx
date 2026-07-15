@@ -3,9 +3,9 @@ import { useCallback, useEffect, useState } from 'react'
 import { loadAdminConsole } from '../services/admin'
 import type { AdminActionRunner, AdminConsoleState } from '../types/admin'
 import { AdminAuditPanel } from './AdminAuditPanel'
+import { AiSettlementAdminPanel } from './AiSettlementAdminPanel'
 import { EventAdminPanel } from './EventAdminPanel'
 import { LeagueAdminPanel } from './LeagueAdminPanel'
-import { ManualSettlementAdminPanel } from './ManualSettlementAdminPanel'
 import { ParticipantAdminPanel } from './ParticipantAdminPanel'
 import { StockAdminPanel } from './StockAdminPanel'
 
@@ -102,7 +102,7 @@ export function AdminPage() {
       </section>
 
       <div className="admin-panel-grid">
-        <ManualSettlementAdminPanel
+        <AiSettlementAdminPanel
           leagues={consoleState.leagues}
           busy={busy}
           onRun={runAction}

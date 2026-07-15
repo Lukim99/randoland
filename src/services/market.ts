@@ -101,16 +101,16 @@ const errorTranslations: Array<[string, string]> = [
   ['Stock removal reason must contain', '종목 제거 사유는 5자 이상 500자 이하로 입력해 주세요.'],
   ['Stock with an open position cannot be removed', '보유 또는 공매도 포지션이 남아 있어 이 종목을 제거할 수 없습니다.'],
   ['Stock is already removed', '이미 시장에서 제거된 종목입니다.'],
-  ['Manual settlement league was not found', '수동 정산 대상 리그를 찾지 못했습니다.'],
-  ['Manual settlement requires an active league', '진행 중인 리그만 수동 정산할 수 있습니다.'],
-  ['A manual settlement request key is required', '수동 정산 요청을 식별하지 못했습니다. 다시 시도해 주세요.'],
-  ['Manual settlement payload is invalid', '뉴스 또는 가격 입력 형식이 올바르지 않습니다.'],
-  ['Manual settlement request key was reused with different content', '같은 정산 요청의 내용이 달라졌습니다. 입력을 다시 확인해 주세요.'],
-  ['Manual settlement round was not found', '수동 정산 대상 라운드를 찾지 못했습니다.'],
+  ['AI settlement league was not found', 'AI 정산 대상 리그를 찾지 못했습니다.'],
+  ['AI settlement requires an active league', '진행 중인 리그만 AI 정산할 수 있습니다.'],
+  ['An AI settlement request key is required', 'AI 정산 요청을 식별하지 못했습니다. 다시 시도해 주세요.'],
+  ['Administrator authorization was not found', '관리자 권한을 확인하지 못했습니다. 다시 로그인해 주세요.'],
+  ['AI settlement request key was reused for a different request', '같은 정산 요청 키가 다른 작업에 사용되었습니다. 다시 시도해 주세요.'],
+  ['AI settlement request no longer matches the current round', '현재 라운드가 바뀌었습니다. 상태를 새로고침한 뒤 다시 시도해 주세요.'],
   ['This round has already been settled', '이미 정산이 완료된 라운드입니다.'],
   ['Settlement is already running', '자동 정산이 진행 중입니다. 잠시 후 상태를 다시 확인해 주세요.'],
-  ['This round is not available for manual settlement', '현재 라운드는 수동 정산할 수 없는 상태입니다.'],
-  ['AI settlement must contain exactly one item for every active stock', '모든 활성 종목의 등락률을 빠짐없이 입력해 주세요.'],
+  ['Settlement state cannot be recovered automatically', '정산 상태를 자동 복구할 수 없습니다. 운영 로그를 확인해 주세요.'],
+  ['AI settlement must contain exactly one item for every active stock', 'AI 가격 판단에 모든 활성 종목이 포함되지 않았습니다. 다시 실행해 주세요.'],
   ['Main article text is missing or outside the allowed length', '메인뉴스 제목·요약·본문의 입력 길이를 확인해 주세요.'],
   ['News brief text is missing or outside the allowed length', '개별뉴스 제목과 요약의 입력 길이를 확인해 주세요.'],
   ['Each news brief must contain affected stock IDs', '각 개별뉴스에 영향 종목을 선택해 주세요.'],
@@ -202,7 +202,10 @@ export async function loadNewsFeed(leagueId: string): Promise<NewsFeed> {
   return {
     editions: (feed.editions ?? []).map((edition) => ({
       ...edition,
-      briefs: edition.briefs ?? [],
+      briefs: (edition.briefs ?? []).map((brief) => ({
+        ...brief,
+        affectedStockNames: brief.affectedStockNames ?? [],
+      })),
     })),
   }
 }

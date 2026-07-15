@@ -88,6 +88,7 @@ export interface NewsBrief {
   id: string
   headline: string
   summary: string
+  affectedStockNames: string[]
 }
 
 export interface NewsEdition {

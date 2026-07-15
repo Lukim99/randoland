@@ -59,21 +59,18 @@ export function NewsPage() {
         </article>
 
         <section className="brief-news-section" aria-labelledby="brief-news-title">
-          <div className="section-heading section-heading--compact">
-            <div>
-              <span className="eyebrow">시장 속보</span>
-              <h2 id="brief-news-title">개별뉴스</h2>
-              <p>시장에 영향을 준 소식을 종목 노출 없이 전합니다.</p>
-            </div>
-            <span className="count-chip">{latestEdition.briefs.length}건</span>
-          </div>
+          <h2 className="sr-only" id="brief-news-title">개별뉴스</h2>
 
           {latestEdition.briefs.length > 0 ? (
             <div className="brief-news-list">
               {latestEdition.briefs.map((brief) => (
                 <article className="panel brief-news-item" key={brief.id}>
                   <span className="brief-news-item__dot" aria-hidden="true" />
-                  <div><h3>{brief.headline}</h3><p>{brief.summary}</p></div>
+                  <div>
+                    <span className="brief-news-item__stocks">{brief.affectedStockNames.join(' · ')}</span>
+                    <h3>{brief.headline}</h3>
+                    <p>{brief.summary}</p>
+                  </div>
                 </article>
               ))}
             </div>
