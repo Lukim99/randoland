@@ -1,40 +1,35 @@
-import { Clock3, RotateCcw } from 'lucide-react'
+import { CheckCircle2, Clock3, RotateCcw } from 'lucide-react'
 import { useState } from 'react'
 import { formatKstDateTime, formatPrice, formatRp } from '../lib/format'
 import { useMarket } from '../market/useMarket'
-import type { OrderStatus, OrderSummary } from '../types/market'
+import type { OrderSide, OrderSummary } from '../types/market'
 import { ParticipantGate } from './ParticipantGate'
 
-const statusLabels: Record<OrderStatus, string> = {
-  pending: '체결 대기',
-  locked: '정산 중',
-  executed: '체결 완료',
-  cancelled: '취소 완료',
-  rejected: '주문 거절',
+const orderTypeLabel: Record<OrderSide, string> = {
+  buy: '매수',
+  sell: '매도',
+  short: '공매도',
+  cover: '공매도 청산',
 }
 
-type Filter = 'all' | 'waiting' | 'done'
+function orderTone(side: OrderSide) {
+  return side === 'buy' || side === 'cover' ? 'buy' : 'sell'
+}
 
 function orderAmount(order: OrderSummary) {
-  if (order.cashAmount) return order.cashAmount
-  if (order.executionPrice && order.quantity) return order.executionPrice * order.quantity
-  return null
+  const price = order.executionPrice ?? order.orderPrice
+  const quantity = order.executedQuantity ?? order.requestedQuantity
+  return price * quantity
 }
 
 export function OrdersView() {
-  const { market, myState, cancelOrder } = useMarket()
-  const [filter, setFilter] = useState<Filter>('all')
+  const { myState, cancelOrder } = useMarket()
   const [cancellingId, setCancellingId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const orders = myState?.orders ?? []
-  const visibleOrders = orders.filter((order) => {
-    if (filter === 'waiting') return order.status === 'pending' || order.status === 'locked'
-    if (filter === 'done') return order.status === 'executed'
-    return true
-  })
-  const currentRoundOrders = orders.filter(
-    (order) => order.roundNumber === market?.round?.number && order.status !== 'rejected',
-  )
+  const waitingOrders = orders.filter((order) => order.status === 'pending' || order.status === 'locked')
+  const executedOrders = orders.filter((order) => order.status === 'executed')
+  const executedOrderCount = myState?.executedOrderCount ?? executedOrders.length
 
   async function handleCancel(orderId: string) {
     setCancellingId(orderId)
@@ -51,45 +46,60 @@ export function OrdersView() {
 
   return (
     <ParticipantGate>
-      <div className="feature-stack">
-        <section className="panel live-section order-round-summary">
-          <div><Clock3 size={18} /><span><small>현재 라운드 주문</small><strong>{currentRoundOrders.length}건</strong></span></div>
-          <div><small>매수</small><strong>{currentRoundOrders.filter((order) => order.side === 'buy').length}/5</strong></div>
-          <div><small>매도</small><strong>{currentRoundOrders.filter((order) => order.side === 'sell').length}/5</strong></div>
-          <p>취소한 주문도 악용 방지를 위해 라운드별 접수 횟수에 포함됩니다.</p>
-        </section>
+      <div className="feature-stack orders-view">
+        {message && <p className="form-message" role="status">{message}</p>}
 
         <section className="panel live-section">
           <div className="section-heading section-heading--compact orders-heading">
-            <div><span className="eyebrow">전체 주문 기록</span><h2>주문 내역</h2></div>
-            <div className="filter-tabs" aria-label="주문 상태 필터">
-              <button type="button" className={filter === 'all' ? 'is-active' : ''} onClick={() => setFilter('all')}>전체</button>
-              <button type="button" className={filter === 'waiting' ? 'is-active' : ''} onClick={() => setFilter('waiting')}>대기</button>
-              <button type="button" className={filter === 'done' ? 'is-active' : ''} onClick={() => setFilter('done')}>체결</button>
-            </div>
+            <div><span className="eyebrow">다음 정산</span><h2>체결 대기</h2></div>
+            <span className="count-chip"><Clock3 size={14} /> {waitingOrders.length}건</span>
           </div>
-          {message && <p className="form-message" role="status">{message}</p>}
-          {visibleOrders.length > 0 ? (
+          {waitingOrders.length > 0 ? (
             <div className="data-list order-history-list">
-              {visibleOrders.map((order) => (
+              {waitingOrders.map((order) => (
                 <article className="data-row order-history-row" key={order.id}>
-                  <span className={`side-badge ${order.side}`}>{order.side === 'buy' ? '매수' : '매도'}</span>
+                  <span className={`side-badge ${orderTone(order.orderType)}`}>{orderTypeLabel[order.orderType]}</span>
                   <div className="data-row__identity">
                     <strong>{order.stockName}</strong>
                     <small>{order.ticker} · {order.roundNumber}라운드 · {formatKstDateTime(order.submittedAt)}</small>
                   </div>
-                  <div><small>수량</small><strong>{order.executedQuantity ?? order.quantity ?? '-'}주</strong></div>
-                  <div><small>{order.status === 'executed' ? '체결가' : '주문금액'}</small><strong>{order.executionPrice ? `${formatPrice(order.executionPrice)} RP` : orderAmount(order) ? formatRp(orderAmount(order) ?? 0) : '-'}</strong></div>
-                  <div><small>상태</small><strong className={`order-status is-${order.status}`}>{statusLabels[order.status]}</strong></div>
+                  <div><small>수량</small><strong>{formatPrice(order.requestedQuantity)}주</strong></div>
+                  <div><small>주문가격</small><strong>{formatPrice(order.orderPrice)} RP</strong></div>
+                  <div><small>주문금액</small><strong>{formatRp(orderAmount(order))}</strong></div>
                   {order.status === 'pending' && (
                     <button className="row-action-button" type="button" disabled={cancellingId === order.id} onClick={() => void handleCancel(order.id)}>
                       <RotateCcw size={14} /> {cancellingId === order.id ? '취소 중' : '취소'}
                     </button>
                   )}
+                  {order.status === 'locked' && <strong className="order-status is-locked">정산 중</strong>}
                 </article>
               ))}
             </div>
-          ) : <p className="muted-empty">조건에 맞는 주문 내역이 없습니다.</p>}
+          ) : <p className="muted-empty">체결 대기 중인 주문이 없습니다.</p>}
+        </section>
+
+        <section className="panel live-section">
+          <div className="section-heading section-heading--compact orders-heading">
+            <div><span className="eyebrow">실제 체결 기준</span><h2>체결 기록</h2></div>
+            <span className="count-chip"><CheckCircle2 size={14} /> {executedOrderCount}건</span>
+          </div>
+          {executedOrders.length > 0 ? (
+            <div className="data-list order-history-list">
+              {executedOrders.map((order) => (
+                <article className="data-row order-history-row is-executed" key={order.id}>
+                  <span className={`side-badge ${orderTone(order.orderType)}`}>{orderTypeLabel[order.orderType]}</span>
+                  <div className="data-row__identity">
+                    <strong>{order.stockName}</strong>
+                    <small>{order.ticker} · {order.roundNumber}라운드 · {formatKstDateTime(order.executedAt ?? order.submittedAt)}</small>
+                  </div>
+                  <div><small>체결수량</small><strong>{formatPrice(order.executedQuantity ?? order.requestedQuantity)}주</strong></div>
+                  <div><small>체결가</small><strong>{formatPrice(order.executionPrice ?? order.orderPrice)} RP</strong></div>
+                  <div><small>체결금액</small><strong>{formatRp(orderAmount(order))}</strong></div>
+                  <strong className="order-status is-executed">체결 완료</strong>
+                </article>
+              ))}
+            </div>
+          ) : <p className="muted-empty">체결된 주문이 없습니다.</p>}
         </section>
       </div>
     </ParticipantGate>

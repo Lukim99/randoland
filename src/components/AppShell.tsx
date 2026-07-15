@@ -77,13 +77,6 @@ export function AppShell() {
         </nav>
 
         <div className="sidebar-foot">
-          <div className="market-schedule">
-            <span className="status-dot" />
-            <div>
-              <strong>24시간 주문 접수</strong>
-              <small>매일 09:00 KST 일괄 체결</small>
-            </div>
-          </div>
           <button className="user-card" type="button" onClick={() => void signOut()} title="로그아웃">
             <SpriteIcon kind="profile" index={profileSpriteIndex} size="md" className="user-avatar" />
             <span className="user-card__copy">
@@ -135,7 +128,7 @@ export function AppShell() {
                 <SpriteIcon kind="profile" index={profileSpriteIndex} size="lg" />
                 <span>
                   <strong>{nickname}</strong>
-                  <small>{myState?.joined ? '익명 닉네임으로 참여 중' : '카카오 로그인 완료'}</small>
+                  <small>{myState?.joined ? '리그 참가 중' : '카카오 로그인 완료'}</small>
                 </span>
               </div>
               {myState?.joined && (

@@ -2,18 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState, type PropsWithChildr
 import { supabase } from '../lib/supabase'
 import {
   cancelOrder as cancelOrderRequest,
+  chooseLadderAction as chooseLadderActionRequest,
   claimAttendance as claimAttendanceRequest,
+  getOrderCapacity as getOrderCapacityRequest,
   joinLeague,
   loadMarketSnapshot,
   loadMyState,
   loadRankings,
   placeOrder as placeOrderRequest,
   playLadder as playLadderRequest,
+  playLadderSecond as playLadderSecondRequest,
   setProfileSprite as setProfileSpriteRequest,
   setStockLogo as setStockLogoRequest,
   submitListing as submitListingRequest,
 } from '../services/market'
-import type { ListingSubmission, MarketSnapshot, MyState, OrderSide, RankingsSnapshot } from '../types/market'
+import type { LadderChoice, ListingSubmission, MarketSnapshot, MyState, OrderSide, RankingsSnapshot } from '../types/market'
 import { MarketContext, type MarketContextValue } from './market-context'
 
 const realtimeTables = [
@@ -33,6 +36,26 @@ const realtimeTables = [
   'randoland_league_awards',
 ] as const
 
+function createClientRequestId() {
+  const cryptoApi = globalThis.crypto
+  if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID()
+
+  const bytes = new Uint8Array(16)
+  if (typeof cryptoApi?.getRandomValues === 'function') {
+    cryptoApi.getRandomValues(bytes)
+  } else {
+    const seed = Date.now()
+    for (let index = 0; index < bytes.length; index += 1) {
+      bytes[index] = Math.floor(Math.random() * 256) ^ ((seed >> (index % 6)) & 0xff)
+    }
+  }
+
+  bytes[6] = (bytes[6] & 0x0f) | 0x40
+  bytes[8] = (bytes[8] & 0x3f) | 0x80
+  const hex = Array.from(bytes, (value) => value.toString(16).padStart(2, '0')).join('')
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`
+}
+
 export function MarketProvider({ children }: PropsWithChildren) {
   const [market, setMarket] = useState<MarketSnapshot | null>(null)
   const [myState, setMyState] = useState<MyState | null>(null)
@@ -41,6 +64,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestSequence = useRef(0)
+  const pendingOrderRequest = useRef<{ signature: string; key: string } | null>(null)
+  const pendingLadderRequest = useRef<{ signature: string; key: string } | null>(null)
 
   const refreshData = useCallback(async (quiet: boolean) => {
     const requestId = ++requestSequence.current
@@ -114,10 +139,16 @@ export function MarketProvider({ children }: PropsWithChildren) {
     return leagueId
   }, [market?.league?.id])
 
-  const joinCurrentLeague = useCallback(async () => {
-    await joinLeague(requireLeagueId())
+  const joinCurrentLeague = useCallback(async (nickname: string) => {
+    await joinLeague(requireLeagueId(), nickname)
     await refreshData(true)
   }, [refreshData, requireLeagueId])
+
+  const getOrderCapacity = useCallback((
+    stockId: string,
+    side: OrderSide,
+    leveragePercent: number,
+  ) => getOrderCapacityRequest(requireLeagueId(), stockId, side, leveragePercent), [requireLeagueId])
 
   const placeOrder = useCallback(async (
     stockId: string,
@@ -125,7 +156,25 @@ export function MarketProvider({ children }: PropsWithChildren) {
     quantity: number,
     leveragePercent: number,
   ) => {
-    await placeOrderRequest(requireLeagueId(), stockId, side, quantity, leveragePercent)
+    const leagueId = requireLeagueId()
+    const signature = JSON.stringify([leagueId, stockId, side, quantity, leveragePercent])
+    let pendingRequest = pendingOrderRequest.current
+    if (!pendingRequest || pendingRequest.signature !== signature) {
+      pendingRequest = { signature, key: createClientRequestId() }
+      pendingOrderRequest.current = pendingRequest
+    }
+
+    await placeOrderRequest(
+      leagueId,
+      stockId,
+      side,
+      quantity,
+      leveragePercent,
+      pendingRequest.key,
+    )
+    if (pendingOrderRequest.current?.key === pendingRequest.key) {
+      pendingOrderRequest.current = null
+    }
     await refreshData(true)
   }, [refreshData, requireLeagueId])
 
@@ -155,11 +204,34 @@ export function MarketProvider({ children }: PropsWithChildren) {
     return result
   }, [refreshData, requireLeagueId])
 
-  const playLadder = useCallback(async (choice: 'odd' | 'even') => {
-    const result = await playLadderRequest(requireLeagueId(), choice)
+  const playLadder = useCallback(async (choice: LadderChoice) => {
+    const leagueId = requireLeagueId()
+    const signature = `${leagueId}:${choice}`
+    let pendingRequest = pendingLadderRequest.current
+    if (!pendingRequest || pendingRequest.signature !== signature) {
+      pendingRequest = { signature, key: createClientRequestId() }
+      pendingLadderRequest.current = pendingRequest
+    }
+
+    const result = await playLadderRequest(leagueId, choice, pendingRequest.key)
+    if (pendingLadderRequest.current?.key === pendingRequest.key) {
+      pendingLadderRequest.current = null
+    }
     await refreshData(true)
     return result
   }, [refreshData, requireLeagueId])
+
+  const chooseLadderAction = useCallback(async (gameId: string, action: 'go' | 'stop') => {
+    const result = await chooseLadderActionRequest(gameId, action)
+    await refreshData(true)
+    return result
+  }, [refreshData])
+
+  const playLadderSecond = useCallback(async (gameId: string, choice: LadderChoice) => {
+    const result = await playLadderSecondRequest(gameId, choice)
+    await refreshData(true)
+    return result
+  }, [refreshData])
 
   const value = useMemo<MarketContextValue>(
     () => ({
@@ -171,6 +243,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       error,
       refresh,
       joinCurrentLeague,
+      getOrderCapacity,
       placeOrder,
       cancelOrder,
       submitListing,
@@ -178,17 +251,22 @@ export function MarketProvider({ children }: PropsWithChildren) {
       setStockLogo,
       claimAttendance,
       playLadder,
+      chooseLadderAction,
+      playLadderSecond,
     }),
     [
       cancelOrder,
       claimAttendance,
       error,
+      getOrderCapacity,
       joinCurrentLeague,
       loading,
       market,
       myState,
       placeOrder,
       playLadder,
+      chooseLadderAction,
+      playLadderSecond,
       rankings,
       refresh,
       refreshing,

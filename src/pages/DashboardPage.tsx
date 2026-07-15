@@ -75,8 +75,8 @@ export function DashboardPage() {
           </h1>
           <p>
             {market.round
-              ? `접수된 주문은 ${formatKstDateTime(nextSettlement.toISOString())}에 변동 전 가격으로 체결된 뒤 새로운 뉴스와 주가가 공개됩니다.`
-              : '운영 일정이 등록되면 24시간 주문 접수와 매일 오전 9시 일괄 체결이 시작됩니다.'}
+              ? `접수된 주문은 ${formatKstDateTime(nextSettlement.toISOString())}에 주문 시점 가격으로 체결됩니다.`
+              : '운영 일정을 준비하고 있습니다.'}
           </p>
         </div>
         <div className="settlement-badge" aria-label="다음 정산 시각">
@@ -97,7 +97,7 @@ export function DashboardPage() {
           <div>
             <small>총 보유자산</small>
             <strong>{participant ? formatRp(participant.netWorth) : '참가 전'}</strong>
-            <span className="positive-copy">{participant?.nickname ?? '리그 참가 후 자동 배정'}</span>
+            <span className="positive-copy">{participant?.nickname ?? '닉네임 설정 후 참가'}</span>
           </div>
         </article>
         <article className="stat-card">
@@ -113,7 +113,7 @@ export function DashboardPage() {
           <div>
             <small>완료 매매 사이클</small>
             <strong>{participant ? `${participant.completedTradeCycles}회` : '-'}</strong>
-            <span>매수부터 전량 매도까지</span>
+            <span>매수·공매도 포지션 전량 청산</span>
           </div>
         </article>
         <article className="stat-card">

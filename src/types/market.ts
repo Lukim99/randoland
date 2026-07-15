@@ -1,7 +1,11 @@
 export type LeagueStatus = 'registration' | 'active' | 'finished'
 export type RoundStatus = 'scheduled' | 'open' | 'locked' | 'settling' | 'settled' | 'failed'
-export type OrderSide = 'buy' | 'sell'
+export type OrderSide = 'buy' | 'sell' | 'short' | 'cover'
 export type OrderStatus = 'pending' | 'cancelled' | 'locked' | 'executed' | 'rejected'
+export type LadderChoice = 'odd' | 'even'
+export type LadderState = 'awaiting_decision' | 'awaiting_second_pick' | 'completed'
+export type LadderOutcome = 'first_loss' | 'stopped' | 'second_loss' | 'second_win' | 'legacy' | null
+export type LadderAction = 'go' | 'stop' | null
 
 export interface CandlePoint {
   id?: string
@@ -90,10 +94,35 @@ export interface ParticipantSummary {
   disqualifiedAt: string | null
   portfolioGrossValue: number
   projectedLiabilities: number
+  receivableRp: number
+  longMarketValue: number
+  longCostBasis: number
+  shortExposure: number
+  shortUnrealizedProfit: number
+  totalUnrealizedProfit: number
+  totalUnrealizedReturn: number
+  leveragePrincipal: number
+  projectedLeverageFee: number
   netWorth: number
   attendedToday: boolean
   attendanceDate: string
   ladderStreak: number
+}
+
+export interface ShortPositionSummary {
+  id: string
+  stockId: string
+  ticker: string
+  stockName: string
+  quantity: number
+  averageEntryPrice: number
+  currentPrice: number
+  entryValue: number
+  coverValue: number
+  unrealizedProfit: number
+  unrealizedReturn: number
+  holdingRounds: number
+  openedRoundId: string | null
 }
 
 export interface PositionSummary {
@@ -119,9 +148,12 @@ export interface OrderSummary {
   stockName: string
   roundNumber: number
   side: OrderSide
+  orderType: OrderSide
   status: OrderStatus
   cashAmount: number | null
   quantity: number | null
+  requestedQuantity: number
+  orderPrice: number
   leverageAmount: number
   reservedCash: number
   reservedQuantity: number
@@ -139,6 +171,7 @@ export interface LedgerEntry {
   type: string
   amount: number
   balanceAfter: number
+  receivableAfter: number
   referenceType: string | null
   referenceId: string | null
   metadata: Record<string, unknown>
@@ -156,6 +189,7 @@ export interface TradeCycle {
   returnedAmount: number | null
   realizedProfit: number | null
   holdingRounds: number
+  positionType: 'long' | 'short'
   status: 'open' | 'closed'
   openedAt: string
   closedAt: string | null
@@ -163,13 +197,35 @@ export interface TradeCycle {
 
 export interface LadderGame {
   id: string
-  choice: 'odd' | 'even'
-  result: 'odd' | 'even'
-  won: boolean
-  streakBefore: number
-  streakAfter: number
+  state: LadderState
+  outcome: LadderOutcome
+  firstChoice: LadderChoice
+  firstResult: LadderChoice
+  firstWon: boolean
+  action: LadderAction
+  secondChoice: LadderChoice | null
+  secondResult: LadderChoice | null
+  secondWon: boolean | null
   reward: number
   playedAt: string
+  completedAt: string | null
+}
+
+export interface OrderQuota {
+  buySubmitted: number
+  sellSubmitted: number
+  buyRemaining: number
+  sellRemaining: number
+  buyExecuted: number
+  sellExecuted: number
+  limit: number
+}
+
+export interface OrderCapacity {
+  maxQuantity: number
+  orderPrice: number
+  submittedCount: number
+  remainingOrders: number
 }
 
 export interface ListingStory {
@@ -204,10 +260,14 @@ export interface MyState {
   serverTime: string
   participant: ParticipantSummary | null
   positions: PositionSummary[]
+  shortPositions: ShortPositionSummary[]
   orders: OrderSummary[]
+  executedOrderCount: number
+  orderQuota: OrderQuota
   ledger: LedgerEntry[]
   tradeCycles: TradeCycle[]
   ladderGames: LadderGame[]
+  activeLadderGame: LadderGame | null
   listing: MyListing | null
   latestRank: PersonalRank | null
 }
@@ -259,12 +319,17 @@ export interface ListingSubmission {
 
 export interface LadderResult {
   id: string
-  choice: 'odd' | 'even'
-  result: 'odd' | 'even'
-  won: boolean
-  streakBefore: number
-  streakAfter: number
+  state: LadderState
+  outcome: LadderOutcome
+  firstChoice: LadderChoice
+  firstResult: LadderChoice
+  firstWon: boolean
+  action: LadderAction
+  secondChoice: LadderChoice | null
+  secondResult: LadderChoice | null
+  secondWon: boolean | null
   reward: number
   cashBalance: number
+  receivableRp: number
   tokens: number
 }
