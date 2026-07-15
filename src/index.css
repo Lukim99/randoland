@@ -905,7 +905,7 @@ dd {
 
 .order-stock {
   display: grid;
-  grid-template-columns: 32px minmax(0, 1fr) auto;
+  grid-template-columns: 34px minmax(0, 1fr) auto;
   align-items: center;
   gap: 9px;
   margin: 16px 0 13px;
@@ -2180,7 +2180,7 @@ dd {
 
 .stock-info-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 10px;
 }
 
@@ -4994,6 +4994,10 @@ button:disabled {
   .stock-detail-layout {
     display: flex;
     flex-direction: column;
+  }
+
+  .stock-detail-main {
+    width: 100%;
   }
 
   .chart-panel,

@@ -1,4 +1,4 @@
-import { ArrowLeft, Building2, Layers3 } from 'lucide-react'
+import { ArrowLeft, Layers3 } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router'
 import { CandlestickChart } from '../components/CandlestickChart'
 import { OrderPanel } from '../components/OrderPanel'
@@ -56,7 +56,6 @@ export function StockDetailPage() {
 
           <section className="stock-info-grid">
             <article className="panel info-card"><Layers3 size={20} /><small>테마</small><strong>{stock.theme}</strong></article>
-            <article className="panel info-card"><Building2 size={20} /><small>상장 상태</small><strong>정상 거래</strong></article>
           </section>
         </div>
         <OrderPanel stock={stock} />

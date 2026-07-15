@@ -4,7 +4,7 @@ import { useRoundClock } from '../hooks/useRoundClock'
 import { formatPrice, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import type { OrderSide, OrderSummary, StockSummary } from '../types/market'
-import { SpriteIcon } from './SpriteIcon'
+import { StockLogo } from './StockLogo'
 
 interface OrderPanelProps {
   stock: StockSummary
@@ -157,7 +157,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
       </div>
 
       <div className="order-stock">
-        <SpriteIcon kind="stock" index={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
+        <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
         <div>
           <strong>{stock.name}</strong>
           <small>{stock.ticker}</small>
