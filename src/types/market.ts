@@ -268,21 +268,9 @@ export interface LadderGame {
   completedAt: string | null
 }
 
-export interface OrderQuota {
-  buySubmitted: number
-  sellSubmitted: number
-  buyRemaining: number
-  sellRemaining: number
-  buyExecuted: number
-  sellExecuted: number
-  limit: number
-}
-
 export interface OrderCapacity {
   maxQuantity: number
   orderPrice: number
-  submittedCount: number
-  remainingOrders: number
 }
 
 export interface ListingStory {
@@ -320,7 +308,6 @@ export interface MyState {
   shortPositions: ShortPositionSummary[]
   orders: OrderSummary[]
   executedOrderCount: number
-  orderQuota: OrderQuota
   ledger: LedgerEntry[]
   tradeCycles: TradeCycle[]
   ladderGames: LadderGame[]

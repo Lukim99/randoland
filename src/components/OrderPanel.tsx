@@ -25,10 +25,6 @@ const orderTypeLabel: Record<OrderSide, string> = {
   cover: '공매도 청산',
 }
 
-function quotaDirection(side: OrderSide) {
-  return side === 'buy' || side === 'cover' ? 'buy' : 'sell'
-}
-
 function orderTone(side: OrderSide) {
   return side === 'buy' || side === 'cover' ? 'buy' : 'sell'
 }
@@ -55,11 +51,6 @@ export function OrderPanel({ stock }: OrderPanelProps) {
   const position = myState?.positions.find((item) => item.stockId === stock.id)
   const shortPosition = myState?.shortPositions.find((item) => item.stockId === stock.id)
   const isOwnStock = myState?.listing?.id === stock.id
-  const quota = myState?.orderQuota
-  const remainingOrders = quotaDirection(side) === 'buy'
-    ? (quota?.buyRemaining ?? 5)
-    : (quota?.sellRemaining ?? 5)
-
   const estimate = useMemo(() => {
     const amount = stock.currentPrice * Math.max(0, quantity || 0)
     const borrowed = side === 'buy' ? Math.floor((amount * leverage) / (100 + leverage)) : 0
@@ -85,9 +76,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
                 ? '매도할 보유 수량이 없습니다.'
                 : side === 'cover' && (shortPosition?.quantity ?? 0) <= 0
                   ? '청산할 공매도 수량이 없습니다.'
-                  : remainingOrders <= 0
-                    ? `${quotaDirection(side) === 'buy' ? '매수' : '매도'} 접수 한도를 모두 사용했습니다.`
-                    : null
+                  : null
 
   function selectSide(nextSide: OrderSide) {
     setSide(nextSide)
@@ -165,7 +154,6 @@ export function OrderPanel({ stock }: OrderPanelProps) {
           <span className="eyebrow">주문서</span>
           <h2>주문</h2>
         </div>
-        <span className="order-count">접수 가능 {remainingOrders}건</span>
       </div>
 
       <div className="order-stock">

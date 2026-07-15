@@ -592,10 +592,13 @@ Deno.serve(async (request: Request) => {
       ? await generateSettlement(openAiKey, model, claim, context)
       : createNoStockOutput();
 
+    const finalizeFunctionName = isAdminRequest
+      ? "randoland_admin_finalize_settlement_now_v2"
+      : "randoland_admin_finalize_settlement_v2";
     const result = await callRpc<JsonObject>(
       supabaseUrl,
       serviceRoleKey,
-      "randoland_admin_finalize_settlement_v2",
+      finalizeFunctionName,
       {
         p_execution_key: executionKey,
         p_ai_model: (claim.stocks ?? []).length > 0 ? model : "system:no-active-stocks",

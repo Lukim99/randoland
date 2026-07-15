@@ -37,7 +37,6 @@ const errorTranslations: Array<[string, string]> = [
   ['A participant cannot trade their own listed stock', '본인이 상장한 종목은 매매할 수 없습니다.'],
   ['cannot trade their own listed stock', '본인이 상장한 종목은 매매할 수 없습니다.'],
   ['Orders are not being accepted', '현재 주문 접수 시간이 아닙니다.'],
-  ['Up to five orders per side', '매수와 매도 주문은 라운드당 각각 5건까지 가능합니다.'],
   ['Order quantity must be a positive whole number', '주문 수량은 1주 이상의 정수로 입력해 주세요.'],
   ['Leverage must be between 0 and 50 percent', '레버리지는 0%부터 50%까지 설정할 수 있습니다.'],
   ['Leverage is only available for buy orders', '레버리지는 일반 매수 주문에만 사용할 수 있습니다.'],
@@ -75,6 +74,7 @@ const errorTranslations: Array<[string, string]> = [
   ['Stock logo sprite index must be between', '종목 이미지를 다시 선택해 주세요.'],
   ['Stock logo path is invalid', '종목 로고 경로를 확인하지 못했습니다. 다시 업로드해 주세요.'],
   ['Uploaded stock logo was not found', '업로드한 종목 로고를 확인하지 못했습니다.'],
+  ['Failed to fetch', '서버에 연결하지 못했습니다. 잠시 후 다시 시도해 주세요.'],
   ['Join the league before writing a discussion post', '리그 참가 후 게시글을 작성할 수 있습니다.'],
   ['Discussion title must contain', '제목은 1~80자로 입력해 주세요.'],
   ['Discussion content must contain', '내용은 1~2,000자로 입력해 주세요.'],
@@ -236,15 +236,6 @@ export async function loadMyState(leagueId: string): Promise<MyState> {
     orders: normalizedOrders,
     executedOrderCount: rawState.executedOrderCount
       ?? normalizedOrders.filter((order) => order.status === 'executed').length,
-    orderQuota: rawState.orderQuota ?? {
-      buySubmitted: 0,
-      sellSubmitted: 0,
-      buyRemaining: 5,
-      sellRemaining: 5,
-      buyExecuted: 0,
-      sellExecuted: 0,
-      limit: 5,
-    },
     ledger: (rawState.ledger ?? []).map((entry) => ({
       ...entry,
       receivableAfter: entry.receivableAfter ?? 0,
@@ -406,7 +397,11 @@ export async function submitListing(
   })
 
   if (error && logoImagePath) {
-    await client.storage.from(STOCK_LOGO_BUCKET).remove([logoImagePath])
+    try {
+      await client.storage.from(STOCK_LOGO_BUCKET).remove([logoImagePath])
+    } catch {
+      // Preserve the listing RPC error even if best-effort upload cleanup fails.
+    }
   }
   throwIfError(error)
   return data as unknown as { id: string }

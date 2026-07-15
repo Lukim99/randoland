@@ -903,16 +903,6 @@ dd {
   box-shadow: 0 20px 55px rgba(0, 0, 0, 0.32);
 }
 
-.order-count {
-  padding: 5px 8px;
-  color: var(--muted);
-  background: var(--surface-raised);
-  border: 1px solid var(--border);
-  border-radius: 7px;
-  font-size: 9px;
-  font-variant-numeric: tabular-nums;
-}
-
 .order-stock {
   display: grid;
   grid-template-columns: 32px minmax(0, 1fr) auto;
@@ -5738,7 +5728,6 @@ button:disabled {
 
   .order-type-control button,
   .segmented-control button,
-  .order-count,
   .order-stock > div strong,
   .order-stock > div small,
   .order-stock > strong,
