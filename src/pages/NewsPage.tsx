@@ -1,4 +1,5 @@
 import { CalendarClock, Newspaper, Radio } from 'lucide-react'
+import { Link } from 'react-router'
 import { formatKstDateTime } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 
@@ -67,6 +68,19 @@ export function NewsPage() {
                 <article className="panel brief-news-item" key={brief.id}>
                   <span className="brief-news-item__dot" aria-hidden="true" />
                   <div>
+                    <div className="brief-news-item__stocks">
+                      {brief.affectedStockIds.map((affectedStockId, index) => {
+                        const affectedStock = market.stocks.find((stock) => stock.id === affectedStockId)
+                        const affectedStockName = affectedStock?.name ?? brief.affectedStockNames[index]
+                        if (!affectedStockName) return null
+
+                        return (
+                          <Link key={affectedStockId} to={`/stock/${affectedStockId}`}>
+                            {affectedStockName}
+                          </Link>
+                        )
+                      })}
+                    </div>
                     <h3>{brief.headline}</h3>
                     <p>{brief.summary}</p>
                   </div>

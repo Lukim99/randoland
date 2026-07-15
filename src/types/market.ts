@@ -102,6 +102,7 @@ export interface NewsBrief {
   id: string
   headline: string
   summary: string
+  affectedStockIds: string[]
   affectedStockNames: string[]
 }
 

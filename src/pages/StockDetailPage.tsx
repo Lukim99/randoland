@@ -3,12 +3,13 @@ import { Link, Navigate, useParams } from 'react-router'
 import { CandlestickChart } from '../components/CandlestickChart'
 import { OrderPanel } from '../components/OrderPanel'
 import { StockLogo } from '../components/StockLogo'
+import { StockNewsPanel } from '../components/StockNewsPanel'
 import { formatPercent, formatPrice, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 
 export function StockDetailPage() {
   const { stockId } = useParams()
-  const { market, loading } = useMarket()
+  const { market, newsFeed, loading } = useMarket()
 
   if (loading && !market) return <div className="skeleton skeleton--chart" aria-label="종목 불러오는 중" />
 
@@ -16,6 +17,7 @@ export function StockDetailPage() {
   if (!stock || !market) return <Navigate to="/" replace />
 
   const latest = stock.candles.at(-1)
+  const latestEdition = newsFeed?.editions[0]
 
   return (
     <div className="stock-detail-page">
@@ -52,6 +54,12 @@ export function StockDetailPage() {
               </dl>
             )}
           </section>
+
+          <StockNewsPanel
+            stockId={stock.id}
+            stockName={stock.name}
+            edition={latestEdition}
+          />
 
           <section className="stock-info-grid">
             <article className="panel info-card"><Layers3 size={20} /><small>테마</small><strong>{stock.theme}</strong></article>

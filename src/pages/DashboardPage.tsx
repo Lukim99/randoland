@@ -1,7 +1,6 @@
 import {
   ArrowRight,
   Building2,
-  CalendarClock,
   CircleDollarSign,
   Clock3,
   EyeOff,
@@ -17,6 +16,7 @@ import { LeagueJoinCard } from '../components/LeagueJoinCard'
 import { MarketList } from '../components/MarketList'
 import { OrderPanel } from '../components/OrderPanel'
 import { StockLogo } from '../components/StockLogo'
+import { StockNewsPanel } from '../components/StockNewsPanel'
 import { useRoundClock } from '../hooks/useRoundClock'
 import { formatKstDateTime, formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
@@ -157,6 +157,11 @@ export function DashboardPage() {
               </div>
             </section>
 
+            <StockNewsPanel
+              stockId={selectedStock.id}
+              stockName={selectedStock.name}
+              edition={latestEdition}
+            />
             <OrderPanel stock={selectedStock} />
           </div>
 
