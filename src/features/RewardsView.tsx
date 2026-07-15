@@ -2,7 +2,6 @@ import {
   CalendarCheck2,
   CircleDot,
   Clock3,
-  Coins,
   Flag,
   Route,
   TicketCheck,
@@ -27,6 +26,12 @@ function outcomeCopy(game: LadderGame | LadderResult) {
       return { title: 'Go 성공', detail: `2차 결과 ${game.secondResult ? choiceLabel[game.secondResult] : '-'} · ${formatRp(game.reward)} 지급`, won: true }
     case 'second_loss':
       return { title: 'Go 실패', detail: `2차 결과 ${game.secondResult ? choiceLabel[game.secondResult] : '-'} · 보상 0 RP`, won: false }
+    case 'second_stopped':
+      return { title: '2차 Stop 완료', detail: `${formatRp(game.reward)} 지급`, won: true }
+    case 'third_win':
+      return { title: '3차 Go 성공', detail: `3차 결과 ${game.thirdResult ? choiceLabel[game.thirdResult] : '-'} · ${formatRp(game.reward)} 지급`, won: true }
+    case 'third_loss':
+      return { title: '3차 Go 실패', detail: `3차 결과 ${game.thirdResult ? choiceLabel[game.thirdResult] : '-'} · 보상 0 RP`, won: false }
     default:
       return { title: '게임 완료', detail: game.reward > 0 ? `${formatRp(game.reward)} 지급` : '보상 0 RP', won: game.reward > 0 }
   }
@@ -39,6 +44,8 @@ export function RewardsView() {
     playLadder,
     chooseLadderAction,
     playLadderSecond,
+    chooseLadderThirdAction,
+    playLadderThird,
   } = useMarket()
   const participant = myState?.participant
   const [attendanceBusy, setAttendanceBusy] = useState(false)
@@ -99,6 +106,32 @@ export function RewardsView() {
     }
   }
 
+  async function handleThirdDecision(action: 'go' | 'stop') {
+    if (!visibleGame) return
+    setGameBusy(true)
+    setMessage(null)
+    try {
+      setLastResult(await chooseLadderThirdAction(visibleGame.id, action))
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '두 번째 Go or Stop 선택을 처리하지 못했습니다.')
+    } finally {
+      setGameBusy(false)
+    }
+  }
+
+  async function handleThirdChoice(choice: LadderChoice) {
+    if (!visibleGame) return
+    setGameBusy(true)
+    setMessage(null)
+    try {
+      setLastResult(await playLadderThird(visibleGame.id, choice))
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '세 번째 홀짝 결과를 처리하지 못했습니다.')
+    } finally {
+      setGameBusy(false)
+    }
+  }
+
   const completedCopy = visibleGame?.state === 'completed' ? outcomeCopy(visibleGame) : null
 
   return (
@@ -121,17 +154,20 @@ export function RewardsView() {
             </div>
 
             <div className="reward-steps reward-steps--go-stop">
-              <div className={!visibleGame ? 'is-next' : ''}>
+              <div className={!visibleGame || visibleGame.state === 'awaiting_decision' ? 'is-next' : ''}>
                 <span>Stop</span><strong>{formatRp(20_000)}</strong><small>1차 성공 후 확정</small>
               </div>
-              <div className={visibleGame?.state === 'awaiting_second_pick' ? 'is-next' : ''}>
-                <span>Go</span><strong>{formatRp(50_000)}</strong><small>2연속 성공 시 확정</small>
+              <div className={visibleGame?.state === 'awaiting_second_pick' || visibleGame?.state === 'awaiting_third_decision' ? 'is-next' : ''}>
+                <span>Go</span><strong>{formatRp(50_000)}</strong><small>2연속 성공 후 Stop</small>
+              </div>
+              <div className={visibleGame?.state === 'awaiting_third_pick' ? 'is-next' : ''}>
+                <span>Go</span><strong>{formatRp(100_000)}</strong><small>3연속 성공 시 확정</small>
               </div>
             </div>
 
             {!visibleGame && (
               <>
-                <p className="ladder-description">첫 결과를 맞히면 20,000 RP를 받거나, 보상을 걸고 50,000 RP에 도전할 수 있습니다.</p>
+                <p className="ladder-description">성공할 때마다 보상을 확정하거나 다음 홀짝에 도전할 수 있습니다. 세 번 연속 성공하면 총 100,000 RP를 받습니다.</p>
                 <div className="ladder-choices" role="group" aria-label="첫 번째 홀짝 선택">
                   <button type="button" disabled={gameBusy || participant.attendanceTokens < 1} onClick={() => void handleFirstChoice('odd')}><CircleDot size={20} /><span>홀</span><small>1차 선택</small></button>
                   <button type="button" disabled={gameBusy || participant.attendanceTokens < 1} onClick={() => void handleFirstChoice('even')}><CircleDot size={20} /><span>짝</span><small>1차 선택</small></button>
@@ -153,10 +189,31 @@ export function RewardsView() {
 
             {visibleGame?.state === 'awaiting_second_pick' && (
               <div className="ladder-stage" role="status">
-                <div className="ladder-stage__status"><TrendingUp size={19} /><span><strong>Go 선택</strong><small>한 번 더 맞히면 50,000 RP</small></span></div>
+                <div className="ladder-stage__status"><TrendingUp size={19} /><span><strong>Go 선택</strong><small>한 번 더 맞히면 50,000 RP 확정 기회</small></span></div>
                 <div className="ladder-choices" role="group" aria-label="두 번째 홀짝 선택">
                   <button type="button" disabled={gameBusy} onClick={() => void handleSecondChoice('odd')}><CircleDot size={20} /><span>홀</span><small>2차 선택</small></button>
                   <button type="button" disabled={gameBusy} onClick={() => void handleSecondChoice('even')}><CircleDot size={20} /><span>짝</span><small>2차 선택</small></button>
+                </div>
+              </div>
+            )}
+
+            {visibleGame?.state === 'awaiting_third_decision' && visibleGame.secondResult && (
+              <div className="ladder-stage" role="status">
+                <div className="ladder-stage__status"><Zap size={19} /><span><strong>2차 적중</strong><small>결과 {choiceLabel[visibleGame.secondResult]}</small></span></div>
+                <p>50,000 RP를 확정하거나 세 번째 홀짝에 도전하세요.</p>
+                <div className="go-stop-actions">
+                  <button className="stop" type="button" disabled={gameBusy} onClick={() => void handleThirdDecision('stop')}><Flag size={18} /><span><strong>Stop</strong><small>50,000 RP 받기</small></span></button>
+                  <button className="go" type="button" disabled={gameBusy} onClick={() => void handleThirdDecision('go')}><TrendingUp size={18} /><span><strong>Go</strong><small>100,000 RP 도전</small></span></button>
+                </div>
+              </div>
+            )}
+
+            {visibleGame?.state === 'awaiting_third_pick' && (
+              <div className="ladder-stage" role="status">
+                <div className="ladder-stage__status"><TrendingUp size={19} /><span><strong>두 번째 Go 선택</strong><small>한 번 더 맞히면 100,000 RP</small></span></div>
+                <div className="ladder-choices" role="group" aria-label="세 번째 홀짝 선택">
+                  <button type="button" disabled={gameBusy} onClick={() => void handleThirdChoice('odd')}><CircleDot size={20} /><span>홀</span><small>3차 선택</small></button>
+                  <button type="button" disabled={gameBusy} onClick={() => void handleThirdChoice('even')}><CircleDot size={20} /><span>짝</span><small>3차 선택</small></button>
                 </div>
               </div>
             )}
@@ -171,15 +228,6 @@ export function RewardsView() {
               </div>
             )}
             {message && <p className="form-message" role="status">{message}</p>}
-          </section>
-
-          <section className="panel leverage-guide">
-            <div><Coins size={21} /><span><span className="eyebrow">주문 선택지</span><h2>레버리지 정산 기준</h2></span></div>
-            <ul>
-              <li><strong>최대 50%</strong><span>순자산을 기준으로 매수 주문에 사용할 수 있습니다.</span></li>
-              <li><strong>5% 차감</strong><span>레버리지 매수분의 매도 시점 평가액에서 차감합니다.</span></li>
-              <li><strong>2라운드 경과</strong><span>보유 후 2라운드가 지나면 이후 변동된 가격으로 자동 청산됩니다.</span></li>
-            </ul>
           </section>
 
           <section className="panel live-section">

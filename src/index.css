@@ -3400,6 +3400,14 @@ button:disabled {
   line-height: 1.6;
 }
 
+.listed-stock-card__immutable-note {
+  display: block;
+  margin-top: 8px;
+  color: var(--subtle);
+  font-size: 8px;
+  line-height: 1.5;
+}
+
 .listed-stock-card dl {
   display: grid;
   gap: 7px;
@@ -3745,7 +3753,7 @@ button:disabled {
 }
 
 .reward-steps--go-stop {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .reward-steps > div {
@@ -3936,41 +3944,6 @@ button:disabled {
 .go-stop-actions button:hover:not(:disabled) {
   border-color: rgba(0, 255, 191, 0.24);
 }
-
-.leverage-guide {
-  padding: 21px;
-}
-
-.leverage-guide > div {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.leverage-guide > div > svg { color: var(--accent); }
-.leverage-guide > div > span { display: grid; gap: 4px; }
-.leverage-guide h2 { font-size: 16px; }
-
-.leverage-guide ul {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 8px;
-  padding: 0;
-  margin: 16px 0 0;
-  list-style: none;
-}
-
-.leverage-guide li {
-  display: grid;
-  gap: 5px;
-  padding: 12px;
-  background: rgba(255, 255, 255, 0.018);
-  border: 1px solid var(--border);
-  border-radius: 9px;
-}
-
-.leverage-guide li strong { color: var(--accent); font-size: 10px; }
-.leverage-guide li span { color: var(--muted); font-size: 8px; line-height: 1.55; }
 
 /* Login */
 .login-page {
@@ -5566,8 +5539,7 @@ button:disabled {
 
   .live-section,
   .listing-form,
-  .ladder-card,
-  .leverage-guide {
+  .ladder-card {
     padding: 16px;
   }
 
@@ -5721,10 +5693,6 @@ button:disabled {
     padding: 11px;
   }
 
-  .leverage-guide ul {
-    grid-template-columns: 1fr;
-  }
-
   .chart-empty {
     min-height: 280px;
   }
@@ -5763,7 +5731,6 @@ button:disabled {
   .order-rule-note,
   .order-fee-note,
   .order-disabled-note,
-  .leverage-guide li span,
   .page-error,
   .form-message {
     font-size: 12px;
@@ -5829,8 +5796,7 @@ button:disabled {
 
   .token-balance strong,
   .reward-steps strong,
-  .ladder-stage__status strong,
-  .leverage-guide li strong {
+  .ladder-stage__status strong {
     font-size: 13px;
   }
 

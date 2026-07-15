@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase'
 import {
   cancelOrder as cancelOrderRequest,
   chooseLadderAction as chooseLadderActionRequest,
+  chooseLadderThirdAction as chooseLadderThirdActionRequest,
   claimAttendance as claimAttendanceRequest,
   createDiscussionPost as createDiscussionPostRequest,
   getOrderCapacity as getOrderCapacityRequest,
@@ -15,10 +16,9 @@ import {
   placeOrder as placeOrderRequest,
   playLadder as playLadderRequest,
   playLadderSecond as playLadderSecondRequest,
-  setStockLogo as setStockLogoRequest,
+  playLadderThird as playLadderThirdRequest,
   submitListing as submitListingRequest,
   uploadProfileImage as uploadProfileImageRequest,
-  uploadStockLogo as uploadStockLogoRequest,
 } from '../services/market'
 import type { LadderChoice, ListingSubmission, MarketSnapshot, MyState, NewsFeed, OrderSide, RankingsSnapshot } from '../types/market'
 import { MarketContext, type MarketContextValue } from './market-context'
@@ -195,20 +195,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
   }, [refreshData])
 
   const submitListing = useCallback(async (submission: ListingSubmission, logoFile?: File | null) => {
-    const listing = await submitListingRequest(requireLeagueId(), submission)
-    let logoUploadError: unknown
-    if (logoFile) {
-      try {
-        await uploadStockLogoRequest(listing.id, null, logoFile)
-      } catch (error) {
-        logoUploadError = error
-      }
-    }
+    await submitListingRequest(requireLeagueId(), submission, logoFile)
     await refreshData(true)
-    if (logoUploadError) {
-      const detail = logoUploadError instanceof Error ? logoUploadError.message : '알 수 없는 오류'
-      throw new Error(`종목은 상장되었지만 로고 업로드에 실패했습니다. 다시 업로드해 주세요. (${detail})`)
-    }
   }, [refreshData, requireLeagueId])
 
   const uploadProfileImage = useCallback(async (file: File) => {
@@ -217,17 +205,6 @@ export function MarketProvider({ children }: PropsWithChildren) {
     await uploadProfileImageRequest(participant.id, participant.profileImagePath, file)
     await refreshData(true)
   }, [myState?.participant, refreshData])
-
-  const setStockLogo = useCallback(async (stockId: string, logoSpriteIndex: number) => {
-    await setStockLogoRequest(stockId, logoSpriteIndex)
-    await refreshData(true)
-  }, [refreshData])
-
-  const uploadStockLogo = useCallback(async (stockId: string, file: File) => {
-    const currentLogoImagePath = market?.stocks.find((stock) => stock.id === stockId)?.logoImagePath ?? null
-    await uploadStockLogoRequest(stockId, currentLogoImagePath, file)
-    await refreshData(true)
-  }, [market?.stocks, refreshData])
 
   const loadDiscussionPosts = useCallback(
     (stockId: string) => loadDiscussionPostsRequest(stockId),
@@ -274,6 +251,18 @@ export function MarketProvider({ children }: PropsWithChildren) {
     return result
   }, [refreshData])
 
+  const chooseLadderThirdAction = useCallback(async (gameId: string, action: 'go' | 'stop') => {
+    const result = await chooseLadderThirdActionRequest(gameId, action)
+    await refreshData(true)
+    return result
+  }, [refreshData])
+
+  const playLadderThird = useCallback(async (gameId: string, choice: LadderChoice) => {
+    const result = await playLadderThirdRequest(gameId, choice)
+    await refreshData(true)
+    return result
+  }, [refreshData])
+
   const value = useMemo<MarketContextValue>(
     () => ({
       market,
@@ -290,14 +279,14 @@ export function MarketProvider({ children }: PropsWithChildren) {
       cancelOrder,
       submitListing,
       uploadProfileImage,
-      uploadStockLogo,
-      setStockLogo,
       loadDiscussionPosts,
       createDiscussionPost,
       claimAttendance,
       playLadder,
       chooseLadderAction,
       playLadderSecond,
+      chooseLadderThirdAction,
+      playLadderThird,
     }),
     [
       cancelOrder,
@@ -312,13 +301,13 @@ export function MarketProvider({ children }: PropsWithChildren) {
       playLadder,
       chooseLadderAction,
       playLadderSecond,
+      chooseLadderThirdAction,
+      playLadderThird,
       rankings,
       newsFeed,
       refresh,
       refreshing,
       uploadProfileImage,
-      uploadStockLogo,
-      setStockLogo,
       loadDiscussionPosts,
       createDiscussionPost,
       submitListing,

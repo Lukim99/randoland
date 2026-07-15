@@ -36,14 +36,14 @@ export interface MarketContextValue {
   cancelOrder: (orderId: string) => Promise<void>
   submitListing: (submission: ListingSubmission, logoFile?: File | null) => Promise<void>
   uploadProfileImage: (file: File) => Promise<void>
-  uploadStockLogo: (stockId: string, file: File) => Promise<void>
-  setStockLogo: (stockId: string, logoSpriteIndex: number) => Promise<void>
   loadDiscussionPosts: (stockId: string) => Promise<DiscussionPost[]>
   createDiscussionPost: (stockId: string, title: string, content: string) => Promise<DiscussionPost>
   claimAttendance: () => Promise<{ date: string; awarded: boolean; tokens: number }>
   playLadder: (choice: LadderChoice) => Promise<LadderResult>
   chooseLadderAction: (gameId: string, action: 'go' | 'stop') => Promise<LadderResult>
   playLadderSecond: (gameId: string, choice: LadderChoice) => Promise<LadderResult>
+  chooseLadderThirdAction: (gameId: string, action: 'go' | 'stop') => Promise<LadderResult>
+  playLadderThird: (gameId: string, choice: LadderChoice) => Promise<LadderResult>
 }
 
 export const MarketContext = createContext<MarketContextValue | null>(null)

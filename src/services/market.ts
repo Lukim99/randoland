@@ -62,6 +62,8 @@ const errorTranslations: Array<[string, string]> = [
   ['Idempotency key was already used with a different choice', '같은 게임 요청의 선택이 달라졌습니다. 기존 선택으로 다시 시도해 주세요.'],
   ['This game is not waiting for a Go or Stop decision', '이미 처리된 Go or Stop 선택입니다.'],
   ['This game is not waiting for the second pick', '이미 처리된 두 번째 홀짝 선택입니다.'],
+  ['This game is not waiting for the second Go or Stop decision', '이미 처리된 두 번째 Go or Stop 선택입니다.'],
+  ['This game is not waiting for the third pick', '이미 처리된 세 번째 홀짝 선택입니다.'],
   ['duplicate key value violates unique constraint "randoland_stocks_one_listing', '이미 상장한 종목이 있습니다.'],
   ['duplicate key value violates unique constraint "randoland_stocks_league_id_ticker', '이미 사용 중인 티커입니다.'],
   ['An attendance token is required', '홀짝 사다리에 사용할 출석 토큰이 없습니다.'],
@@ -71,8 +73,6 @@ const errorTranslations: Array<[string, string]> = [
   ['Each weekly story must contain', '각 주차 이야기는 5~2,000자로 입력해 주세요.'],
   ['Profile sprite index must be between', '프로필 이미지를 다시 선택해 주세요.'],
   ['Stock logo sprite index must be between', '종목 이미지를 다시 선택해 주세요.'],
-  ['Only the listing owner can select its stock logo', '본인이 상장한 종목 이미지만 변경할 수 있습니다.'],
-  ['Only the listing owner can upload its stock logo', '본인이 상장한 종목 로고만 변경할 수 있습니다.'],
   ['Stock logo path is invalid', '종목 로고 경로를 확인하지 못했습니다. 다시 업로드해 주세요.'],
   ['Uploaded stock logo was not found', '업로드한 종목 로고를 확인하지 못했습니다.'],
   ['Join the league before writing a discussion post', '리그 참가 후 게시글을 작성할 수 있습니다.'],
@@ -362,11 +362,41 @@ export async function cancelOrder(orderId: string) {
   return data
 }
 
-export async function submitListing(leagueId: string, submission: ListingSubmission) {
+export async function submitListing(
+  leagueId: string,
+  submission: ListingSubmission,
+  logoFile?: File | null,
+) {
   const client = requireSupabase()
+  let logoImagePath: string | null = null
+
+  if (logoFile) {
+    const validationError = validateStockLogoFile(logoFile)
+    if (validationError) throw new Error(validationError)
+
+    const { data: authData, error: authError } = await client.auth.getUser()
+    if (authError) throw new Error(authError.message)
+    if (!authData.user) throw new Error('로그인이 필요합니다.')
+
+    const imageId = globalThis.crypto?.randomUUID?.()
+    if (!imageId) throw new Error('이 브라우저에서는 이미지 업로드를 지원하지 않습니다.')
+
+    const extension = getStockLogoExtension(logoFile)
+    logoImagePath = `${authData.user.id}/stock-${imageId}.${extension}`
+    const { error: uploadError } = await client.storage
+      .from(STOCK_LOGO_BUCKET)
+      .upload(logoImagePath, logoFile, {
+        cacheControl: '31536000',
+        contentType: logoFile.type,
+        upsert: false,
+      })
+    if (uploadError) throw new Error(uploadError.message)
+  }
+
   const { data, error } = await client.rpc('randoland_submit_listing_with_logo', {
     p_league_id: leagueId,
     p_logo_sprite_index: submission.logoSpriteIndex,
+    p_logo_image_path: logoImagePath,
     p_ticker: submission.ticker,
     p_name: submission.name,
     p_initial_price: submission.initialPrice,
@@ -374,6 +404,10 @@ export async function submitListing(leagueId: string, submission: ListingSubmiss
     p_theme: submission.theme,
     p_weekly_stories: submission.weeklyStories,
   })
+
+  if (error && logoImagePath) {
+    await client.storage.from(STOCK_LOGO_BUCKET).remove([logoImagePath])
+  }
   throwIfError(error)
   return data as unknown as { id: string }
 }
@@ -419,59 +453,6 @@ export async function uploadProfileImage(
 
   if (currentProfileImagePath && currentProfileImagePath !== profileImagePath) {
     await bucket.remove([currentProfileImagePath])
-  }
-
-  return data
-}
-
-export async function setStockLogo(stockId: string, logoSpriteIndex: number) {
-  const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_set_stock_logo', {
-    p_stock_id: stockId,
-    p_logo_sprite_index: logoSpriteIndex,
-  })
-  throwIfError(error)
-  return data
-}
-
-export async function uploadStockLogo(
-  stockId: string,
-  currentLogoImagePath: string | null,
-  file: File,
-) {
-  const client = requireSupabase()
-  const validationError = validateStockLogoFile(file)
-  if (validationError) throw new Error(validationError)
-
-  const { data: authData, error: authError } = await client.auth.getUser()
-  if (authError) throw new Error(authError.message)
-  if (!authData.user) throw new Error('로그인이 필요합니다.')
-
-  const imageId = globalThis.crypto?.randomUUID?.()
-  if (!imageId) throw new Error('이 브라우저에서는 이미지 업로드를 지원하지 않습니다.')
-
-  const extension = getStockLogoExtension(file)
-  const logoImagePath = `${authData.user.id}/stock-${imageId}.${extension}`
-  const bucket = client.storage.from(STOCK_LOGO_BUCKET)
-  const { error: uploadError } = await bucket.upload(logoImagePath, file, {
-    cacheControl: '31536000',
-    contentType: file.type,
-    upsert: false,
-  })
-  if (uploadError) throw new Error(uploadError.message)
-
-  const { data, error: updateError } = await client.rpc('randoland_set_stock_logo_image', {
-    p_stock_id: stockId,
-    p_logo_image_path: logoImagePath,
-  })
-
-  if (updateError) {
-    await bucket.remove([logoImagePath])
-    throw new Error(readableSupabaseError(updateError))
-  }
-
-  if (currentLogoImagePath && currentLogoImagePath !== logoImagePath) {
-    await bucket.remove([currentLogoImagePath])
   }
 
   return data
@@ -549,6 +530,26 @@ export async function chooseLadderAction(gameId: string, action: 'go' | 'stop') 
 export async function playLadderSecond(gameId: string, choice: LadderChoice) {
   const client = requireSupabase()
   const { data, error } = await client.rpc('randoland_play_ladder_second', {
+    p_game_id: gameId,
+    p_choice: choice,
+  })
+  throwIfError(error)
+  return data as unknown as LadderResult
+}
+
+export async function chooseLadderThirdAction(gameId: string, action: 'go' | 'stop') {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_choose_ladder_third_action', {
+    p_game_id: gameId,
+    p_action: action,
+  })
+  throwIfError(error)
+  return data as unknown as LadderResult
+}
+
+export async function playLadderThird(gameId: string, choice: LadderChoice) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_play_ladder_third', {
     p_game_id: gameId,
     p_choice: choice,
   })

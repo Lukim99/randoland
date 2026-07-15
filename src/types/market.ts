@@ -3,8 +3,22 @@ export type RoundStatus = 'scheduled' | 'open' | 'locked' | 'settling' | 'settle
 export type OrderSide = 'buy' | 'sell' | 'short' | 'cover'
 export type OrderStatus = 'pending' | 'cancelled' | 'locked' | 'executed' | 'rejected'
 export type LadderChoice = 'odd' | 'even'
-export type LadderState = 'awaiting_decision' | 'awaiting_second_pick' | 'completed'
-export type LadderOutcome = 'first_loss' | 'stopped' | 'second_loss' | 'second_win' | 'legacy' | null
+export type LadderState =
+  | 'awaiting_decision'
+  | 'awaiting_second_pick'
+  | 'awaiting_third_decision'
+  | 'awaiting_third_pick'
+  | 'completed'
+export type LadderOutcome =
+  | 'first_loss'
+  | 'stopped'
+  | 'second_loss'
+  | 'second_win'
+  | 'second_stopped'
+  | 'third_win'
+  | 'third_loss'
+  | 'legacy'
+  | null
 export type LadderAction = 'go' | 'stop' | null
 
 export interface CandlePoint {
@@ -245,6 +259,10 @@ export interface LadderGame {
   secondChoice: LadderChoice | null
   secondResult: LadderChoice | null
   secondWon: boolean | null
+  secondAction: LadderAction
+  thirdChoice: LadderChoice | null
+  thirdResult: LadderChoice | null
+  thirdWon: boolean | null
   reward: number
   playedAt: string
   completedAt: string | null
@@ -367,6 +385,10 @@ export interface LadderResult {
   secondChoice: LadderChoice | null
   secondResult: LadderChoice | null
   secondWon: boolean | null
+  secondAction: LadderAction
+  thirdChoice: LadderChoice | null
+  thirdResult: LadderChoice | null
+  thirdWon: boolean | null
   reward: number
   cashBalance: number
   receivableRp: number
