@@ -41,7 +41,7 @@ export function StockNewsPanel({ stockId, stockName, edition }: StockNewsPanelPr
         </p>
       )}
 
-      <Link to="/news">란도일보 전체 보기 <ArrowRight size={14} /></Link>
+      <Link to={`/stock/${stockId}/news`}>{stockName} 뉴스 전체 보기 <ArrowRight size={14} /></Link>
     </section>
   )
 }

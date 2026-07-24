@@ -222,6 +222,11 @@ export async function loadNewsFeed(leagueId: string): Promise<NewsFeed> {
   return {
     editions: (feed.editions ?? []).map((edition) => ({
       ...edition,
+      spotlightHeadline: edition.spotlightHeadline ?? null,
+      spotlightSummary: edition.spotlightSummary ?? null,
+      spotlightBody: edition.spotlightBody ?? null,
+      spotlightStockId: edition.spotlightStockId ?? null,
+      spotlightStockName: edition.spotlightStockName ?? null,
       briefs: (edition.briefs ?? []).map((brief) => ({
         ...brief,
         affectedStockIds: brief.affectedStockIds ?? [],

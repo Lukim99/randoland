@@ -10,6 +10,7 @@ import { LoginPage } from './pages/LoginPage'
 const DashboardPage = lazy(() => import('./pages/DashboardPage').then((module) => ({ default: module.DashboardPage })))
 const FeaturePage = lazy(() => import('./pages/FeaturePage').then((module) => ({ default: module.FeaturePage })))
 const StockDetailPage = lazy(() => import('./pages/StockDetailPage').then((module) => ({ default: module.StockDetailPage })))
+const StockNewsPage = lazy(() => import('./pages/StockNewsPage').then((module) => ({ default: module.StockNewsPage })))
 const NewsPage = lazy(() => import('./pages/NewsPage').then((module) => ({ default: module.NewsPage })))
 const DiscussionPage = lazy(() => import('./pages/DiscussionPage').then((module) => ({ default: module.DiscussionPage })))
 const AdminPage = lazy(() => import('./admin/AdminPage').then((module) => ({ default: module.AdminPage })))
@@ -27,6 +28,7 @@ function App() {
         <Route element={<MarketProvider><AppShell /></MarketProvider>}>
           <Route index element={loadPage(<DashboardPage />)} />
           <Route path="stock/:stockId" element={loadPage(<StockDetailPage />)} />
+          <Route path="stock/:stockId/news" element={loadPage(<StockNewsPage />)} />
           <Route path="news" element={loadPage(<NewsPage />)} />
           <Route path="discussion" element={loadPage(<DiscussionPage />)} />
           <Route path="discussion/:stockId" element={loadPage(<DiscussionPage />)} />

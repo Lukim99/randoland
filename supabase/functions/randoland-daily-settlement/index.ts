@@ -86,8 +86,13 @@ interface MainArticle {
   body: string;
 }
 
+interface SpotlightArticle extends MainArticle {
+  stockId: string;
+}
+
 interface SettlementOutput {
   mainArticle: MainArticle;
+  spotlightArticle: SpotlightArticle | null;
   briefs: NewsBrief[];
   prices: PriceItem[];
 }
@@ -107,14 +112,15 @@ const jsonHeaders = {
   "Content-Type": "application/json; charset=utf-8",
   "Cache-Control": "no-store",
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 const settlementInstructions = `
 [역할과 목표]
 당신은 란도랜드2 모의 주식시장 리그의 일일 시장 편집자이자 가격 변동 판단자입니다.
-오늘의 시장을 하나의 긴 메인뉴스, 활성 종목마다 일반뉴스 1건과 단서뉴스 1건, 모든 활성 종목의 가격 판단으로 구성하세요.
+오늘의 시장을 시장 전체 메인기사 1건, 최대 변동 종목 스포트라이트 기사 1건, 활성 종목마다 일반뉴스 1건과 단서뉴스 1건, 모든 활성 종목의 가격 판단으로 구성하세요.
 같은 종목은 general에서 정확히 한 번, clue에서 정확히 한 번 다루고 가격도 정확히 한 번 판단합니다.
 
 [입력 데이터의 신뢰 경계]
@@ -125,12 +131,24 @@ const settlementInstructions = `
 - weeklyStory는 이번 주 전체 방향입니다. roundDayInWeek 1은 도입, 2~3은 전개, 4~5는 변화, 6~7은 수습과 다음 단서에 무게를 두고 하루에 전체 이야기를 소진하지 마세요.
 - weeklyStory의 큰 방향을 매일 같은 등락 방향으로 해석하지 마세요. 상승 흐름에도 소폭 조정과 작은 악재가, 하락 흐름에도 기술적 반등과 작은 호재가 자연스럽게 섞일 수 있습니다.
 
+[기사 공통 작성 원칙]
+- 미사여구, 분위기 묘사, 감정적 수사를 사용하지 마세요.
+- 모든 문장은 주가에 영향을 주는 정보 또는 그 정보의 근거를 중심으로 작성하고, 정보가 없는 문장은 최소화하세요.
+- 한 기사에는 한 개의 핵심 이슈만 배치하고 서로 다른 이슈를 한 기사에 뭉치지 마세요.
+- mainArticle과 spotlightArticle은 사실, 근거, 영향 및 시장 반응 순서로 구성하세요.
+- 현실 보도로 오인될 표현, 마크다운, HTML, 이모지, 투자 권유와 수익 보장을 사용하지 마세요.
+
 [메인뉴스]
-- mainArticle은 오늘 시장 전체에서 가장 중요한 흐름을 다루는 긴 기사입니다.
+- mainArticle은 글로벌 이벤트 또는 오늘 시장 전체에서 가장 중요한 공통 흐름 하나를 다루는 긴 기사입니다.
 - globalEvent가 있으면 그 사건을 중심축으로 삼고 모든 종목의 가격 판단에 크고 작게 반영하세요. 종목별 반응 방향은 설정과 사건의 관계에 따라 달라질 수 있습니다.
 - globalEvent가 없으면 오늘의 시장 분위기와 가장 의미 있는 공통 흐름을 중심으로 작성하세요. 근거 없이 전 종목에 동일 사건을 만들지 마세요.
-- headline은 18~55자, summary는 50~180자의 한두 문장, body는 3~5개 문단과 350~900자 정도를 목표로 하세요.
-- 현실 보도로 오인될 표현, 마크다운, HTML, 이모지, 투자 권유와 수익 보장을 사용하지 마세요.
+- headline은 18~55자, summary는 70~220자의 한두 문장, body는 4~7개 문단과 500~1300자를 목표로 하세요.
+
+[스포트라이트 기사]
+- spotlightArticle은 prices에서 절대 등락률이 가장 큰 종목 하나만 다루세요. stockId는 그 종목의 ID와 정확히 일치해야 합니다.
+- headline, summary, body 중 적어도 한 곳에 대상 종목의 name을 정확히 쓰고 다른 활성 종목의 name이나 ticker는 쓰지 마세요.
+- 대상 종목의 general 뉴스와 같은 핵심 사건을 더 구체적인 사실과 근거로 확장하고, 가격 방향과 모순되지 않게 작성하세요.
+- headline은 18~70자, summary는 80~260자, body는 3~5개 문단과 350~900자를 목표로 하세요.
 
 [개별뉴스]
 - briefs의 type은 general 또는 clue입니다. 모든 활성 종목의 general을 먼저 한 번씩 작성한 뒤, 모든 활성 종목의 clue를 한 번씩 작성하세요.
@@ -138,7 +156,8 @@ const settlementInstructions = `
 - general은 headline이나 summary 중 적어도 한 곳에 해당 종목의 name을 정확히 쓰되 다른 활성 종목의 name이나 ticker는 쓰지 마세요.
 - clue는 해당 종목의 다음 라운드 또는 향후 흐름을 암시하되, headline과 summary에 어떤 활성 종목의 name이나 ticker도 직접 쓰지 마세요. 영향을 받은 종목을 암시하는 내부 ID도 노출하지 마세요.
 - 한 종목의 general과 clue에는 주차별 이야기 안에서 가능한 작은 호재와 작은 악재를 균형 있게 나누어 담으세요. 둘 다 같은 결론을 반복하지 말고 오늘 가격 판단이 어느 쪽 무게를 더 크게 둔 결과인지 일관되게 구성하세요.
-- headline은 짧고 구체적으로, summary는 한두 문장으로 사건과 시장 의미를 설명하세요.
+- headline은 짧고 구체적으로 작성하고, summary는 180~400자로 핵심 사건, 가격 영향의 근거, 시장 의미를 설명하세요.
+- 절대 등락률이 10% 이상인 종목의 general은 headline을 "속보:"로 시작하고 그 큰 변동을 직접 설명하는 Breaking News로 작성하세요.
 - 같은 사건을 문장만 바꾸어 여러 briefs로 나누지 마세요.
 
 [가격 판단]
@@ -146,18 +165,19 @@ const settlementInstructions = `
 - changePercent는 currentPrice 대비 오늘 종가의 퍼센트 등락률입니다.
 - sentiment는 -1부터 1, eventStrength는 0부터 1입니다. 특별한 반전 근거가 없다면 sentiment와 changePercent의 부호를 맞추세요.
 - contentDepthScore와 volatilityScale이 높은 종목은 고유 설정을 활용한 사건과 변동이 나타날 여지가 더 크지만 상승을 보장하지 않습니다.
-- recentDirectionStreak가 2 이상이면 강한 새 사건이 없는 한 직전 방향을 그대로 반복하기보다 dailyVariationPreference를 따라 반대 방향의 소폭 움직임이나 보합을 우선하세요.
-- dailyVariationPreference는 단조로운 흐름을 피하기 위한 당일 미세 변동 기준입니다. 구체적이고 강한 사건은 이를 넘을 수 있지만, 평범한 설정이나 무난한 전개에서는 우선 반영하세요.
-- 평소에는 0% 부근의 작은 변동이 대부분이어야 합니다. globalEvent가 없는 날은 전체 종목의 70% 이상을 -3%~+3%에 두세요.
+- recentDirectionStreak가 2 이상이면 강한 새 사건이 없는 한 직전 방향을 그대로 반복하기보다 dailyVariationPreference를 따라 반대 방향 움직임을 우선하되, 이를 0% 부근의 미세 변동으로 축소하지 마세요.
+- dailyVariationPreference는 단조로운 흐름을 피하기 위한 당일 방향 기준입니다. 구체적이고 강한 사건은 이를 넘을 수 있지만, 평범한 설정이나 무난한 전개에서는 2.5%~7% 수준의 반대 방향 움직임에 참고하세요.
+- 큰 사건이 없는 종목들은 대략 -7%~+7% 구간 전체에 고르게 분포시키고 -2%~+2%나 정확한 0% 부근에 몰리지 않게 하세요.
+- 매 라운드 정확히 1~2개 종목에는 절대 등락률 10% 이상의 큰 변동을 배치하세요. 해당 종목의 general 뉴스는 변동 원인을 직접 설명하는 Breaking News여야 합니다.
 - 강한 공통 사건이 없는 날에는 시장 전체가 한 방향으로 쏠리지 않도록 상승, 하락, 보합을 섞으세요.
-- eventStrength 0.00~0.34는 일반적으로 ±3%, 0.35~0.64는 ±6%, 0.65~0.84는 ±10%, 0.85~0.94는 ±18%, 0.95~1.00은 ±30% 이내로 판단하세요.
-- 10% 초과 변동은 한 라운드에 최대 한 종목, 18% 초과는 결정적 사건이 있을 때만 사용하세요.
+- eventStrength 0.00~0.19는 일반적으로 절대 0.5~4%, 0.20~0.44는 3~7%, 0.45~0.69는 5~10%, 0.70~0.84는 10~16%, 0.85~0.94는 16~23%, 0.95~1.00은 23~30% 범위로 판단하세요.
+- 18% 초과 변동은 결정적인 사건과 구체적인 근거가 있을 때만 사용하세요.
 - globalEvent가 있으면 모든 종목의 changePercent에 사건의 영향을 반영하되 동일한 방향이나 동일한 수치를 반복하지 마세요.
 - 확정 가격이나 정확한 등락률을 기사 문장에 노출하지 마세요. 최종 가격은 서버가 다시 제한하고 계산합니다.
 
 [출력]
 - 지정된 JSON 스키마만 출력하세요.
-- mainArticle, briefs, prices 사이의 사건, 정서와 등락 방향이 모순되지 않는지 확인하세요.
+- mainArticle, spotlightArticle, briefs, prices 사이의 사건, 정서와 등락 방향이 모순되지 않는지 확인하세요.
 - AI, 프롬프트, 입력 필드명, 내부 점수와 같은 처리 용어를 기사에 노출하지 마세요.
 `.trim();
 
@@ -185,7 +205,9 @@ function extractResponseText(payload: JsonObject): string {
     for (const contentItem of content) {
       if (!contentItem || typeof contentItem !== "object") continue;
       const typedItem = contentItem as JsonObject;
-      if (typedItem.type === "output_text" && typeof typedItem.text === "string") {
+      if (
+        typedItem.type === "output_text" && typeof typedItem.text === "string"
+      ) {
         return typedItem.text;
       }
     }
@@ -294,17 +316,21 @@ function enrichStocks(
       ...(stock.recentNews ?? []),
       ...(contextStock?.recentBriefs ?? []),
     ].slice(-10);
-    const { direction: recentDirection, streak: recentDirectionStreak } = readRecentDirection(
-      stock.recentCandles ?? [],
+    const { direction: recentDirection, streak: recentDirectionStreak } =
+      readRecentDirection(
+        stock.recentCandles ?? [],
+      );
+    const variationDraw = deterministicUnit(
+      `${roundSeed}:${stock.id}:variation`,
     );
-    const variationDraw = deterministicUnit(`${roundSeed}:${stock.id}:variation`);
-    const dailyVariationPreference: EnrichedStock["dailyVariationPreference"] = recentDirectionStreak >= 2
-      ? (recentDirection > 0 ? "small_down" : "small_up")
-      : variationDraw < 0.42
-      ? "small_down"
-      : variationDraw > 0.58
-      ? "small_up"
-      : "flat";
+    const dailyVariationPreference: EnrichedStock["dailyVariationPreference"] =
+      recentDirectionStreak >= 2
+        ? (recentDirection > 0 ? "small_down" : "small_up")
+        : variationDraw < 0.42
+        ? "small_down"
+        : variationDraw > 0.58
+        ? "small_up"
+        : "flat";
 
     return {
       ...stock,
@@ -327,9 +353,42 @@ function referencesAnyStock(text: string, stocks: ClaimedStock[]) {
     const normalizedTicker = stock.ticker.trim().toLocaleLowerCase("ko-KR");
     if (normalizedName && normalized.includes(normalizedName)) return true;
     if (!normalizedTicker) return false;
-    const escapedTicker = normalizedTicker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-    return new RegExp(`(^|[^a-z0-9])${escapedTicker}([^a-z0-9]|$)`, "i").test(normalized);
+    const escapedTicker = normalizedTicker.replace(
+      /[.*+?^${}()|[\]\\]/g,
+      "\\$&",
+    );
+    return new RegExp(`(^|[^a-z0-9])${escapedTicker}([^a-z0-9]|$)`, "i").test(
+      normalized,
+    );
   });
+}
+
+function normalizeArticle(value: unknown, label: string): MainArticle {
+  if (!value || typeof value !== "object") {
+    throw new Error(`OpenAI 구조화 응답에 ${label}이 없습니다.`);
+  }
+
+  const article = value as Partial<MainArticle>;
+  const normalized = {
+    headline: String(article.headline ?? "").trim(),
+    summary: String(article.summary ?? "").trim(),
+    body: String(article.body ?? "").trim(),
+  };
+
+  if (
+    normalized.headline.length < 10 || normalized.headline.length > 140 ||
+    normalized.summary.length < 20 || normalized.summary.length > 600 ||
+    normalized.body.length < 100 || normalized.body.length > 6000
+  ) {
+    throw new Error(`${label} 분량이 허용 범위를 벗어났습니다.`);
+  }
+
+  return normalized;
+}
+
+function ensureBreakingHeadline(headline: string): string {
+  if (/^(속보|긴급|브레이킹)(\s|:)/.test(headline)) return headline;
+  return `속보: ${headline}`.slice(0, 100);
 }
 
 function normalizeOutput(
@@ -337,25 +396,66 @@ function normalizeOutput(
   stocks: EnrichedStock[],
   roundSeed: string,
 ): SettlementOutput {
-  if (!output.mainArticle || typeof output.mainArticle !== "object") {
-    throw new Error("OpenAI 구조화 응답에 mainArticle이 없습니다.");
+  const mainArticle = normalizeArticle(output.mainArticle, "mainArticle");
+  if (!output.spotlightArticle || typeof output.spotlightArticle !== "object") {
+    throw new Error("OpenAI 구조화 응답에 spotlightArticle이 없습니다.");
   }
   if (!Array.isArray(output.prices) || !Array.isArray(output.briefs)) {
     throw new Error("OpenAI 구조화 응답에 prices 또는 briefs 배열이 없습니다.");
   }
 
   const stockById = new Map(stocks.map((stock) => [stock.id, stock]));
-  const priceIds = new Set(output.prices.map((item) => item.stockId));
-  if (output.prices.length !== stocks.length || priceIds.size !== stocks.length) {
-    throw new Error("가격 판단은 모든 활성 종목을 정확히 한 번 포함해야 합니다.");
-  }
-  for (const stock of stocks) {
-    if (!priceIds.has(stock.id)) throw new Error("가격 판단에서 활성 종목이 누락되었습니다.");
+  const spotlightStock = stockById.get(output.spotlightArticle.stockId);
+  if (!spotlightStock) {
+    throw new Error("스포트라이트 기사는 활성 종목 하나를 지정해야 합니다.");
   }
 
-  const prices = output.prices.map((item) => {
+  const spotlightText = normalizeArticle(
+    output.spotlightArticle,
+    "spotlightArticle",
+  );
+  const combinedSpotlightText = [
+    spotlightText.headline,
+    spotlightText.summary,
+    spotlightText.body,
+  ].join(" ");
+  if (
+    !combinedSpotlightText.toLocaleLowerCase("ko-KR").includes(
+      spotlightStock.name.trim().toLocaleLowerCase("ko-KR"),
+    )
+  ) {
+    throw new Error("스포트라이트 기사에 대상 종목명이 없습니다.");
+  }
+  if (
+    referencesAnyStock(
+      combinedSpotlightText,
+      stocks.filter((stock) => stock.id !== spotlightStock.id),
+    )
+  ) {
+    throw new Error(
+      "스포트라이트 기사에 다른 활성 종목명 또는 티커가 포함되었습니다.",
+    );
+  }
+
+  const priceIds = new Set(output.prices.map((item) => item.stockId));
+  if (
+    output.prices.length !== stocks.length || priceIds.size !== stocks.length
+  ) {
+    throw new Error(
+      "가격 판단은 모든 활성 종목을 정확히 한 번 포함해야 합니다.",
+    );
+  }
+  for (const stock of stocks) {
+    if (!priceIds.has(stock.id)) {
+      throw new Error("가격 판단에서 활성 종목이 누락되었습니다.");
+    }
+  }
+
+  let prices = output.prices.map((item) => {
     const stock = stockById.get(item.stockId);
-    if (!stock) throw new Error("가격 판단에 존재하지 않는 종목이 포함되었습니다.");
+    if (!stock) {
+      throw new Error("가격 판단에 존재하지 않는 종목이 포함되었습니다.");
+    }
     const requestedChange = Number(item.changePercent);
     const sentiment = Number(item.sentiment);
     const eventStrength = Number(item.eventStrength);
@@ -365,15 +465,17 @@ function normalizeOutput(
     let balancedChange = requestedChange;
     let balancedSentiment = sentiment;
     if (
-      stock.recentDirectionStreak >= 2
-      && stock.recentDirection !== 0
-      && Math.sign(requestedChange) === stock.recentDirection
-      && eventStrength < 0.35
+      stock.id !== spotlightStock.id &&
+      stock.recentDirectionStreak >= 2 &&
+      stock.recentDirection !== 0 &&
+      Math.sign(requestedChange) === stock.recentDirection &&
+      eventStrength < 0.35
     ) {
-      const counterMagnitude = 0.35
-        + deterministicUnit(`${roundSeed}:${stock.id}:counter-move`) * 1.45;
+      const counterMagnitude = 2.5 +
+        deterministicUnit(`${roundSeed}:${stock.id}:counter-move`) * 4.5;
       balancedChange = -stock.recentDirection * counterMagnitude;
-      balancedSentiment = -stock.recentDirection * clamp(Math.abs(sentiment), 0.08, 0.3);
+      balancedSentiment = -stock.recentDirection *
+        clamp(Math.abs(sentiment), 0.15, 0.45);
     }
 
     return {
@@ -386,6 +488,79 @@ function normalizeOutput(
     };
   });
 
+  const spotlightPriceIndex = prices.findIndex((price) =>
+    price.stockId === spotlightStock.id
+  );
+  if (spotlightPriceIndex < 0) {
+    throw new Error("스포트라이트 종목의 가격 판단이 누락되었습니다.");
+  }
+
+  const largestMagnitude = prices.reduce(
+    (largest, price) => Math.max(largest, Math.abs(price.changePercent)),
+    0,
+  );
+  const spotlightPrice = prices[spotlightPriceIndex];
+  const spotlightMagnitude = Math.abs(spotlightPrice.changePercent);
+  let requiredSpotlightMagnitude = spotlightMagnitude;
+
+  if (largestMagnitude < 10) {
+    requiredSpotlightMagnitude = 10 +
+      deterministicUnit(`${roundSeed}:${spotlightStock.id}:large-move`) * 3;
+  } else if (spotlightMagnitude < largestMagnitude) {
+    requiredSpotlightMagnitude = Math.min(
+      30,
+      largestMagnitude +
+        0.25 +
+        deterministicUnit(`${roundSeed}:${spotlightStock.id}:spotlight-lead`) *
+          0.5,
+    );
+  }
+
+  if (requiredSpotlightMagnitude > spotlightMagnitude) {
+    const direction = Math.sign(spotlightPrice.changePercent) ||
+      Math.sign(spotlightPrice.sentiment) ||
+      (deterministicUnit(`${roundSeed}:${spotlightStock.id}:large-direction`) <
+          0.5
+        ? -1
+        : 1);
+    const changePercent = Math.round(
+      clamp(
+        direction * requiredSpotlightMagnitude,
+        -30,
+        30,
+      ) * 100,
+    ) / 100;
+    prices = prices.map((price, index) =>
+      index === spotlightPriceIndex
+        ? {
+          ...price,
+          sentiment: direction * Math.max(Math.abs(price.sentiment), 0.55),
+          eventStrength: Math.max(price.eventStrength, 0.7),
+          changePercent,
+        }
+        : price
+    );
+  }
+
+  prices = prices.map((price) => {
+    const magnitude = Math.abs(price.changePercent);
+    const minimumStrength = magnitude >= 23
+      ? 0.95
+      : magnitude >= 16
+      ? 0.85
+      : magnitude >= 10
+      ? 0.7
+      : magnitude > 7
+      ? 0.45
+      : magnitude > 4
+      ? 0.2
+      : 0;
+    return {
+      ...price,
+      eventStrength: Math.max(price.eventStrength, minimumStrength),
+    };
+  });
+
   const stockIds = new Set(stocks.map((stock) => stock.id));
   const briefs = output.briefs.flatMap((brief) => {
     if (!brief || typeof brief !== "object") return [];
@@ -393,12 +568,18 @@ function normalizeOutput(
     if (type !== "general" && type !== "clue") return [];
     const headline = String(brief.headline ?? "").trim();
     const summary = String(brief.summary ?? "").trim();
-    const targetIds = Array.from(new Set(
-      Array.isArray(brief.affectedStockIds)
-        ? brief.affectedStockIds.filter((stockId) => stockIds.has(stockId))
-        : [],
-    ));
-    if (headline.length < 5 || summary.length < 10 || targetIds.length !== 1) return [];
+    const targetIds = Array.from(
+      new Set(
+        Array.isArray(brief.affectedStockIds)
+          ? brief.affectedStockIds.filter((stockId) => stockIds.has(stockId))
+          : [],
+      ),
+    );
+    if (
+      headline.length < 5 || headline.length > 100 ||
+      summary.length < 180 || summary.length > 400 ||
+      targetIds.length !== 1
+    ) return [];
 
     const targetStock = stockById.get(targetIds[0]);
     if (!targetStock) return [];
@@ -407,7 +588,12 @@ function normalizeOutput(
       const normalizedText = text.toLocaleLowerCase("ko-KR");
       const targetName = targetStock.name.trim().toLocaleLowerCase("ko-KR");
       if (!targetName || !normalizedText.includes(targetName)) return [];
-      if (referencesAnyStock(text, stocks.filter((stock) => stock.id !== targetStock.id))) {
+      if (
+        referencesAnyStock(
+          text,
+          stocks.filter((stock) => stock.id !== targetStock.id),
+        )
+      ) {
         return [];
       }
     } else if (referencesAnyStock(text, stocks)) {
@@ -419,24 +605,44 @@ function normalizeOutput(
 
   const generalBriefs = briefs.filter((brief) => brief.type === "general");
   const clueBriefs = briefs.filter((brief) => brief.type === "clue");
-  if (generalBriefs.length !== stocks.length || clueBriefs.length !== stocks.length) {
-    throw new Error("일반뉴스와 단서뉴스는 모든 활성 종목에 대해 각각 한 건이어야 합니다.");
+  if (
+    generalBriefs.length !== stocks.length ||
+    clueBriefs.length !== stocks.length
+  ) {
+    throw new Error(
+      "일반뉴스와 단서뉴스는 모든 활성 종목에 대해 각각 한 건이어야 합니다.",
+    );
   }
 
   for (const typedBriefs of [generalBriefs, clueBriefs]) {
-    const targetStockIds = new Set(typedBriefs.map((brief) => brief.affectedStockIds[0]));
+    const targetStockIds = new Set(
+      typedBriefs.map((brief) => brief.affectedStockIds[0]),
+    );
     if (targetStockIds.size !== stocks.length) {
-      throw new Error("같은 뉴스 타입에서 한 종목을 중복하거나 누락할 수 없습니다.");
+      throw new Error(
+        "같은 뉴스 타입에서 한 종목을 중복하거나 누락할 수 없습니다.",
+      );
     }
   }
 
+  const breakingStockIds = new Set(
+    prices
+      .filter((price) => Math.abs(price.changePercent) >= 10)
+      .map((price) => price.stockId),
+  );
+  const normalizedGeneralBriefs = generalBriefs.map((brief) =>
+    breakingStockIds.has(brief.affectedStockIds[0])
+      ? { ...brief, headline: ensureBreakingHeadline(brief.headline) }
+      : brief
+  );
+
   return {
-    mainArticle: {
-      headline: String(output.mainArticle.headline ?? "").trim(),
-      summary: String(output.mainArticle.summary ?? "").trim(),
-      body: String(output.mainArticle.body ?? "").trim(),
+    mainArticle,
+    spotlightArticle: {
+      stockId: spotlightStock.id,
+      ...spotlightText,
     },
-    briefs: [...generalBriefs, ...clueBriefs],
+    briefs: [...normalizedGeneralBriefs, ...clueBriefs],
     prices,
   };
 }
@@ -455,16 +661,27 @@ async function generateSettlement(
   const schema = {
     type: "object",
     additionalProperties: false,
-    required: ["mainArticle", "briefs", "prices"],
+    required: ["mainArticle", "spotlightArticle", "briefs", "prices"],
     properties: {
       mainArticle: {
         type: "object",
         additionalProperties: false,
         required: ["headline", "summary", "body"],
         properties: {
-          headline: { type: "string", minLength: 10, maxLength: 140 },
-          summary: { type: "string", minLength: 20, maxLength: 600 },
-          body: { type: "string", minLength: 100, maxLength: 6000 },
+          headline: { type: "string", minLength: 18, maxLength: 55 },
+          summary: { type: "string", minLength: 70, maxLength: 220 },
+          body: { type: "string", minLength: 500, maxLength: 1300 },
+        },
+      },
+      spotlightArticle: {
+        type: "object",
+        additionalProperties: false,
+        required: ["stockId", "headline", "summary", "body"],
+        properties: {
+          stockId: { type: "string", enum: stocks.map((stock) => stock.id) },
+          headline: { type: "string", minLength: 18, maxLength: 70 },
+          summary: { type: "string", minLength: 80, maxLength: 260 },
+          body: { type: "string", minLength: 350, maxLength: 900 },
         },
       },
       briefs: {
@@ -478,7 +695,7 @@ async function generateSettlement(
           properties: {
             type: { type: "string", enum: ["general", "clue"] },
             headline: { type: "string", minLength: 5, maxLength: 100 },
-            summary: { type: "string", minLength: 10, maxLength: 300 },
+            summary: { type: "string", minLength: 180, maxLength: 400 },
             affectedStockIds: {
               type: "array",
               minItems: 1,
@@ -543,7 +760,7 @@ async function generateSettlement(
         text: {
           format: {
             type: "json_schema",
-            name: "randoland_daily_market_v2",
+            name: "randoland_daily_market_v3",
             strict: true,
             schema,
           },
@@ -568,9 +785,12 @@ function createNoStockOutput(): SettlementOutput {
   return {
     mainArticle: {
       headline: "새로운 상장 종목을 기다리는 란도랜드2 시장",
-      summary: "현재 거래 가능한 종목이 없어 시장은 다음 상장과 첫 가격 형성을 준비하고 있습니다.",
-      body: "란도랜드2 시장에는 현재 거래 가능한 활성 종목이 없습니다. 주문과 가격 변동은 발생하지 않았으며 시장 운영 상태만 유지되고 있습니다. 새로운 종목이 상장되면 해당 종목의 설정과 주차별 이야기를 바탕으로 가격 판단과 시장 보도가 시작됩니다.",
+      summary:
+        "현재 거래 가능한 종목이 없어 시장은 다음 상장과 첫 가격 형성을 준비하고 있습니다.",
+      body:
+        "란도랜드2 시장에는 현재 거래 가능한 활성 종목이 없습니다. 주문과 가격 변동은 발생하지 않았으며 시장 운영 상태만 유지되고 있습니다. 새로운 종목이 상장되면 해당 종목의 설정과 주차별 이야기를 바탕으로 가격 판단과 시장 보도가 시작됩니다.",
     },
+    spotlightArticle: null,
     briefs: [],
     prices: [],
   };
@@ -596,7 +816,10 @@ Deno.serve(async (request: Request) => {
     return jsonResponse({ error: "Supabase 서버 환경 변수가 없습니다." }, 500);
   }
   if (!openAiKey) {
-    return jsonResponse({ error: "OPENAI_API_KEY가 설정되지 않았습니다." }, 500);
+    return jsonResponse(
+      { error: "OPENAI_API_KEY가 설정되지 않았습니다." },
+      500,
+    );
   }
 
   try {
@@ -650,12 +873,17 @@ Deno.serve(async (request: Request) => {
       return jsonResponse({ status: "idle", serverTime: claim.serverTime });
     }
     if (claim.status === "busy") {
-      return jsonResponse({ status: "busy", recoverableAt: claim.recoverableAt });
+      return jsonResponse({
+        status: "busy",
+        recoverableAt: claim.recoverableAt,
+      });
     }
     if (claim.status === "completed") {
       return jsonResponse({ status: "completed", alreadyCompleted: true });
     }
-    if (!claim.executionKey) throw new Error("정산 실행 키가 반환되지 않았습니다.");
+    if (!claim.executionKey) {
+      throw new Error("정산 실행 키가 반환되지 않았습니다.");
+    }
     executionKey = claim.executionKey;
 
     const context = await callRpc<SettlementContextV2>(
@@ -678,9 +906,12 @@ Deno.serve(async (request: Request) => {
       finalizeFunctionName,
       {
         p_execution_key: executionKey,
-        p_ai_model: (claim.stocks ?? []).length > 0 ? model : "system:no-active-stocks",
+        p_ai_model: (claim.stocks ?? []).length > 0
+          ? model
+          : "system:no-active-stocks",
         p_price_items: output.prices,
         p_main_article: output.mainArticle,
+        p_spotlight: output.spotlightArticle,
         p_briefs: output.briefs,
       },
     );

@@ -114,6 +114,11 @@ export interface NewsEdition {
   mainSummary: string
   mainBody: string
   globalEventTitle: string | null
+  spotlightHeadline: string | null
+  spotlightSummary: string | null
+  spotlightBody: string | null
+  spotlightStockId: string | null
+  spotlightStockName: string | null
   publishedAt: string
   briefs: NewsBrief[]
 }
