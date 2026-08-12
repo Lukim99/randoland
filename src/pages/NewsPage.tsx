@@ -1,8 +1,14 @@
-import { Building2, CalendarClock, Newspaper, Radio } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Building2, CalendarClock, Minus, Newspaper, Radio } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
-import { formatKstDateTime } from '../lib/format'
+import { formatKstDateTime, formatPercent, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
+
+function MovementIcon({ value }: { value: number }) {
+  if (value > 0) return <ArrowUpRight size={15} aria-hidden="true" />
+  if (value < 0) return <ArrowDownRight size={15} aria-hidden="true" />
+  return <Minus size={15} aria-hidden="true" />
+}
 
 export function NewsPage() {
   const { market, newsFeed, loading } = useMarket()
@@ -24,7 +30,7 @@ export function NewsPage() {
         <section className="panel news-page-empty">
           <Newspaper size={30} />
           <h2>아직 발행된 뉴스가 없습니다</h2>
-          <p>다음 정산에서 메인뉴스와 시장 소식이 게시됩니다.</p>
+          <p>다음 정산에서 글로벌 뉴스와 입력된 개별기사가 게시됩니다.</p>
         </section>
       </div>
     )
@@ -34,10 +40,6 @@ export function NewsPage() {
     .split(/\n{2,}/)
     .map((paragraph) => paragraph.trim())
     .filter(Boolean)
-  const spotlightParagraphs = selectedEdition.spotlightBody
-    ?.split(/\n{2,}/)
-    .map((paragraph) => paragraph.trim())
-    .filter(Boolean) ?? []
 
   return (
     <div className="news-page">
@@ -76,75 +78,55 @@ export function NewsPage() {
       </nav>
 
       <div className="news-edition-layout">
-        <div className="news-lead-column">
-          <article className="panel main-news-article">
-            <div className="main-news-article__meta">
-              <span><Radio size={14} /> 메인뉴스</span>
-              {selectedEdition.globalEventTitle && <strong>{selectedEdition.globalEventTitle}</strong>}
-            </div>
-            <h2>{selectedEdition.mainHeadline}</h2>
-            <p className="main-news-article__summary">{selectedEdition.mainSummary}</p>
-            <div className="main-news-article__body">
-              {paragraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-            </div>
-          </article>
+        <article className="panel main-news-article">
+          <div className="main-news-article__meta">
+            <span><Radio size={14} /> 글로벌 뉴스</span>
+            <strong>관리자 입력 원문</strong>
+          </div>
+          <h2>{selectedEdition.mainHeadline}</h2>
+          <p className="main-news-article__summary">{selectedEdition.mainSummary}</p>
+          <div className="main-news-article__body">
+            {paragraphs.map((paragraph, index) => <p key={`${index}:${paragraph}`}>{paragraph}</p>)}
+          </div>
+        </article>
 
-          {selectedEdition.spotlightHeadline && (
-            <article className="panel spotlight-news-article">
-              <div className="main-news-article__meta">
-                <span><Building2 size={14} /> 주요 종목 뉴스</span>
-                {selectedEdition.spotlightStockName && selectedEdition.spotlightStockId ? (
-                  <Link to={`/stock/${selectedEdition.spotlightStockId}`}>
-                    {selectedEdition.spotlightStockName}
-                  </Link>
-                ) : selectedEdition.spotlightStockName ? (
-                  <strong>{selectedEdition.spotlightStockName}</strong>
-                ) : null}
-              </div>
-              <h2>{selectedEdition.spotlightHeadline}</h2>
-              {selectedEdition.spotlightSummary && (
-                <p className="main-news-article__summary">{selectedEdition.spotlightSummary}</p>
-              )}
-              {spotlightParagraphs.length > 0 && (
-                <div className="main-news-article__body">
-                  {spotlightParagraphs.map((paragraph) => <p key={paragraph}>{paragraph}</p>)}
-                </div>
-              )}
-            </article>
-          )}
-        </div>
+        <section className="individual-news-section" aria-labelledby="individual-news-title">
+          <div className="individual-news-section__heading">
+            <span><Building2 size={15} /> 개별기사</span>
+            <small>관리자 입력 원문</small>
+          </div>
+          <h2 className="sr-only" id="individual-news-title">개별기사</h2>
 
-        <section className="brief-news-section" aria-labelledby="brief-news-title">
-          <h2 className="sr-only" id="brief-news-title">개별뉴스</h2>
+          {selectedEdition.items.length > 0 ? (
+            <div className="individual-news-list">
+              {selectedEdition.items.map((item) => {
+                const itemParagraphs = item.body
+                  .split(/\n{2,}/)
+                  .map((paragraph) => paragraph.trim())
+                  .filter(Boolean)
 
-          {selectedEdition.briefs.length > 0 ? (
-            <div className="brief-news-list">
-              {selectedEdition.briefs.map((brief) => (
-                <article className="panel brief-news-item" key={brief.id}>
-                  <span className="brief-news-item__dot" aria-hidden="true" />
-                  <div>
-                    <div className="brief-news-item__stocks">
-                      {brief.affectedStockIds.map((affectedStockId, index) => {
-                        const affectedStock = market.stocks.find((stock) => stock.id === affectedStockId)
-                        const affectedStockName = affectedStock?.name ?? brief.affectedStockNames[index]
-                        if (!affectedStockName) return null
-
-                        return (
-                          <Link key={affectedStockId} to={`/stock/${affectedStockId}`}>
-                            {affectedStockName}
-                          </Link>
-                        )
-                      })}
+                return (
+                  <article className="panel individual-news-item" key={item.id}>
+                    <header>
+                      <Link to={`/stock/${item.stockId}`}>
+                        <span>{item.ticker}</span>
+                        <strong>{item.stockName}</strong>
+                      </Link>
+                      <span className={`individual-news-item__change ${movementClass(item.changePercent)}`}>
+                        <MovementIcon value={item.changePercent} /> {formatPercent(item.changePercent)}
+                      </span>
+                    </header>
+                    <h3>{item.headline}</h3>
+                    <div className="individual-news-item__body">
+                      {itemParagraphs.map((paragraph, index) => <p key={`${index}:${paragraph}`}>{paragraph}</p>)}
                     </div>
-                    <h3>{brief.headline}</h3>
-                    <p>{brief.summary}</p>
-                  </div>
-                </article>
-              ))}
+                  </article>
+                )
+              })}
             </div>
           ) : (
             <div className="panel brief-news-empty">
-              <p>이 발행본에는 별도로 보도할 개별 소식이 없습니다.</p>
+              <p>이 라운드에는 입력된 개별기사가 없습니다.</p>
             </div>
           )}
         </section>

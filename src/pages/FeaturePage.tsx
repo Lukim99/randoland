@@ -32,7 +32,7 @@ const content: Record<FeatureKind, FeatureContent> = {
     eyebrow: '주문 관리', title: '주문 내역', icon: ClipboardList,
   },
   listing: {
-    eyebrow: '나만의 종목', title: '종목 상장', icon: Building2,
+    eyebrow: '나만의 종목', title: '내 종목', icon: Building2,
   },
   ranking: {
     eyebrow: '일주일마다 공개', title: '주간 순위', icon: Trophy,

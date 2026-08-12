@@ -1,6 +1,6 @@
 import { ArrowLeft, Newspaper } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router'
-import { formatKstDateTime } from '../lib/format'
+import { formatKstDateTime, formatPercent, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 
 export function StockNewsPage() {
@@ -18,9 +18,9 @@ export function StockNewsPage() {
     .sort((left, right) => right.roundNumber - left.roundNumber || Date.parse(right.publishedAt) - Date.parse(left.publishedAt))
     .map((edition) => ({
       edition,
-      briefs: edition.briefs.filter((brief) => brief.affectedStockIds.includes(stock.id)),
+      items: edition.items.filter((item) => item.stockId === stock.id),
     }))
-    .filter(({ briefs }) => briefs.length > 0)
+    .filter(({ items }) => items.length > 0)
 
   return (
     <div className="news-page stock-news-history-page">
@@ -37,17 +37,18 @@ export function StockNewsPage() {
 
       {editions.length > 0 ? (
         <div className="stock-news-history-list">
-          {editions.map(({ edition, briefs }) => (
+          {editions.map(({ edition, items }) => (
             <section className="panel stock-news-history-edition" key={edition.id} aria-labelledby={`stock-news-round-${edition.id}`}>
               <header>
                 <h2 id={`stock-news-round-${edition.id}`}>{edition.roundNumber}라운드</h2>
                 <time dateTime={edition.publishedAt}>{formatKstDateTime(edition.publishedAt)}</time>
               </header>
               <div className="stock-news-history-briefs">
-                {briefs.map((brief) => (
-                  <article key={brief.id}>
-                    <h3>{brief.headline}</h3>
-                    <p>{brief.summary}</p>
+                {items.map((item) => (
+                  <article key={item.id}>
+                    <strong className={movementClass(item.changePercent)}>{formatPercent(item.changePercent)}</strong>
+                    <h3>{item.headline}</h3>
+                    <p>{item.body}</p>
                   </article>
                 ))}
               </div>

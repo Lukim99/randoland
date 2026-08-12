@@ -3,10 +3,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { loadAdminConsole } from '../services/admin'
 import type { AdminActionRunner, AdminConsoleState } from '../types/admin'
 import { AdminAuditPanel } from './AdminAuditPanel'
-import { AiSettlementAdminPanel } from './AiSettlementAdminPanel'
-import { EventAdminPanel } from './EventAdminPanel'
+import { GlobalNewsAdminPanel } from './GlobalNewsAdminPanel'
 import { LeagueAdminPanel } from './LeagueAdminPanel'
 import { ParticipantAdminPanel } from './ParticipantAdminPanel'
+import { SettlementAdminPanel } from './SettlementAdminPanel'
 import { StockAdminPanel } from './StockAdminPanel'
 
 export function AdminPage() {
@@ -73,7 +73,7 @@ export function AdminPage() {
   const operatingLeagueCount = consoleState.leagues.filter(({ status }) => status === 'registration' || status === 'active').length
   const activeParticipantCount = consoleState.participants.filter(({ disqualifiedAt }) => !disqualifiedAt).length
   const activeStockCount = consoleState.stocks.filter(({ status }) => status === 'active').length
-  const activeEventCount = consoleState.events.filter(({ isActive }) => isActive).length
+  const missingPlanCount = consoleState.stocks.reduce((total, stock) => total + stock.missingPlanCount, 0)
 
   return (
     <div className="admin-page">
@@ -81,7 +81,7 @@ export function AdminPage() {
         <div>
           <span className="eyebrow">운영 권한 · {consoleState.role === 'owner' ? '소유자' : '운영자'}</span>
           <h1>리그 관리</h1>
-          <p>리그, 참가자, 글로벌 이벤트와 상장 종목을 한곳에서 관리합니다.</p>
+          <p>리그와 참가자, 종목 상장, 라운드별 가격·기사를 한곳에서 관리합니다.</p>
         </div>
         <button className="secondary-button" type="button" onClick={() => void refresh()} disabled={busy}>
           <RefreshCw size={16} aria-hidden="true" /> 새로고침
@@ -98,22 +98,21 @@ export function AdminPage() {
         <article><span>운영 리그</span><strong>{operatingLeagueCount}</strong></article>
         <article><span>활성 참가자</span><strong>{activeParticipantCount}</strong></article>
         <article><span>거래 종목</span><strong>{activeStockCount}</strong></article>
-        <article><span>활성 이벤트</span><strong>{activeEventCount}</strong></article>
+        <article><span>미입력 계획</span><strong>{missingPlanCount}</strong></article>
       </section>
 
       <div className="admin-panel-grid">
-        <AiSettlementAdminPanel
+        <GlobalNewsAdminPanel
+          leagues={consoleState.leagues}
+          busy={busy}
+          onRun={runAction}
+        />
+        <SettlementAdminPanel
           leagues={consoleState.leagues}
           busy={busy}
           onRun={runAction}
         />
         <LeagueAdminPanel leagues={consoleState.leagues} busy={busy} onRun={runAction} />
-        <EventAdminPanel
-          leagues={consoleState.leagues}
-          events={consoleState.events}
-          busy={busy}
-          onRun={runAction}
-        />
         <ParticipantAdminPanel
           leagues={consoleState.leagues}
           participants={consoleState.participants}
@@ -122,6 +121,7 @@ export function AdminPage() {
         />
         <StockAdminPanel
           leagues={consoleState.leagues}
+          participants={consoleState.participants}
           stocks={consoleState.stocks}
           busy={busy}
           onRun={runAction}

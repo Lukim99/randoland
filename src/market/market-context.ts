@@ -3,7 +3,6 @@ import type {
   DiscussionPost,
   LadderChoice,
   LadderResult,
-  ListingSubmission,
   MarketSnapshot,
   MyState,
   NewsFeed,
@@ -34,7 +33,6 @@ export interface MarketContextValue {
     leveragePercent: number,
   ) => Promise<void>
   cancelOrder: (orderId: string) => Promise<void>
-  submitListing: (submission: ListingSubmission, logoFile?: File | null) => Promise<void>
   uploadProfileImage: (file: File) => Promise<void>
   loadDiscussionPosts: (stockId: string) => Promise<DiscussionPost[]>
   createDiscussionPost: (stockId: string, title: string, content: string) => Promise<DiscussionPost>

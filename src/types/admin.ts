@@ -19,6 +19,7 @@ export interface AdminLeague {
   participantCount: number
   stockCount: number
   activeStockCount: number
+  roundCount: number
 }
 
 export interface AdminParticipant {
@@ -54,17 +55,13 @@ export interface AdminStock {
   logoSpriteIndex: number
   logoImagePath: string | null
   logoImageUrl: string | null
-}
-
-export interface AdminGlobalEvent {
-  id: string
-  leagueId: string
-  weekNumber: number
-  title: string
-  scenario: string
-  intensity: number
-  isActive: boolean
+  activationRoundNumber: number | null
+  activationRequestedAt: string | null
   updatedAt: string
+  totalPlanCount: number
+  completedPlanCount: number
+  articleCount: number
+  missingPlanCount: number
 }
 
 export interface AdminAuditEntry {
@@ -81,11 +78,10 @@ export interface AdminConsoleState {
   leagues: AdminLeague[]
   participants: AdminParticipant[]
   stocks: AdminStock[]
-  events: AdminGlobalEvent[]
   auditLog: AdminAuditEntry[]
 }
 
-export interface AdminAiSettlementRound {
+export interface AdminSettlementRound {
   id: string
   roundNumber: number
   status: 'scheduled' | 'open' | 'locked' | 'settling' | 'failed'
@@ -98,17 +94,20 @@ export interface AdminAiSettlementRound {
   recoverableAt: string | null
 }
 
-export interface AdminAiSettlementState {
+export interface AdminSettlementState {
   serverTime: string
   leagueId: string
   leagueName: string
   canExecute: boolean
   blockedReason: string | null
   activeStockCount: number
-  round: AdminAiSettlementRound | null
+  missingPlanCount: number
+  missingPlanStocks: Array<{ stockId: string; ticker: string; name: string }>
+  globalNewsReady: boolean
+  round: AdminSettlementRound | null
 }
 
-export interface AdminAiSettlementInput {
+export interface AdminSettlementInput {
   leagueId: string
   requestKey: string
 }
@@ -120,24 +119,68 @@ export interface CreateLeagueInput {
   endsOn: string
 }
 
-export interface UpsertGlobalEventInput {
-  leagueId: string
-  weekNumber: number
-  title: string
-  scenario: string
-  intensity: number
-  isActive: boolean
-}
-
 export interface AdminStockListingInput {
   leagueId: string
+  ownerParticipantId: string
   ticker: string
   name: string
   initialPrice: number
   description: string
   theme: string
-  weeklyStories: string[]
   logoSpriteIndex: number
+  logoFile: File | null
+}
+
+export interface AdminStockDetailsInput {
+  stockId: string
+  expectedUpdatedAt: string
+  ownerParticipantId: string | null
+  ticker: string
+  name: string
+  initialPrice: number
+  description: string
+  theme: string
+  logoSpriteIndex: number
+  logoImagePath: string | null
+  logoFile: File | null
+}
+
+export interface AdminStockRoundPlan {
+  roundNumber: number
+  changePercent: number | null
+  newsHeadline: string | null
+  newsBody: string | null
+  updatedAt: string
+  roundStatus: 'scheduled' | 'open' | 'locked' | 'settling' | 'settled' | 'failed' | null
+  editable: boolean
+}
+
+export interface AdminStockEditor {
+  stock: Omit<AdminStock, 'totalPlanCount' | 'completedPlanCount' | 'articleCount' | 'missingPlanCount'> & {
+    identityEditable: boolean
+  }
+  league: Pick<AdminLeague, 'id' | 'name' | 'status' | 'startsAt' | 'endsAt'>
+  roundCount: number
+  currentRoundNumber: number | null
+  plans: AdminStockRoundPlan[]
+}
+
+export interface AdminGlobalNewsRoundPlan {
+  roundNumber: number
+  headline: string | null
+  summary: string | null
+  body: string | null
+  updatedAt: string | null
+  roundStatus: 'scheduled' | 'open' | 'locked' | 'settling' | 'settled' | 'failed' | null
+  complete: boolean
+  editable: boolean
+}
+
+export interface AdminGlobalNewsEditor {
+  league: Pick<AdminLeague, 'id' | 'name' | 'status' | 'startsAt' | 'endsAt'>
+  roundCount: number
+  currentRoundNumber: number | null
+  plans: AdminGlobalNewsRoundPlan[]
 }
 
 export type AdminActionRunner = (

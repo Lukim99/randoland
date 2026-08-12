@@ -1,13 +1,11 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { getProfileImageExtension, validateProfileImageFile } from '../lib/profile-image'
-import { getStockLogoExtension, validateStockLogoFile } from '../lib/stock-logo'
 import { supabase } from '../lib/supabase'
 import type {
   CandlePoint,
   DiscussionPost,
   LadderChoice,
   LadderResult,
-  ListingSubmission,
   MarketSnapshot,
   MyState,
   NewsFeed,
@@ -54,7 +52,6 @@ const errorTranslations: Array<[string, string]> = [
   ['Join the league before placing an order', '먼저 리그에 참가해 주세요.'],
   ['League is not open for participation', '현재 참가할 수 있는 리그가 아닙니다.'],
   ['League participation window has closed', '리그 참가 기간이 종료되었습니다.'],
-  ['Stock listing window has closed', '신규 상장 기간이 종료되었습니다.'],
   ['This account is banned from Randoland participation', '운영 정책 위반으로 이후 리그 참가가 제한된 계정입니다.'],
   ['The stock is not available for trading', '현재 거래할 수 없는 종목입니다.'],
   ['A participant cannot trade their own listed stock', '본인이 상장한 종목은 매매할 수 없습니다.'],
@@ -92,7 +89,6 @@ const errorTranslations: Array<[string, string]> = [
   ['An active league participant is required', '진행 중인 리그 참가자만 이용할 수 있습니다.'],
   ['Ticker must contain', '티커는 영문 대문자와 숫자 2~8자로 입력해 주세요.'],
   ['Description must contain', '종목 설명은 10~1,000자로 입력해 주세요.'],
-  ['Each weekly story must contain', '각 주차 이야기는 5~2,000자로 입력해 주세요.'],
   ['Profile sprite index must be between', '프로필 이미지를 다시 선택해 주세요.'],
   ['Stock logo sprite index must be between', '종목 이미지를 다시 선택해 주세요.'],
   ['Stock logo path is invalid', '종목 로고 경로를 확인하지 못했습니다. 다시 업로드해 주세요.'],
@@ -114,31 +110,37 @@ const errorTranslations: Array<[string, string]> = [
   ['Participant is already disqualified', '이미 제재된 참가자입니다.'],
   ['A revocation reason must contain', '제한 해제 사유는 5자 이상 500자 이하로 입력해 주세요.'],
   ['An active ban was not found', '해제할 이후 리그 참가 제한이 없습니다.'],
-  ['Event title must contain', '이벤트 제목은 5자 이상 140자 이하로 입력해 주세요.'],
-  ['Event scenario must contain', '이벤트 시나리오는 20자 이상 6,000자 이하로 입력해 주세요.'],
-  ['Event intensity must be', '이벤트 영향 강도는 0부터 1 사이여야 합니다.'],
-  ['Only an operating league can receive a new stock', '운영 또는 참가 접수 중인 리그에만 종목을 상장할 수 있습니다.'],
+  ['Only a registration or active league can receive a stock', '참가 접수 또는 진행 중인 리그에만 종목을 등록할 수 있습니다.'],
+  ['An eligible participant in this league is required', '이 리그의 제재되지 않은 참가자를 상장자로 선택해 주세요.'],
+  ['This participant already has a stock in the league', '이 참가자는 이미 리그 종목을 하나 보유하고 있습니다.'],
   ['Stock name must contain', '종목명은 2자 이상 40자 이하로 입력해 주세요.'],
   ['Initial price must be', '초기 가격은 1 RP 이상의 정수로 입력해 주세요.'],
-  ['Exactly five weekly stories are required', '주차별 이야기를 5주차까지 모두 입력해 주세요.'],
+  ['Stock data changed. Reload the editor', '다른 변경이 먼저 저장되었습니다. 편집기를 새로 불러온 뒤 다시 시도해 주세요.'],
+  ['Stock identity, owner, initial price, and logo are locked', '상장 확정 후에는 종목명·상장자·초기 가격·로고를 변경할 수 없습니다.'],
+  ['Every league round must appear exactly once', '모든 라운드 계획을 확인해 주세요. 등락률은 -30%부터 +30%까지 입력할 수 있습니다.'],
+  ['Article title and body must be entered together', '개별기사 제목과 본문은 함께 입력해 주세요.'],
+  ['Locked, settling, or settled round plans cannot be changed', '잠금·정산 중·정산 완료 라운드는 수정할 수 없습니다.'],
+  ['Complete every price plan from the activation round', '상장 라운드부터 리그 종료까지 모든 등락률을 입력해 주세요.'],
+  ['No future round remains for this stock', '이 종목이 참여할 다음 라운드가 남아 있지 않습니다.'],
   ['Stock removal reason must contain', '종목 제거 사유는 5자 이상 500자 이하로 입력해 주세요.'],
   ['Stock with an open position cannot be removed', '보유 또는 공매도 포지션이 남아 있어 이 종목을 제거할 수 없습니다.'],
   ['Stock is already removed', '이미 시장에서 제거된 종목입니다.'],
-  ['AI settlement league was not found', 'AI 정산 대상 리그를 찾지 못했습니다.'],
-  ['AI settlement requires an active league', '진행 중인 리그만 AI 정산할 수 있습니다.'],
-  ['An AI settlement request key is required', 'AI 정산 요청을 식별하지 못했습니다. 다시 시도해 주세요.'],
+  ['Settlement league was not found', '정산 대상 리그를 찾지 못했습니다.'],
+  ['Settlement requires an active league', '진행 중인 리그만 정산할 수 있습니다.'],
+  ['An AI settlement request key is required', '정산 요청을 식별하지 못했습니다. 다시 시도해 주세요.'],
   ['Administrator authorization was not found', '관리자 권한을 확인하지 못했습니다. 다시 로그인해 주세요.'],
   ['AI settlement request key was reused for a different request', '같은 정산 요청 키가 다른 작업에 사용되었습니다. 다시 시도해 주세요.'],
   ['AI settlement request no longer matches the current round', '현재 라운드가 바뀌었습니다. 상태를 새로고침한 뒤 다시 시도해 주세요.'],
   ['This round has already been settled', '이미 정산이 완료된 라운드입니다.'],
   ['Settlement is already running', '자동 정산이 진행 중입니다. 잠시 후 상태를 다시 확인해 주세요.'],
   ['Settlement state cannot be recovered automatically', '정산 상태를 자동 복구할 수 없습니다. 운영 로그를 확인해 주세요.'],
-  ['AI settlement must contain exactly one item for every active stock', 'AI 가격 판단에 모든 활성 종목이 포함되지 않았습니다. 다시 실행해 주세요.'],
-  ['Main article text is missing or outside the allowed length', '메인뉴스 제목·요약·본문의 입력 길이를 확인해 주세요.'],
-  ['News brief text is missing or outside the allowed length', '개별뉴스 제목과 요약의 입력 길이를 확인해 주세요.'],
-  ['Each news brief must contain affected stock IDs', '각 개별뉴스에 영향 종목을 선택해 주세요.'],
-  ['News brief affected stock IDs are invalid', '개별뉴스의 영향 종목 선택을 다시 확인해 주세요.'],
-  ['News briefs must not expose an affected stock name or ticker', '개별뉴스 본문에서 영향 종목명과 티커를 직접 언급할 수 없습니다.'],
+  ['Every active stock requires a price plan', '현재 라운드의 모든 활성 종목 등락 계획을 입력해 주세요.'],
+  ['AI market brief is missing or outside the allowed length', '글로벌 뉴스의 제목·요약·본문 길이를 확인해 주세요.'],
+  ['Global news title, summary, and body must be entered together', '글로벌 뉴스 제목·요약·본문을 모두 입력해 주세요.'],
+  ['Global news changed. Reload the editor', '다른 글로벌 뉴스 변경이 먼저 저장되었습니다. 편집기를 새로 불러온 뒤 다시 시도해 주세요.'],
+  ['Locked, settling, or settled global news cannot be changed', '잠금·정산 중·정산 완료 라운드의 글로벌 뉴스는 수정할 수 없습니다.'],
+  ['Global news must be completed before settlement', '현재 라운드의 글로벌 뉴스 제목·요약·본문을 모두 입력해 주세요.'],
+  ['Global news settlement snapshot was not created', '글로벌 뉴스 정산 사본을 만들지 못했습니다. 운영 로그를 확인해 주세요.'],
 ]
 
 export function readableSupabaseError(error: PostgrestError | Error | string): string {
@@ -222,16 +224,7 @@ export async function loadNewsFeed(leagueId: string): Promise<NewsFeed> {
   return {
     editions: (feed.editions ?? []).map((edition) => ({
       ...edition,
-      spotlightHeadline: edition.spotlightHeadline ?? null,
-      spotlightSummary: edition.spotlightSummary ?? null,
-      spotlightBody: edition.spotlightBody ?? null,
-      spotlightStockId: edition.spotlightStockId ?? null,
-      spotlightStockName: edition.spotlightStockName ?? null,
-      briefs: (edition.briefs ?? []).map((brief) => ({
-        ...brief,
-        affectedStockIds: brief.affectedStockIds ?? [],
-        affectedStockNames: brief.affectedStockNames ?? [],
-      })),
+      items: edition.items ?? [],
     })),
   }
 }
@@ -377,60 +370,6 @@ export async function cancelOrder(orderId: string) {
   })
   throwIfError(error)
   return data
-}
-
-export async function submitListing(
-  leagueId: string,
-  submission: ListingSubmission,
-  logoFile?: File | null,
-) {
-  const client = requireSupabase()
-  let logoImagePath: string | null = null
-
-  if (logoFile) {
-    const validationError = validateStockLogoFile(logoFile)
-    if (validationError) throw new Error(validationError)
-
-    const { data: authData, error: authError } = await client.auth.getUser()
-    if (authError) throw new Error(authError.message)
-    if (!authData.user) throw new Error('로그인이 필요합니다.')
-
-    const imageId = globalThis.crypto?.randomUUID?.()
-    if (!imageId) throw new Error('이 브라우저에서는 이미지 업로드를 지원하지 않습니다.')
-
-    const extension = getStockLogoExtension(logoFile)
-    logoImagePath = `${authData.user.id}/stock-${imageId}.${extension}`
-    const { error: uploadError } = await client.storage
-      .from(STOCK_LOGO_BUCKET)
-      .upload(logoImagePath, logoFile, {
-        cacheControl: '31536000',
-        contentType: logoFile.type,
-        upsert: false,
-      })
-    if (uploadError) throw new Error(uploadError.message)
-  }
-
-  const { data, error } = await client.rpc('randoland_submit_listing_with_logo', {
-    p_league_id: leagueId,
-    p_logo_sprite_index: submission.logoSpriteIndex,
-    p_logo_image_path: logoImagePath,
-    p_ticker: submission.ticker,
-    p_name: submission.name,
-    p_initial_price: submission.initialPrice,
-    p_description: submission.description,
-    p_theme: submission.theme,
-    p_weekly_stories: submission.weeklyStories,
-  })
-
-  if (error && logoImagePath) {
-    try {
-      await client.storage.from(STOCK_LOGO_BUCKET).remove([logoImagePath])
-    } catch {
-      // Preserve the listing RPC error even if best-effort upload cleanup fails.
-    }
-  }
-  throwIfError(error)
-  return data as unknown as { id: string }
 }
 
 export async function uploadProfileImage(

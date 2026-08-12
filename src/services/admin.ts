@@ -1,13 +1,18 @@
 import { FunctionsHttpError } from '@supabase/supabase-js'
+import { getStockLogoExtension, validateStockLogoFile } from '../lib/stock-logo'
 import { supabase } from '../lib/supabase'
 import type {
   AdminAccess,
-  AdminAiSettlementInput,
-  AdminAiSettlementState,
   AdminConsoleState,
+  AdminGlobalNewsEditor,
+  AdminGlobalNewsRoundPlan,
+  AdminSettlementInput,
+  AdminSettlementState,
+  AdminStockDetailsInput,
+  AdminStockEditor,
   AdminStockListingInput,
+  AdminStockRoundPlan,
   CreateLeagueInput,
-  UpsertGlobalEventInput,
 } from '../types/admin'
 import { readableSupabaseError } from './market'
 
@@ -81,7 +86,6 @@ export async function loadAdminConsole(): Promise<AdminConsoleState> {
         ? client.storage.from(STOCK_LOGO_BUCKET).getPublicUrl(stock.logoImagePath).data.publicUrl
         : null,
     })),
-    events: state.events ?? [],
     auditLog: state.auditLog ?? [],
   }
 }
@@ -133,31 +137,132 @@ export async function revokeAdminBan(userId: string, reason: string) {
   return data
 }
 
-export async function upsertAdminGlobalEvent(input: UpsertGlobalEventInput) {
+async function uploadAdminStockLogo(file: File) {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_admin_console_upsert_global_event', {
-    p_league_id: input.leagueId,
-    p_week_number: input.weekNumber,
-    p_title: input.title,
-    p_scenario: input.scenario,
-    p_intensity: input.intensity,
-    p_is_active: input.isActive,
+  const validationError = validateStockLogoFile(file)
+  if (validationError) throw new Error(validationError)
+
+  const { data: userData, error: userError } = await client.auth.getUser()
+  throwIfError(userError)
+  if (!userData.user) throw new Error('관리자 로그인이 필요합니다.')
+
+  const extension = getStockLogoExtension(file)
+  if (!extension) throw new Error('종목 로고 파일 형식을 확인해 주세요.')
+
+  const objectPath = `${userData.user.id}/stock-${createAdminRequestKey()}.${extension}`
+  const { error } = await client.storage.from(STOCK_LOGO_BUCKET).upload(objectPath, file, {
+    cacheControl: '31536000',
+    contentType: file.type,
+    upsert: false,
   })
   throwIfError(error)
-  return data
+  return objectPath
+}
+
+async function removeAdminStockLogo(objectPath: string) {
+  const client = requireSupabase()
+  await client.storage.from(STOCK_LOGO_BUCKET).remove([objectPath])
 }
 
 export async function listAdminStock(input: AdminStockListingInput) {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_admin_console_list_stock', {
-    p_league_id: input.leagueId,
-    p_ticker: input.ticker,
-    p_name: input.name,
-    p_initial_price: input.initialPrice,
-    p_description: input.description,
-    p_theme: input.theme,
-    p_weekly_stories: input.weeklyStories,
-    p_logo_sprite_index: input.logoSpriteIndex,
+  const logoImagePath = input.logoFile ? await uploadAdminStockLogo(input.logoFile) : null
+
+  try {
+    const { data, error } = await client.rpc('randoland_admin_console_list_stock', {
+      p_league_id: input.leagueId,
+      p_owner_participant_id: input.ownerParticipantId,
+      p_ticker: input.ticker,
+      p_name: input.name,
+      p_initial_price: input.initialPrice,
+      p_description: input.description,
+      p_theme: input.theme,
+      p_logo_sprite_index: input.logoSpriteIndex,
+      p_logo_image_path: logoImagePath,
+    })
+    throwIfError(error)
+    return data
+  } catch (error) {
+    if (logoImagePath) await removeAdminStockLogo(logoImagePath)
+    throw error
+  }
+}
+
+export async function loadAdminStockEditor(stockId: string): Promise<AdminStockEditor> {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_admin_console_get_stock_editor', {
+    p_stock_id: stockId,
+  })
+  throwIfError(error)
+
+  const editor = data as unknown as AdminStockEditor
+  return {
+    ...editor,
+    stock: {
+      ...editor.stock,
+      logoImageUrl: editor.stock.logoImagePath
+        ? client.storage.from(STOCK_LOGO_BUCKET).getPublicUrl(editor.stock.logoImagePath).data.publicUrl
+        : null,
+    },
+    plans: editor.plans ?? [],
+  }
+}
+
+export async function updateAdminStock(input: AdminStockDetailsInput) {
+  const client = requireSupabase()
+  const uploadedPath = input.logoFile ? await uploadAdminStockLogo(input.logoFile) : null
+  const nextLogoPath = uploadedPath ?? input.logoImagePath
+
+  try {
+    const { data, error } = await client.rpc('randoland_admin_console_update_stock', {
+      p_stock_id: input.stockId,
+      p_expected_updated_at: input.expectedUpdatedAt,
+      p_owner_participant_id: input.ownerParticipantId,
+      p_ticker: input.ticker,
+      p_name: input.name,
+      p_initial_price: input.initialPrice,
+      p_description: input.description,
+      p_theme: input.theme,
+      p_logo_sprite_index: input.logoSpriteIndex,
+      p_logo_image_path: nextLogoPath,
+    })
+    throwIfError(error)
+
+    if (uploadedPath && input.logoImagePath && input.logoImagePath !== uploadedPath) {
+      await removeAdminStockLogo(input.logoImagePath)
+    }
+    return data
+  } catch (error) {
+    if (uploadedPath) await removeAdminStockLogo(uploadedPath)
+    throw error
+  }
+}
+
+export async function saveAdminStockRoundPlans(
+  stockId: string,
+  expectedUpdatedAt: string,
+  plans: AdminStockRoundPlan[],
+) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_admin_console_save_stock_round_plans', {
+    p_stock_id: stockId,
+    p_expected_updated_at: expectedUpdatedAt,
+    p_plans: plans.map((plan) => ({
+      roundNumber: plan.roundNumber,
+      changePercent: plan.changePercent,
+      newsHeadline: plan.newsHeadline,
+      newsBody: plan.newsBody,
+    })),
+  })
+  throwIfError(error)
+  return data as unknown as { updatedAt: string }
+}
+
+export async function activateAdminStock(stockId: string, expectedUpdatedAt: string) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_admin_console_activate_stock', {
+    p_stock_id: stockId,
+    p_expected_updated_at: expectedUpdatedAt,
   })
   throwIfError(error)
   return data
@@ -173,19 +278,51 @@ export async function delistAdminStock(stockId: string, reason: string) {
   return data
 }
 
-export async function loadAdminAiSettlementState(
+export async function loadAdminSettlementState(
   leagueId: string,
-): Promise<AdminAiSettlementState> {
+): Promise<AdminSettlementState> {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_admin_console_get_ai_settlement_state', {
+  const { data, error } = await client.rpc('randoland_admin_console_get_settlement_state', {
     p_league_id: leagueId,
   })
   throwIfError(error)
 
-  return data as unknown as AdminAiSettlementState
+  return data as unknown as AdminSettlementState
 }
 
-export async function runAdminAiSettlement(input: AdminAiSettlementInput) {
+export async function loadAdminGlobalNewsEditor(
+  leagueId: string,
+): Promise<AdminGlobalNewsEditor> {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_admin_console_get_global_news_editor', {
+    p_league_id: leagueId,
+  })
+  throwIfError(error)
+
+  const editor = data as unknown as AdminGlobalNewsEditor
+  return { ...editor, plans: editor.plans ?? [] }
+}
+
+export async function saveAdminGlobalNewsPlans(
+  leagueId: string,
+  plans: AdminGlobalNewsRoundPlan[],
+) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_admin_console_save_global_news_plans', {
+    p_league_id: leagueId,
+    p_plans: plans.map((plan) => ({
+      roundNumber: plan.roundNumber,
+      headline: plan.headline,
+      summary: plan.summary,
+      body: plan.body,
+      updatedAt: plan.updatedAt,
+    })),
+  })
+  throwIfError(error)
+  return data
+}
+
+export async function runAdminSettlement(input: AdminSettlementInput) {
   const client = requireSupabase()
   const { data, error } = await client.functions.invoke('randoland-daily-settlement', {
     body: {
@@ -203,16 +340,16 @@ export async function runAdminAiSettlement(input: AdminAiSettlementInput) {
   } | null
 
   if (result?.status === 'busy') {
-    throw new Error('AI 정산이 이미 진행 중입니다. 15분 이상 응답이 없을 때 다시 시도해 주세요.')
+    throw new Error('정산이 이미 진행 중입니다. 15분 이상 응답이 없을 때 다시 시도해 주세요.')
   }
   if (result?.status === 'idle') {
     throw new Error('정산 가능한 현재 라운드가 없습니다.')
   }
   if (result?.status === 'failed') {
-    throw new Error(result.error || 'AI 정산을 완료하지 못했습니다.')
+    throw new Error(result.error || '정산을 완료하지 못했습니다.')
   }
   if (result?.status !== 'completed') {
-    throw new Error('AI 정산 결과를 확인할 수 없습니다.')
+    throw new Error('정산 결과를 확인할 수 없습니다.')
   }
 
   return data

@@ -13,8 +13,13 @@ const actionLabels: Record<string, string> = {
   league_stopped: '리그 중단',
   participant_disqualified: '사용자 제재',
   user_ban_revoked: '이후 참가 제한 해제',
-  global_event_upserted: '글로벌 이벤트 저장',
-  stock_listed: '관리자 종목 상장',
+  stock_draft_created: '종목 초안 생성',
+  stock_details_updated: '종목 정보 수정',
+  stock_round_plans_saved: '라운드 계획 저장',
+  global_news_round_plans_saved: '글로벌 뉴스 계획 저장',
+  stock_activated: '종목 상장 확정',
+  stock_activation_scheduled: '종목 상장 예약',
+  stock_activated_for_round: '예약 종목 거래 시작',
   stock_delisted: '종목 제거',
 }
 

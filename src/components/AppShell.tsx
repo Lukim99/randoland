@@ -30,7 +30,7 @@ const navigation = [
   { to: '/news', label: '뉴스', icon: Newspaper },
   { to: '/portfolio', label: '내 자산', icon: WalletCards },
   { to: '/orders', label: '주문 내역', icon: ClipboardList },
-  { to: '/listing', label: '종목 상장', icon: Building2 },
+  { to: '/listing', label: '내 종목', icon: Building2 },
   { to: '/discussion', label: '종목토론방', icon: MessageSquareText },
   { to: '/ranking', label: '주간 순위', icon: Trophy },
   { to: '/rewards', label: '리워드', icon: Gift },

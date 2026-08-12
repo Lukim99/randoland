@@ -184,8 +184,8 @@ export function DashboardPage() {
         <section className="panel market-empty-state">
           <Building2 size={28} />
           <h2>아직 상장된 종목이 없습니다</h2>
-          <p>리그 참가자는 한 개의 종목을 상장할 수 있습니다. 첫 종목을 제출하면 시장 목록에 즉시 반영됩니다.</p>
-          {myState?.joined && <Link className="action-button" to="/listing">종목 상장하기</Link>}
+          <p>관리자가 참가자의 종목 정보와 라운드 계획을 확인한 뒤 시장에 등록합니다.</p>
+          {myState?.joined && <Link className="action-button" to="/listing">내 종목 확인</Link>}
         </section>
       )}
 
@@ -193,7 +193,7 @@ export function DashboardPage() {
         <div className="section-heading">
           <div>
             <h2>란도일보</h2>
-            <p>메인뉴스와 시장의 개별 소식을 한곳에서 확인합니다.</p>
+            <p>관리자가 입력한 글로벌 뉴스와 개별기사를 한곳에서 확인합니다.</p>
           </div>
           <span className="news-time"><Newspaper size={15} /> 09:00 업데이트</span>
         </div>
@@ -201,7 +201,7 @@ export function DashboardPage() {
           {latestEdition ? (
             <article className="news-card news-card--lead dashboard-news-lead">
               <div className="news-card__meta">
-                <span>메인뉴스</span>
+                <span>글로벌 뉴스</span>
                 <time dateTime={latestEdition.publishedAt}>{formatKstDateTime(latestEdition.publishedAt)}</time>
               </div>
               <h3>{latestEdition.mainHeadline}</h3>

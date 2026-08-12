@@ -17,10 +17,9 @@ import {
   playLadder as playLadderRequest,
   playLadderSecond as playLadderSecondRequest,
   playLadderThird as playLadderThirdRequest,
-  submitListing as submitListingRequest,
   uploadProfileImage as uploadProfileImageRequest,
 } from '../services/market'
-import type { LadderChoice, ListingSubmission, MarketSnapshot, MyState, NewsFeed, OrderSide, RankingsSnapshot } from '../types/market'
+import type { LadderChoice, MarketSnapshot, MyState, NewsFeed, OrderSide, RankingsSnapshot } from '../types/market'
 import { MarketContext, type MarketContextValue } from './market-context'
 
 const realtimeTables = [
@@ -30,7 +29,7 @@ const realtimeTables = [
   'randoland_price_candles',
   'randoland_news',
   'randoland_news_editions',
-  'randoland_news_briefs',
+  'randoland_news_items',
   'randoland_discussion_posts',
   'randoland_participants',
   'randoland_orders',
@@ -194,11 +193,6 @@ export function MarketProvider({ children }: PropsWithChildren) {
     await refreshData(true)
   }, [refreshData])
 
-  const submitListing = useCallback(async (submission: ListingSubmission, logoFile?: File | null) => {
-    await submitListingRequest(requireLeagueId(), submission, logoFile)
-    await refreshData(true)
-  }, [refreshData, requireLeagueId])
-
   const uploadProfileImage = useCallback(async (file: File) => {
     const participant = myState?.participant
     if (!participant) throw new Error('리그 참가 후 프로필 이미지를 변경할 수 있습니다.')
@@ -277,7 +271,6 @@ export function MarketProvider({ children }: PropsWithChildren) {
       getOrderCapacity,
       placeOrder,
       cancelOrder,
-      submitListing,
       uploadProfileImage,
       loadDiscussionPosts,
       createDiscussionPost,
@@ -310,7 +303,6 @@ export function MarketProvider({ children }: PropsWithChildren) {
       uploadProfileImage,
       loadDiscussionPosts,
       createDiscussionPost,
-      submitListing,
     ],
   )
 

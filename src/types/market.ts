@@ -98,12 +98,14 @@ export interface MarketSnapshot {
   news: MarketNews[]
 }
 
-export interface NewsBrief {
+export interface NewsItem {
   id: string
+  stockId: string
+  ticker: string
+  stockName: string
   headline: string
-  summary: string
-  affectedStockIds: string[]
-  affectedStockNames: string[]
+  body: string
+  changePercent: number
 }
 
 export interface NewsEdition {
@@ -113,14 +115,8 @@ export interface NewsEdition {
   mainHeadline: string
   mainSummary: string
   mainBody: string
-  globalEventTitle: string | null
-  spotlightHeadline: string | null
-  spotlightSummary: string | null
-  spotlightBody: string | null
-  spotlightStockId: string | null
-  spotlightStockName: string | null
   publishedAt: string
-  briefs: NewsBrief[]
+  items: NewsItem[]
 }
 
 export interface NewsFeed {
@@ -355,16 +351,6 @@ export interface RankingsSnapshot {
   isFinal: boolean
   rankings: RankingEntry[]
   awards: LeagueAward[]
-}
-
-export interface ListingSubmission {
-  logoSpriteIndex: number
-  ticker: string
-  name: string
-  initialPrice: number
-  description: string
-  theme: string
-  weeklyStories: string[]
 }
 
 export interface LadderResult {

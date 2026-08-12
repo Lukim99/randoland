@@ -1,7 +1,7 @@
 import { ArrowRight, Newspaper } from 'lucide-react'
 import { useId } from 'react'
 import { Link } from 'react-router'
-import { formatKstDateTime } from '../lib/format'
+import { formatKstDateTime, formatPercent, movementClass } from '../lib/format'
 import type { NewsEdition } from '../types/market'
 
 interface StockNewsPanelProps {
@@ -12,7 +12,7 @@ interface StockNewsPanelProps {
 
 export function StockNewsPanel({ stockId, stockName, edition }: StockNewsPanelProps) {
   const headingId = useId()
-  const briefs = edition?.briefs.filter((brief) => brief.affectedStockIds.includes(stockId)) ?? []
+  const items = edition?.items.filter((item) => item.stockId === stockId) ?? []
 
   return (
     <section className="panel stock-news-panel" aria-labelledby={headingId}>
@@ -26,12 +26,16 @@ export function StockNewsPanel({ stockId, stockName, edition }: StockNewsPanelPr
         )}
       </div>
 
-      {briefs.length > 0 ? (
+      {items.length > 0 ? (
         <div className="stock-news-panel__list">
-          {briefs.map((brief) => (
-            <article key={brief.id}>
-              <h3>{brief.headline}</h3>
-              <p>{brief.summary}</p>
+          {items.map((item) => (
+            <article key={item.id}>
+              <div className="stock-news-panel__article-meta">
+                <span>{edition?.roundNumber}라운드</span>
+                <strong className={movementClass(item.changePercent)}>{formatPercent(item.changePercent)}</strong>
+              </div>
+              <h3>{item.headline}</h3>
+              <p>{item.body}</p>
             </article>
           ))}
         </div>
