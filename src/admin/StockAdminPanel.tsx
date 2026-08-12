@@ -91,7 +91,6 @@ function normalizePlans(plans: AdminStockRoundPlan[]) {
 function DraftStockForm({
   leagues,
   participants,
-  stocks,
   busy,
   onRun,
   onCreated,
@@ -115,12 +114,7 @@ function DraftStockForm({
   const availableParticipants = useMemo(() => participants.filter((participant) => (
     participant.leagueId === selectedLeagueId
     && !participant.disqualifiedAt
-    && !stocks.some((stock) => (
-      stock.leagueId === selectedLeagueId
-      && stock.ownerParticipantId === participant.id
-      && stock.status !== 'rejected'
-    ))
-  )), [participants, selectedLeagueId, stocks])
+  )), [participants, selectedLeagueId])
   const selectedOwnerId = availableParticipants.some(({ id }) => id === ownerParticipantId)
     ? ownerParticipantId
     : availableParticipants[0]?.id ?? ''
@@ -197,7 +191,7 @@ function DraftStockForm({
       <label><span>종목 설명</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} minLength={10} maxLength={1000} rows={4} required /></label>
 
       {availableParticipants.length === 0 && selectedLeagueId && (
-        <p className="admin-form__hint">상장 종목이 없는 참가자가 없습니다.</p>
+        <p className="admin-form__hint">상장자로 지정할 수 있는 참가자가 없습니다.</p>
       )}
       <button className="primary-button" type="submit" disabled={busy || !selectedLeagueId || !selectedOwnerId}>
         기본정보 저장 후 계획 입력

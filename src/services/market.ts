@@ -83,7 +83,6 @@ const errorTranslations: Array<[string, string]> = [
   ['This game is not waiting for the second pick', '이미 처리된 두 번째 홀짝 선택입니다.'],
   ['This game is not waiting for the second Go or Stop decision', '이미 처리된 두 번째 Go or Stop 선택입니다.'],
   ['This game is not waiting for the third pick', '이미 처리된 세 번째 홀짝 선택입니다.'],
-  ['duplicate key value violates unique constraint "randoland_stocks_one_listing', '이미 상장한 종목이 있습니다.'],
   ['duplicate key value violates unique constraint "randoland_stocks_league_id_ticker', '이미 사용 중인 티커입니다.'],
   ['An attendance token is required', '홀짝 사다리에 사용할 출석 토큰이 없습니다.'],
   ['An active league participant is required', '진행 중인 리그 참가자만 이용할 수 있습니다.'],
@@ -112,7 +111,6 @@ const errorTranslations: Array<[string, string]> = [
   ['An active ban was not found', '해제할 이후 리그 참가 제한이 없습니다.'],
   ['Only a registration or active league can receive a stock', '참가 접수 또는 진행 중인 리그에만 종목을 등록할 수 있습니다.'],
   ['An eligible participant in this league is required', '이 리그의 제재되지 않은 참가자를 상장자로 선택해 주세요.'],
-  ['This participant already has a stock in the league', '이 참가자는 이미 리그 종목을 하나 보유하고 있습니다.'],
   ['Stock name must contain', '종목명은 2자 이상 40자 이하로 입력해 주세요.'],
   ['Initial price must be', '초기 가격은 1 RP 이상의 정수로 입력해 주세요.'],
   ['Stock data changed. Reload the editor', '다른 변경이 먼저 저장되었습니다. 편집기를 새로 불러온 뒤 다시 시도해 주세요.'],
@@ -265,15 +263,41 @@ export async function loadMyState(leagueId: string): Promise<MyState> {
     })),
     ladderGames: rawState.ladderGames ?? [],
     activeLadderGame: rawState.activeLadderGame ?? null,
+    listings: rawState.listings ?? (rawState.listing ? [rawState.listing] : []),
   }
   if (!state.participant) return state
 
-  const { data: participantProfile, error: profileError } = await client
-    .from('randoland_participants')
-    .select('profile_image_path')
-    .eq('id', state.participant.id)
-    .maybeSingle()
+  const [profileResult, listingsResult] = await Promise.all([
+    client
+      .from('randoland_participants')
+      .select('profile_image_path')
+      .eq('id', state.participant.id)
+      .maybeSingle(),
+    client
+      .from('randoland_stocks')
+      .select('id, ticker, name, description, theme, initial_price, current_price, status, listed_at')
+      .eq('league_id', leagueId)
+      .eq('listed_by_participant_id', state.participant.id)
+      .neq('status', 'rejected')
+      .order('name'),
+  ])
+  const { data: participantProfile, error: profileError } = profileResult
+  const { data: listingRows, error: listingsError } = listingsResult
   throwIfError(profileError)
+  throwIfError(listingsError)
+
+  const listings = (listingRows ?? []).map((row) => ({
+    id: row.id,
+    ticker: row.ticker,
+    name: row.name,
+    description: row.description,
+    theme: row.theme,
+    initialPrice: row.initial_price,
+    currentPrice: row.current_price,
+    status: row.status,
+    listedAt: row.listed_at,
+    stories: state.listing?.id === row.id ? state.listing?.stories ?? [] : [],
+  }))
 
   const profileImagePath = participantProfile?.profile_image_path ?? null
   const profileImageUrl = profileImagePath
@@ -282,6 +306,8 @@ export async function loadMyState(leagueId: string): Promise<MyState> {
 
   return {
     ...state,
+    listings,
+    listing: listings[0] ?? null,
     participant: {
       ...state.participant,
       profileImagePath,

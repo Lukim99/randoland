@@ -50,7 +50,8 @@ export function OrderPanel({ stock }: OrderPanelProps) {
   )
   const position = myState?.positions.find((item) => item.stockId === stock.id)
   const shortPosition = myState?.shortPositions.find((item) => item.stockId === stock.id)
-  const isOwnStock = myState?.listing?.id === stock.id
+  const ownListings = myState?.listings ?? (myState?.listing ? [myState.listing] : [])
+  const isOwnStock = ownListings.some((listing) => listing.id === stock.id)
   const estimate = useMemo(() => {
     const amount = stock.currentPrice * Math.max(0, quantity || 0)
     const borrowed = side === 'buy' ? Math.floor((amount * leverage) / (100 + leverage)) : 0

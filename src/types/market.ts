@@ -314,6 +314,7 @@ export interface MyState {
   tradeCycles: TradeCycle[]
   ladderGames: LadderGame[]
   activeLadderGame: LadderGame | null
+  listings: MyListing[]
   listing: MyListing | null
   latestRank: PersonalRank | null
 }
