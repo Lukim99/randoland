@@ -7584,12 +7584,20 @@ button:disabled {
 }
 
 .admin-stock-row {
+  appearance: none;
   width: 100%;
   color: var(--text);
   background: transparent;
+  border: 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.055);
+  border-radius: 0;
   text-align: left;
   cursor: pointer;
   transition: background 160ms ease, border-color 160ms ease;
+}
+
+.admin-stock-row:last-child {
+  border-bottom: 0;
 }
 
 .admin-stock-row:hover,

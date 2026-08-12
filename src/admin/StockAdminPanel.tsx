@@ -488,7 +488,13 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
 }
 
 export function StockAdminPanel({ leagues, participants, stocks, busy, onRun }: StockAdminPanelProps) {
-  const [selectedStockId, setSelectedStockId] = useState<string | null>(stocks[0]?.id ?? null)
+  const manageableStocks = useMemo(
+    () => stocks.filter(({ status }) => status !== 'delisted' && status !== 'rejected'),
+    [stocks],
+  )
+  const [selectedStockId, setSelectedStockId] = useState<string | null>(
+    manageableStocks[0]?.id ?? null,
+  )
   const [editor, setEditor] = useState<AdminStockEditorData | null>(null)
   const [editorLoading, setEditorLoading] = useState(false)
   const [editorError, setEditorError] = useState<string | null>(null)
@@ -500,7 +506,7 @@ export function StockAdminPanel({ leagues, participants, stocks, busy, onRun }: 
 
   useEffect(() => {
     if (!pendingCreatedStock) return
-    const created = stocks.find((stock) => (
+    const created = manageableStocks.find((stock) => (
       stock.leagueId === pendingCreatedStock.leagueId
       && stock.ticker === pendingCreatedStock.ticker
     ))
@@ -508,15 +514,15 @@ export function StockAdminPanel({ leagues, participants, stocks, busy, onRun }: 
       setSelectedStockId(created.id)
       setPendingCreatedStock(null)
     }
-  }, [pendingCreatedStock, stocks])
+  }, [manageableStocks, pendingCreatedStock])
 
   useEffect(() => {
-    if (selectedStockId && stocks.some(({ id }) => id === selectedStockId)) return
-    setSelectedStockId(stocks[0]?.id ?? null)
-  }, [selectedStockId, stocks])
+    if (selectedStockId && manageableStocks.some(({ id }) => id === selectedStockId)) return
+    setSelectedStockId(manageableStocks[0]?.id ?? null)
+  }, [manageableStocks, selectedStockId])
 
   const reloadEditor = useCallback(async () => {
-    if (!selectedStockId) {
+    if (!selectedStockId || !manageableStocks.some(({ id }) => id === selectedStockId)) {
       setEditor(null)
       return
     }
@@ -531,7 +537,7 @@ export function StockAdminPanel({ leagues, participants, stocks, busy, onRun }: 
     } finally {
       setEditorLoading(false)
     }
-  }, [selectedStockId])
+  }, [manageableStocks, selectedStockId])
 
   useEffect(() => {
     void reloadEditor()
@@ -546,7 +552,7 @@ export function StockAdminPanel({ leagues, participants, stocks, busy, onRun }: 
 
       <div className="admin-stock-workspace">
         <aside className="admin-stock-list" aria-label="등록 종목">
-          {stocks.length > 0 ? stocks.map((stock) => (
+          {manageableStocks.length > 0 ? manageableStocks.map((stock) => (
             <button
               type="button"
               key={stock.id}
@@ -564,7 +570,7 @@ export function StockAdminPanel({ leagues, participants, stocks, busy, onRun }: 
                   : stockStatusLabel[stock.status] ?? stock.status}
               </span>
             </button>
-          )) : <p className="admin-empty-copy">등록된 종목이 없습니다.</p>}
+          )) : <p className="admin-empty-copy">관리할 종목이 없습니다.</p>}
         </aside>
 
         <div className="admin-stock-workspace__editor">
