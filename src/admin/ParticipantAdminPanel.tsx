@@ -154,11 +154,11 @@ export function ParticipantAdminPanel({
   }
 
   const amountStep = assetType === 'stock' ? '0.00000001' : '1'
-  const revokeLimit = assetType === 'rp'
-    ? selectedParticipant?.availableCash
-    : assetType === 'attendance_token'
+  const revokeLimit = assetType === 'attendance_token'
       ? selectedParticipant?.attendanceTokens
-      : selectedHolding?.recoverableQuantity
+      : assetType === 'stock'
+        ? selectedHolding?.recoverableQuantity
+        : undefined
 
   return (
     <section className="admin-panel admin-panel--participant">
@@ -249,7 +249,7 @@ export function ParticipantAdminPanel({
             <input
               type="number"
               min={amountStep}
-              max={direction === 'revoke' ? revokeLimit : undefined}
+              max={direction === 'revoke' && assetType !== 'rp' ? revokeLimit : undefined}
               step={amountStep}
               value={amount}
               onChange={(event) => { setAmount(event.target.value); resetAdjustmentRequest() }}
@@ -260,10 +260,9 @@ export function ParticipantAdminPanel({
         </div>
         {direction === 'revoke' && (
           <p className="admin-form__hint">
-            회수 가능: {assetType === 'rp'
-              ? formatRp(revokeLimit ?? 0)
-              : `${formatQuantity(revokeLimit ?? 0)}${assetType === 'attendance_token' ? '개' : '주'}`}
-            {assetType === 'stock' ? ' · 레버리지와 대기 매도 수량은 제외됩니다.' : ''}
+            {assetType === 'rp'
+              ? '보유 RP를 초과한 회수분은 미수 RP로 기록되며, 대기 중인 신규 매수·공매도 주문은 거절됩니다.'
+              : `회수 가능: ${formatQuantity(revokeLimit ?? 0)}${assetType === 'attendance_token' ? '개' : '주'}${assetType === 'stock' ? ' · 레버리지와 대기 매도 수량은 제외됩니다.' : ''}`}
           </p>
         )}
         <label>
