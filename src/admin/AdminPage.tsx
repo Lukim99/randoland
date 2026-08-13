@@ -116,6 +116,7 @@ export function AdminPage() {
         <ParticipantAdminPanel
           leagues={consoleState.leagues}
           participants={consoleState.participants}
+          stocks={consoleState.stocks}
           busy={busy}
           onRun={runAction}
         />

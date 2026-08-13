@@ -36,22 +36,18 @@ function initialLeagueId(leagues: AdminLeague[]) {
 function validatePlans(plans: AdminGlobalNewsRoundPlan[]) {
   for (const plan of plans) {
     const headline = plan.headline?.trim() ?? ''
-    const summary = plan.summary?.trim() ?? ''
     const body = plan.body?.trim() ?? ''
-    const fieldCount = [headline, summary, body].filter(Boolean).length
+    const fieldCount = [headline, body].filter(Boolean).length
 
     if (fieldCount === 0) continue
-    if (fieldCount !== 3) {
-      return `${plan.roundNumber}라운드의 제목·요약·본문을 모두 입력해 주세요.`
+    if (fieldCount !== 2) {
+      return `${plan.roundNumber}라운드의 제목과 기사를 모두 입력해 주세요.`
     }
     if (headline.length < 10 || headline.length > 140) {
       return `${plan.roundNumber}라운드 제목은 10~140자로 입력해 주세요.`
     }
-    if (summary.length < 20 || summary.length > 600) {
-      return `${plan.roundNumber}라운드 요약은 20~600자로 입력해 주세요.`
-    }
     if (body.length < 100 || body.length > 6000) {
-      return `${plan.roundNumber}라운드 본문은 100~6,000자로 입력해 주세요.`
+      return `${plan.roundNumber}라운드 기사는 100~6,000자로 입력해 주세요.`
     }
   }
 
@@ -113,7 +109,7 @@ export function GlobalNewsAdminPanel({ leagues, busy, onRun }: GlobalNewsAdminPa
   const completeCount = plans.filter(({ complete }) => complete).length
 
   function updateSelectedPlan(
-    field: 'headline' | 'summary' | 'body',
+    field: 'headline' | 'body',
     value: string,
   ) {
     if (!selectedPlan?.editable) return
@@ -124,7 +120,6 @@ export function GlobalNewsAdminPanel({ leagues, busy, onRun }: GlobalNewsAdminPa
           [field]: value,
           complete: Boolean(
             (field === 'headline' ? value : plan.headline)?.trim()
-            && (field === 'summary' ? value : plan.summary)?.trim()
             && (field === 'body' ? value : plan.body)?.trim(),
           ),
         }
@@ -161,7 +156,7 @@ export function GlobalNewsAdminPanel({ leagues, busy, onRun }: GlobalNewsAdminPa
         <div>
           <span className="eyebrow">GLOBAL NEWS PLAN</span>
           <h2>글로벌 뉴스 설정</h2>
-          <p>라운드마다 공개할 제목·요약·본문을 직접 입력합니다. 정산 시 저장된 원문 그대로 발행됩니다.</p>
+          <p>라운드마다 공개할 제목과 기사를 직접 입력합니다. 정산 시 저장된 원문 그대로 발행됩니다.</p>
         </div>
       </header>
 
@@ -227,19 +222,7 @@ export function GlobalNewsAdminPanel({ leagues, busy, onRun }: GlobalNewsAdminPa
               />
             </label>
             <label>
-              <span>요약 <small>{selectedPlan.summary?.trim().length ?? 0} / 600</small></span>
-              <textarea
-                value={selectedPlan.summary ?? ''}
-                onChange={(event) => updateSelectedPlan('summary', event.target.value)}
-                minLength={20}
-                maxLength={600}
-                rows={3}
-                disabled={!selectedPlan.editable || busy}
-                placeholder="뉴스 목록과 카드에 표시할 핵심 요약"
-              />
-            </label>
-            <label>
-              <span>본문 <small>{selectedPlan.body?.trim().length ?? 0} / 6,000</small></span>
+              <span>기사 <small>{selectedPlan.body?.trim().length ?? 0} / 6,000</small></span>
               <textarea
                 value={selectedPlan.body ?? ''}
                 onChange={(event) => updateSelectedPlan('body', event.target.value)}
@@ -247,7 +230,7 @@ export function GlobalNewsAdminPanel({ leagues, busy, onRun }: GlobalNewsAdminPa
                 maxLength={6000}
                 rows={10}
                 disabled={!selectedPlan.editable || busy}
-                placeholder="라운드 정산 후 그대로 공개할 글로벌 뉴스 본문"
+                placeholder="라운드 정산 후 그대로 공개할 글로벌 뉴스 기사"
               />
             </label>
           </div>

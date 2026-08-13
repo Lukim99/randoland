@@ -113,7 +113,6 @@ export interface NewsEdition {
   roundId: string
   roundNumber: number
   mainHeadline: string
-  mainSummary: string
   mainBody: string
   publishedAt: string
   items: NewsItem[]
@@ -245,7 +244,7 @@ export interface TradeCycle {
   realizedProfit: number | null
   holdingRounds: number
   positionType: 'long' | 'short'
-  status: 'open' | 'closed'
+  status: 'open' | 'closed' | 'adjusted'
   openedAt: string
   closedAt: string | null
 }

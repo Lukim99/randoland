@@ -84,7 +84,6 @@ export function NewsPage() {
             <strong>관리자 입력 원문</strong>
           </div>
           <h2>{selectedEdition.mainHeadline}</h2>
-          <p className="main-news-article__summary">{selectedEdition.mainSummary}</p>
           <div className="main-news-article__body">
             {paragraphs.map((paragraph, index) => <p key={`${index}:${paragraph}`}>{paragraph}</p>)}
           </div>

@@ -29,13 +29,42 @@ export interface AdminParticipant {
   nickname: string
   cashBalance: number
   reservedCash: number
+  availableCash: number
   receivableRp: number
+  attendanceTokens: number
+  netWorth: number
+  longMarketValue: number
+  shortExposure: number
+  holdings: AdminParticipantHolding[]
   joinedAt: string
   disqualifiedAt: string | null
   disqualificationReason: string | null
   activeBan: boolean
   banReason: string | null
   bannedAt: string | null
+}
+
+export interface AdminParticipantHolding {
+  stockId: string
+  ticker: string
+  stockName: string
+  quantity: number
+  currentPrice: number
+  marketValue: number
+  recoverableQuantity: number
+}
+
+export type AdminParticipantAssetType = 'rp' | 'attendance_token' | 'stock'
+export type AdminParticipantAssetDirection = 'grant' | 'revoke'
+
+export interface AdminParticipantAssetAdjustmentInput {
+  participantId: string
+  assetType: AdminParticipantAssetType
+  direction: AdminParticipantAssetDirection
+  amount: number
+  stockId: string | null
+  reason: string
+  requestKey: string
 }
 
 export interface AdminStock {
@@ -168,7 +197,6 @@ export interface AdminStockEditor {
 export interface AdminGlobalNewsRoundPlan {
   roundNumber: number
   headline: string | null
-  summary: string | null
   body: string | null
   updatedAt: string | null
   roundStatus: 'scheduled' | 'open' | 'locked' | 'settling' | 'settled' | 'failed' | null

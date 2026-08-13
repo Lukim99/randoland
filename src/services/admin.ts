@@ -6,6 +6,8 @@ import type {
   AdminConsoleState,
   AdminGlobalNewsEditor,
   AdminGlobalNewsRoundPlan,
+  AdminParticipant,
+  AdminParticipantAssetAdjustmentInput,
   AdminSettlementInput,
   AdminSettlementState,
   AdminStockDetailsInput,
@@ -72,14 +74,19 @@ export async function loadAdminAccess(): Promise<AdminAccess> {
 
 export async function loadAdminConsole(): Promise<AdminConsoleState> {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_admin_console_get_state')
+  const [stateResult, participantResult] = await Promise.all([
+    client.rpc('randoland_admin_console_get_state'),
+    client.rpc('randoland_admin_console_get_participants'),
+  ])
+  const { data, error } = stateResult
   throwIfError(error)
+  throwIfError(participantResult.error)
 
   const state = data as unknown as AdminConsoleState
   return {
     ...state,
     leagues: state.leagues ?? [],
-    participants: state.participants ?? [],
+    participants: (participantResult.data as unknown as AdminParticipant[] | null) ?? [],
     stocks: (state.stocks ?? []).map((stock) => ({
       ...stock,
       logoImageUrl: stock.logoImagePath
@@ -133,6 +140,26 @@ export async function revokeAdminBan(userId: string, reason: string) {
     p_user_id: userId,
     p_reason: reason,
   })
+  throwIfError(error)
+  return data
+}
+
+export async function adjustAdminParticipantAsset(
+  input: AdminParticipantAssetAdjustmentInput,
+) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc(
+    'randoland_admin_console_adjust_participant_asset',
+    {
+      p_participant_id: input.participantId,
+      p_asset_type: input.assetType,
+      p_direction: input.direction,
+      p_amount: input.amount,
+      p_stock_id: input.stockId,
+      p_reason: input.reason,
+      p_request_key: input.requestKey,
+    },
+  )
   throwIfError(error)
   return data
 }
@@ -300,7 +327,13 @@ export async function loadAdminGlobalNewsEditor(
   throwIfError(error)
 
   const editor = data as unknown as AdminGlobalNewsEditor
-  return { ...editor, plans: editor.plans ?? [] }
+  return {
+    ...editor,
+    plans: (editor.plans ?? []).map((plan) => ({
+      ...plan,
+      complete: Boolean(plan.headline?.trim() && plan.body?.trim()),
+    })),
+  }
 }
 
 export async function saveAdminGlobalNewsPlans(
@@ -308,12 +341,11 @@ export async function saveAdminGlobalNewsPlans(
   plans: AdminGlobalNewsRoundPlan[],
 ) {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_admin_console_save_global_news_plans', {
+  const { data, error } = await client.rpc('randoland_admin_console_save_global_news_articles', {
     p_league_id: leagueId,
     p_plans: plans.map((plan) => ({
       roundNumber: plan.roundNumber,
       headline: plan.headline,
-      summary: plan.summary,
       body: plan.body,
       updatedAt: plan.updatedAt,
     })),

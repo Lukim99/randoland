@@ -205,7 +205,7 @@ export function DashboardPage() {
                 <time dateTime={latestEdition.publishedAt}>{formatKstDateTime(latestEdition.publishedAt)}</time>
               </div>
               <h3>{latestEdition.mainHeadline}</h3>
-              <p>{latestEdition.mainSummary}</p>
+              <p>{latestEdition.mainBody}</p>
               <Link to="/news">
                 전체 뉴스 보기 <ArrowRight size={15} />
               </Link>
