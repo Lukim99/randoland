@@ -231,7 +231,10 @@ export async function loadAdminStockEditor(stockId: string): Promise<AdminStockE
         ? client.storage.from(STOCK_LOGO_BUCKET).getPublicUrl(editor.stock.logoImagePath).data.publicUrl
         : null,
     },
-    plans: editor.plans ?? [],
+    plans: (editor.plans ?? []).map((plan) => ({
+      ...plan,
+      dividendRpPerShare: plan.dividendRpPerShare ?? null,
+    })),
   }
 }
 
@@ -277,6 +280,7 @@ export async function saveAdminStockRoundPlans(
     p_plans: plans.map((plan) => ({
       roundNumber: plan.roundNumber,
       changePercent: plan.changePercent,
+      dividendRpPerShare: plan.dividendRpPerShare,
       newsHeadline: plan.newsHeadline,
       newsBody: plan.newsBody,
     })),

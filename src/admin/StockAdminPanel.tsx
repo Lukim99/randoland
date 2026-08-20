@@ -83,6 +83,9 @@ function nullableText(value: string) {
 function normalizePlans(plans: AdminStockRoundPlan[]) {
   return plans.map((plan) => ({
     ...plan,
+    dividendRpPerShare: plan.dividendRpPerShare === null
+      ? null
+      : Math.trunc(plan.dividendRpPerShare),
     newsHeadline: nullableText(plan.newsHeadline ?? ''),
     newsBody: nullableText(plan.newsBody ?? ''),
   }))
@@ -251,6 +254,10 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
   const missingRequiredPlans = plans.filter((plan) => (
     plan.roundNumber >= activationStartRound && plan.changePercent === null
   )).length
+  const invalidDividendPlans = plans.filter((plan) => (
+    plan.dividendRpPerShare !== null
+    && (!Number.isSafeInteger(plan.dividendRpPerShare) || plan.dividendRpPerShare < 1)
+  )).length
 
   function updatePlan(roundNumber: number, patch: Partial<AdminStockRoundPlan>) {
     setPlans((current) => current.map((plan) => (
@@ -372,7 +379,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
 
       <section className="admin-round-plan-section">
         <header>
-          <div><FileText size={17} /><span><strong>라운드별 등락·기사</strong><small>등락률은 필수이며, 개별기사는 필요한 라운드에만 제목과 본문을 함께 입력합니다.</small></span></div>
+          <div><FileText size={17} /><span><strong>라운드별 등락·기사·배당</strong><small>등락률은 필수입니다. 배당은 선택이며, 정산 시작 시 보유한 주식에 1주당 입력한 RP를 지급합니다.</small></span></div>
           <span>{plans.filter((plan) => plan.changePercent !== null).length}/{editor.roundCount} 입력</span>
         </header>
 
@@ -388,6 +395,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                 <span className={plan.changePercent === null ? 'is-empty' : movementClass(plan.changePercent)}>
                   {plan.changePercent === null ? '등락 미입력' : formatPercent(plan.changePercent)}
                   {plan.newsHeadline && <small>기사 있음</small>}
+                  {plan.dividendRpPerShare !== null && <small>배당 {formatPrice(plan.dividendRpPerShare)} RP</small>}
                 </span>
                 <ChevronRight size={16} aria-hidden="true" />
               </summary>
@@ -431,7 +439,24 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                     </div>
                   </div>
                 </div>
-                <label><span>개별기사 제목</span><input value={plan.newsHeadline ?? ''} onChange={(event) => updatePlan(plan.roundNumber, { newsHeadline: event.target.value })} disabled={busy || !plan.editable} maxLength={140} placeholder="기사가 없는 라운드는 비워 둡니다." /></label>
+                <label>
+                  <span>1주당 배당 RP (선택)</span>
+                  <div className="input-with-unit">
+                    <input
+                      type="number"
+                      min="1"
+                      step="1"
+                      value={plan.dividendRpPerShare ?? ''}
+                      onChange={(event) => updatePlan(plan.roundNumber, {
+                        dividendRpPerShare: event.target.value === '' ? null : Number(event.target.value),
+                      })}
+                      disabled={busy || !plan.editable}
+                      placeholder="배당 없음"
+                    />
+                    <span>RP</span>
+                  </div>
+                </label>
+                <label className="admin-round-plan__headline"><span>개별기사 제목</span><input value={plan.newsHeadline ?? ''} onChange={(event) => updatePlan(plan.roundNumber, { newsHeadline: event.target.value })} disabled={busy || !plan.editable} maxLength={140} placeholder="기사가 없는 라운드는 비워 둡니다." /></label>
                 <label className="admin-round-plan__body"><span>개별기사 본문</span><textarea value={plan.newsBody ?? ''} onChange={(event) => updatePlan(plan.roundNumber, { newsBody: event.target.value })} disabled={busy || !plan.editable} maxLength={6000} rows={4} placeholder="게시할 문장 그대로 입력합니다." /></label>
               </div>
             </details>
@@ -439,15 +464,18 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
         </div>
 
         <div className="admin-round-plan-actions">
-          <button className="secondary-button" type="button" onClick={() => void handlePlansSave()} disabled={busy}><Save size={14} /> 라운드 계획 저장</button>
+          <button className="secondary-button" type="button" onClick={() => void handlePlansSave()} disabled={busy || invalidDividendPlans > 0}><Save size={14} /> 라운드 계획 저장</button>
           {stock.status === 'pending' && !stock.activationRequestedAt && (
-            <button className="primary-button" type="button" onClick={() => void handleActivate()} disabled={busy || missingRequiredPlans > 0}>
+            <button className="primary-button" type="button" onClick={() => void handleActivate()} disabled={busy || missingRequiredPlans > 0 || invalidDividendPlans > 0}>
               <PlayCircle size={15} /> {league.status === 'registration' ? '저장 후 상장 확정' : `저장 후 ${activationStartRound}라운드 상장 예약`}
             </button>
           )}
         </div>
         {stock.status === 'pending' && !stock.activationRequestedAt && missingRequiredPlans > 0 && (
           <p className="admin-form__hint">상장 예정 라운드부터 종료 라운드까지 {missingRequiredPlans}개의 등락률을 더 입력해야 합니다.</p>
+        )}
+        {invalidDividendPlans > 0 && (
+          <p className="admin-form__hint">배당 RP는 1 이상의 정수로 입력해 주세요.</p>
         )}
       </section>
 

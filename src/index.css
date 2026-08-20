@@ -7936,7 +7936,7 @@ button:disabled {
 
 .admin-round-plan__fields {
   display: grid;
-  grid-template-columns: minmax(120px, 0.25fr) minmax(0, 0.75fr);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 11px;
   padding: 13px;
   border-top: 1px solid var(--border);
@@ -8030,6 +8030,7 @@ button:disabled {
   opacity: 0.48;
 }
 
+.admin-round-plan__headline,
 .admin-round-plan__body {
   grid-column: 1 / -1;
 }

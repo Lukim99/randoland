@@ -177,6 +177,7 @@ export interface AdminStockDetailsInput {
 export interface AdminStockRoundPlan {
   roundNumber: number
   changePercent: number | null
+  dividendRpPerShare: number | null
   newsHeadline: string | null
   newsBody: string | null
   updatedAt: string

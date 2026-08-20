@@ -28,6 +28,7 @@ const ledgerLabels: Record<string, string> = {
   leverage_repayment: '레버리지 상환',
   leverage_fee: '레버리지 차감',
   ladder_reward: '홀짝 보상',
+  dividend: '주식 배당',
   admin_adjustment: '운영 조정',
 }
 
