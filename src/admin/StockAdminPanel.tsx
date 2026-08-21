@@ -30,6 +30,7 @@ import type {
   AdminParticipant,
   AdminStock,
   AdminStockEditor as AdminStockEditorData,
+  AdminStockRoundAction,
   AdminStockRoundPlan,
 } from '../types/admin'
 
@@ -83,6 +84,7 @@ function nullableText(value: string) {
 function normalizePlans(plans: AdminStockRoundPlan[]) {
   return plans.map((plan) => ({
     ...plan,
+    roundAction: plan.roundAction ?? 'normal',
     dividendRpPerShare: plan.dividendRpPerShare === null
       ? null
       : Math.trunc(plan.dividendRpPerShare),
@@ -251,8 +253,15 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
   const activationStartRound = league.status === 'registration'
     ? 1
     : (editor.currentRoundNumber ?? 0) + 1
+  const delistRoundNumber = plans.find((plan) => plan.roundAction === 'delist')?.roundNumber ?? null
+  const visiblePlans = delistRoundNumber === null
+    ? plans
+    : plans.filter((plan) => plan.roundNumber <= delistRoundNumber)
   const missingRequiredPlans = plans.filter((plan) => (
-    plan.roundNumber >= activationStartRound && plan.changePercent === null
+    plan.roundNumber >= activationStartRound
+    && (delistRoundNumber === null || plan.roundNumber <= delistRoundNumber)
+    && plan.roundAction === 'normal'
+    && plan.changePercent === null
   )).length
   const invalidDividendPlans = plans.filter((plan) => (
     plan.dividendRpPerShare !== null
@@ -263,6 +272,31 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
     setPlans((current) => current.map((plan) => (
       plan.roundNumber === roundNumber ? { ...plan, ...patch } : plan
     )))
+  }
+
+  function updatePlanAction(roundNumber: number, roundAction: AdminStockRoundAction) {
+    setPlans((current) => current.map((plan) => {
+      if (plan.roundNumber === roundNumber) {
+        return {
+          ...plan,
+          roundAction,
+          changePercent: roundAction === 'normal' ? (plan.changePercent ?? 0) : 0,
+        }
+      }
+
+      if (roundAction === 'delist' && plan.roundNumber > roundNumber) {
+        return {
+          ...plan,
+          roundAction: 'normal',
+          changePercent: plan.changePercent ?? 0,
+          dividendRpPerShare: null,
+          newsHeadline: null,
+          newsBody: null,
+        }
+      }
+
+      return plan
+    }))
   }
 
   function adjustPlanChange(plan: AdminStockRoundPlan, delta: number) {
@@ -379,12 +413,12 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
 
       <section className="admin-round-plan-section">
         <header>
-          <div><FileText size={17} /><span><strong>라운드별 등락·기사·배당</strong><small>등락률은 필수입니다. 배당은 선택이며, 정산 시작 시 보유한 주식에 1주당 입력한 RP를 지급합니다.</small></span></div>
-          <span>{plans.filter((plan) => plan.changePercent !== null).length}/{editor.roundCount} 입력</span>
+          <div><FileText size={17} /><span><strong>라운드별 등락·기사·배당·거래 상태</strong><small>거래정지는 해당 라운드 주문을 막고 가격을 유지합니다. 상장폐지는 해당 라운드 정산에서 잔여 포지션을 0 RP로 처리합니다.</small></span></div>
+          <span>{visiblePlans.filter((plan) => plan.roundAction !== 'normal' || plan.changePercent !== null).length}/{visiblePlans.length} 입력</span>
         </header>
 
         <div className="admin-round-plan-list">
-          {plans.map((plan) => (
+          {visiblePlans.map((plan) => (
             <details
               className={`admin-round-plan${plan.editable ? '' : ' is-locked'}`}
               key={plan.roundNumber}
@@ -393,13 +427,29 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
               <summary>
                 <span><strong>{plan.roundNumber}라운드</strong><small>{plan.roundStatus ? roundStatusLabel[plan.roundStatus] ?? plan.roundStatus : '향후 라운드'}</small></span>
                 <span className={plan.changePercent === null ? 'is-empty' : movementClass(plan.changePercent)}>
-                  {plan.changePercent === null ? '등락 미입력' : formatPercent(plan.changePercent)}
+                  {plan.roundAction === 'halt'
+                    ? '거래정지 · 0%'
+                    : plan.roundAction === 'delist'
+                      ? '상장폐지'
+                      : plan.changePercent === null ? '등락 미입력' : formatPercent(plan.changePercent)}
                   {plan.newsHeadline && <small>기사 있음</small>}
                   {plan.dividendRpPerShare !== null && <small>배당 {formatPrice(plan.dividendRpPerShare)} RP</small>}
                 </span>
                 <ChevronRight size={16} aria-hidden="true" />
               </summary>
               <div className="admin-round-plan__fields">
+                <label>
+                  <span>거래 상태</span>
+                  <select
+                    value={plan.roundAction}
+                    onChange={(event) => updatePlanAction(plan.roundNumber, event.target.value as AdminStockRoundAction)}
+                    disabled={busy || !plan.editable}
+                  >
+                    <option value="normal">정상 거래</option>
+                    <option value="halt">거래정지 (0%)</option>
+                    <option value="delist">상장폐지</option>
+                  </select>
+                </label>
                 <div className="admin-round-plan__field">
                   <label htmlFor={`round-change-${stock.id}-${plan.roundNumber}`}>등락률</label>
                   <div className="admin-percent-control">
@@ -414,7 +464,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                         onChange={(event) => updatePlan(plan.roundNumber, {
                           changePercent: event.target.value === '' ? null : Number(event.target.value),
                         })}
-                        disabled={busy || !plan.editable}
+                        disabled={busy || !plan.editable || plan.roundAction !== 'normal'}
                         required={stock.status === 'active' && plan.roundNumber >= (editor.currentRoundNumber ?? 1)}
                       />
                       <span>%</span>
@@ -424,7 +474,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                         type="button"
                         aria-label={`${plan.roundNumber}라운드 등락률 0.1% 올리기`}
                         onClick={() => adjustPlanChange(plan, 0.1)}
-                        disabled={busy || !plan.editable || (plan.changePercent ?? 0) >= 30}
+                        disabled={busy || !plan.editable || plan.roundAction !== 'normal' || (plan.changePercent ?? 0) >= 30}
                       >
                         <ChevronUp size={13} aria-hidden="true" />
                       </button>
@@ -432,7 +482,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                         type="button"
                         aria-label={`${plan.roundNumber}라운드 등락률 0.1% 내리기`}
                         onClick={() => adjustPlanChange(plan, -0.1)}
-                        disabled={busy || !plan.editable || (plan.changePercent ?? 0) <= -30}
+                        disabled={busy || !plan.editable || plan.roundAction !== 'normal' || (plan.changePercent ?? 0) <= -30}
                       >
                         <ChevronDown size={13} aria-hidden="true" />
                       </button>
@@ -472,7 +522,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
           )}
         </div>
         {stock.status === 'pending' && !stock.activationRequestedAt && missingRequiredPlans > 0 && (
-          <p className="admin-form__hint">상장 예정 라운드부터 종료 라운드까지 {missingRequiredPlans}개의 등락률을 더 입력해야 합니다.</p>
+          <p className="admin-form__hint">상장 예정 라운드부터 상장폐지 또는 리그 종료까지 {missingRequiredPlans}개의 등락률을 더 입력해야 합니다.</p>
         )}
         {invalidDividendPlans > 0 && (
           <p className="admin-form__hint">배당 RP는 1 이상의 정수로 입력해 주세요.</p>

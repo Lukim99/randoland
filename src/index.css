@@ -2432,6 +2432,26 @@ dd {
   letter-spacing: -0.04em;
 }
 
+.stock-market-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 3px 9px;
+  color: #ffd76a;
+  background: rgba(255, 190, 47, 0.1);
+  border: 1px solid rgba(255, 190, 47, 0.35);
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.stock-market-action--delist {
+  color: #ff8f9a;
+  background: rgba(255, 79, 96, 0.1);
+  border-color: rgba(255, 79, 96, 0.35);
+}
+
 .stock-detail-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 330px;
@@ -7996,6 +8016,7 @@ button:disabled {
 }
 
 .admin-round-plan__fields input,
+.admin-round-plan__fields select,
 .admin-round-plan__fields textarea {
   width: 100%;
   min-width: 0;
@@ -8008,7 +8029,8 @@ button:disabled {
   outline: 0;
 }
 
-.admin-round-plan__fields input {
+.admin-round-plan__fields input,
+.admin-round-plan__fields select {
   height: 39px;
   padding: 0 11px;
 }
@@ -8021,11 +8043,13 @@ button:disabled {
 }
 
 .admin-round-plan__fields input:focus,
+.admin-round-plan__fields select:focus,
 .admin-round-plan__fields textarea:focus {
   border-color: rgba(0, 255, 191, 0.5);
 }
 
 .admin-round-plan__fields input:disabled,
+.admin-round-plan__fields select:disabled,
 .admin-round-plan__fields textarea:disabled {
   opacity: 0.48;
 }

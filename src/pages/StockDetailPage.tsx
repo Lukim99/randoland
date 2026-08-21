@@ -34,6 +34,11 @@ export function StockDetailPage() {
           <small>현재가</small>
           <strong>{formatPrice(stock.currentPrice)} RP</strong>
           <span className={`movement ${movementClass(stock.changePercent)}`}>{formatPercent(stock.changePercent)}</span>
+          {stock.marketAction !== 'normal' && (
+            <span className={`stock-market-action stock-market-action--${stock.marketAction}`}>
+              {stock.marketAction === 'halt' ? '거래정지' : '상장폐지'}
+            </span>
+          )}
         </div>
       </header>
 

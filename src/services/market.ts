@@ -54,6 +54,8 @@ const errorTranslations: Array<[string, string]> = [
   ['League participation window has closed', '리그 참가 기간이 종료되었습니다.'],
   ['This account is banned from Randoland participation', '운영 정책 위반으로 이후 리그 참가가 제한된 계정입니다.'],
   ['The stock is not available for trading', '현재 거래할 수 없는 종목입니다.'],
+  ['Trading is halted for this stock in the current round', '이 종목은 현재 라운드에서 거래정지 상태입니다.'],
+  ['This stock is scheduled for delisting in the current round', '이 종목은 현재 라운드에 상장폐지되므로 주문할 수 없습니다.'],
   ['A participant cannot trade their own listed stock', '본인이 상장한 종목은 매매할 수 없습니다.'],
   ['cannot trade their own listed stock', '본인이 상장한 종목은 매매할 수 없습니다.'],
   ['Orders are not being accepted', '현재 주문 접수 시간이 아닙니다.'],
@@ -212,6 +214,8 @@ export async function loadMarketSnapshot(leagueId?: string | null): Promise<Mark
     } : null,
     stocks: (snapshot.stocks ?? []).map((stock) => ({
       ...stock,
+      marketAction: stock.marketAction
+        ?? (stock.status === 'halted' ? 'halt' : stock.status === 'delisted' ? 'delist' : 'normal'),
       logoSpriteIndex: spriteIndexByStockId.get(stock.id) ?? 0,
       logoImagePath: logoImagePathByStockId.get(stock.id) ?? null,
       logoImageUrl: logoImagePathByStockId.get(stock.id)

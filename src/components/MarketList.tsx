@@ -34,7 +34,7 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
                     <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                     <span>
                       <strong>{stock.name}</strong>
-                      <small>{stock.ticker}</small>
+                      <small>{stock.ticker}{stock.marketAction === 'halt' ? ' · 거래정지' : stock.marketAction === 'delist' ? ' · 상장폐지' : ''}</small>
                     </span>
                   </button>
                 </td>
@@ -67,7 +67,7 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
                 <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                 <span>
                   <strong>{stock.name}</strong>
-                  <small>{stock.ticker} · {stock.theme}</small>
+                  <small>{stock.ticker} · {stock.theme}{stock.marketAction === 'halt' ? ' · 거래정지' : stock.marketAction === 'delist' ? ' · 상장폐지' : ''}</small>
                 </span>
               </span>
               <span className="mobile-stock-card__quote">

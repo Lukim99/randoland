@@ -65,6 +65,10 @@ export function OrderPanel({ stock }: OrderPanelProps) {
     ? '리그 참가 후 주문할 수 있습니다.'
     : isOwnStock
       ? '본인이 상장한 종목은 거래할 수 없습니다.'
+      : stock.marketAction === 'halt'
+        ? '이 종목은 현재 라운드에서 거래정지 상태입니다.'
+        : stock.marketAction === 'delist'
+          ? '이 종목은 현재 라운드에 상장폐지되므로 주문할 수 없습니다.'
       : market?.round?.status !== 'open' || elapsed
         ? '현재 주문 접수 시간이 아닙니다.'
         : participant && participant.receivableRp > 0 && (side === 'buy' || side === 'short')

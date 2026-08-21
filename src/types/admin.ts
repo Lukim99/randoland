@@ -1,6 +1,7 @@
 export type AdminRole = 'owner' | 'operator'
 export type AdminLeagueStatus = 'draft' | 'registration' | 'active' | 'finished' | 'archived'
 export type AdminStockStatus = 'pending' | 'active' | 'halted' | 'delisted' | 'rejected'
+export type AdminStockRoundAction = 'normal' | 'halt' | 'delist'
 
 export interface AdminAccess {
   isAdmin: boolean
@@ -176,6 +177,7 @@ export interface AdminStockDetailsInput {
 
 export interface AdminStockRoundPlan {
   roundNumber: number
+  roundAction: AdminStockRoundAction
   changePercent: number | null
   dividendRpPerShare: number | null
   newsHeadline: string | null

@@ -73,6 +73,7 @@ export interface StockSummary {
   changePercent: number
   isBaseStock: boolean
   status: 'active' | 'halted' | 'delisted'
+  marketAction: 'normal' | 'halt' | 'delist'
   listedAt: string | null
   candles: CandlePoint[]
 }
