@@ -122,17 +122,17 @@ function DraftStockForm({
   )), [participants, selectedLeagueId])
   const selectedOwnerId = availableParticipants.some(({ id }) => id === ownerParticipantId)
     ? ownerParticipantId
-    : availableParticipants[0]?.id ?? ''
+    : ''
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!selectedLeagueId || !selectedOwnerId) return
+    if (!selectedLeagueId) return
 
     const normalizedTicker = ticker.trim().toUpperCase()
     const completed = await onRun(
       () => listAdminStock({
         leagueId: selectedLeagueId,
-        ownerParticipantId: selectedOwnerId,
+        ownerParticipantId: selectedOwnerId || null,
         ticker: normalizedTicker,
         name: name.trim(),
         initialPrice: Number(initialPrice),
@@ -159,7 +159,7 @@ function DraftStockForm({
     <form className="admin-form admin-stock-draft-form" onSubmit={(event) => void handleSubmit(event)}>
       <div className="admin-form__title-row">
         <div><span className="admin-step-badge">1</span><h3>종목 기본정보</h3></div>
-        <p>상장할 참가자와 종목 정보를 먼저 등록합니다.</p>
+        <p>종목 정보를 먼저 등록합니다. 상장자는 지금 선택하거나 상장 후 지정할 수 있습니다.</p>
       </div>
 
       <div className="admin-stock-logo-field">
@@ -183,8 +183,9 @@ function DraftStockForm({
           </select>
         </label>
         <label>
-          <span>상장 참가자</span>
-          <select value={selectedOwnerId} onChange={(event) => setOwnerParticipantId(event.target.value)} disabled={busy || availableParticipants.length === 0} required>
+          <span>상장자 (선택)</span>
+          <select value={selectedOwnerId} onChange={(event) => setOwnerParticipantId(event.target.value)} disabled={busy}>
+            <option value="">나중에 지정</option>
             {availableParticipants.map((participant) => <option key={participant.id} value={participant.id}>{participant.nickname}</option>)}
           </select>
         </label>
@@ -196,9 +197,9 @@ function DraftStockForm({
       <label><span>종목 설명</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} minLength={10} maxLength={1000} rows={4} required /></label>
 
       {availableParticipants.length === 0 && selectedLeagueId && (
-        <p className="admin-form__hint">상장자로 지정할 수 있는 참가자가 없습니다.</p>
+        <p className="admin-form__hint">현재 지정 가능한 참가자가 없습니다. 종목을 먼저 등록하고 나중에 상장자를 지정할 수 있습니다.</p>
       )}
-      <button className="primary-button" type="submit" disabled={busy || !selectedLeagueId || !selectedOwnerId}>
+      <button className="primary-button" type="submit" disabled={busy || !selectedLeagueId}>
         기본정보 저장 후 계획 입력
       </button>
 
@@ -250,6 +251,13 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
   const eligibleParticipants = participants.filter((participant) => (
     participant.leagueId === stock.leagueId && !participant.disqualifiedAt
   ))
+  const ownerEditable = !stock.isBaseStock && (
+    stock.identityEditable
+    || (
+      stock.ownerParticipantId === null
+      && (stock.status === 'pending' || stock.status === 'active' || stock.status === 'halted')
+    )
+  )
   const activationStartRound = league.status === 'registration'
     ? 1
     : (editor.currentRoundNumber ?? 0) + 1
@@ -336,7 +344,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
 
   async function handleActivate() {
     const actionLabel = league.status === 'registration' ? '상장 확정' : `${activationStartRound}라운드 상장 예약`
-    if (!window.confirm(`${stock.name} 종목의 현재 계획을 저장하고 ${actionLabel}하시겠습니까? 종목명·상장가·로고는 이후 변경할 수 없습니다.`)) return
+    if (!window.confirm(`${stock.name} 종목의 현재 계획을 저장하고 ${actionLabel}하시겠습니까? 종목명·상장가·로고는 이후 변경할 수 없으며, 미지정 상장자는 나중에 지정할 수 있습니다.`)) return
 
     const completed = await onRun(
       async () => {
@@ -400,7 +408,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
         </div>
 
         <div className="admin-form__columns">
-          <label><span>상장 참가자</span><select value={ownerParticipantId} onChange={(event) => setOwnerParticipantId(event.target.value)} disabled={!stock.identityEditable || busy}>{stock.isBaseStock && <option value="">기본 종목</option>}{eligibleParticipants.map((participant) => <option key={participant.id} value={participant.id}>{participant.nickname}</option>)}</select></label>
+          <label><span>상장자</span><select value={ownerParticipantId} onChange={(event) => setOwnerParticipantId(event.target.value)} disabled={!ownerEditable || busy}><option value="">{stock.isBaseStock ? '기본 종목' : '미지정'}</option>{eligibleParticipants.map((participant) => <option key={participant.id} value={participant.id}>{participant.nickname}</option>)}</select></label>
           <label><span>티커</span><input value={ticker} onChange={(event) => setTicker(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} disabled={!stock.identityEditable || busy} maxLength={8} required /></label>
           <label><span>종목명</span><input value={name} onChange={(event) => setName(event.target.value)} disabled={!stock.identityEditable || busy} minLength={2} maxLength={40} required /></label>
           <label><span>초기 가격</span><div className="input-with-unit"><input type="number" min="1" step="1" value={initialPrice} onChange={(event) => setInitialPrice(event.target.value)} disabled={!stock.identityEditable || busy} required /><span>RP</span></div></label>

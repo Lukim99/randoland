@@ -151,7 +151,7 @@ export interface CreateLeagueInput {
 
 export interface AdminStockListingInput {
   leagueId: string
-  ownerParticipantId: string
+  ownerParticipantId: string | null
   ticker: string
   name: string
   initialPrice: number
