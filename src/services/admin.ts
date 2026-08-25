@@ -279,6 +279,7 @@ export async function saveAdminStockRoundPlans(
     p_expected_updated_at: expectedUpdatedAt,
     p_plans: plans.map((plan) => ({
       roundNumber: plan.roundNumber,
+      roundAction: plan.roundAction,
       changePercent: plan.changePercent,
       dividendRpPerShare: plan.dividendRpPerShare,
       newsHeadline: plan.newsHeadline,
