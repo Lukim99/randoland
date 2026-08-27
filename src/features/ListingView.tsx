@@ -48,7 +48,7 @@ export function ListingView() {
                   <h2>{listing.name}</h2>
                   <p>{listing.description}</p>
                   <small className="listed-stock-card__immutable-note">
-                    종목명·상장가·로고는 상장 확정 후 변경할 수 없습니다.
+                    종목명·상장가는 상장 확정 후 변경할 수 없습니다.
                   </small>
                 </div>
                 <dl>

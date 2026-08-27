@@ -244,7 +244,7 @@ export async function updateAdminStock(input: AdminStockDetailsInput) {
   const nextLogoPath = uploadedPath ?? input.logoImagePath
 
   try {
-    const { data, error } = await client.rpc('randoland_admin_console_update_stock', {
+    const { data, error } = await client.rpc('randoland_admin_console_update_stock_v2', {
       p_stock_id: input.stockId,
       p_expected_updated_at: input.expectedUpdatedAt,
       p_owner_participant_id: input.ownerParticipantId,

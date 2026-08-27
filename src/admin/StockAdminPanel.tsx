@@ -258,6 +258,9 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
       && (stock.status === 'pending' || stock.status === 'active' || stock.status === 'halted')
     )
   )
+  const logoUploadEditable = stock.status === 'pending'
+    || stock.status === 'active'
+    || stock.status === 'halted'
   const activationStartRound = league.status === 'registration'
     ? 1
     : (editor.currentRoundNumber ?? 0) + 1
@@ -344,7 +347,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
 
   async function handleActivate() {
     const actionLabel = league.status === 'registration' ? '상장 확정' : `${activationStartRound}라운드 상장 예약`
-    if (!window.confirm(`${stock.name} 종목의 현재 계획을 저장하고 ${actionLabel}하시겠습니까? 종목명·상장가·로고는 이후 변경할 수 없으며, 미지정 상장자는 나중에 지정할 수 있습니다.`)) return
+    if (!window.confirm(`${stock.name} 종목의 현재 계획을 저장하고 ${actionLabel}하시겠습니까? 종목명·상장가는 이후 변경할 수 없으며, 로고는 상장 후에도 업로드·교체할 수 있습니다. 미지정 상장자는 나중에 지정할 수 있습니다.`)) return
 
     const completed = await onRun(
       async () => {
@@ -399,10 +402,12 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
         <div className="admin-stock-logo-field">
           <StockLogo src={logoPreviewUrl ?? (logoImagePath ? stock.logoImageUrl : null)} spriteIndex={logoSpriteIndex} size="lg" label={`${stock.name} 로고`} />
           <div><strong>종목 로고</strong><span>{logoFile?.name ?? (logoImagePath ? '업로드 이미지' : `기본 이미지 ${logoSpriteIndex + 1}`)}</span></div>
-          {stock.identityEditable && (
+          {logoUploadEditable && (
             <div>
               <button type="button" className="secondary-button" onClick={() => setLogoUploadOpen(true)} disabled={busy}><Upload size={14} /> 파일 업로드</button>
-              <button type="button" className="secondary-button" onClick={() => setSpritePickerOpen(true)} disabled={busy}><ImageIcon size={14} /> 기본 이미지</button>
+              {stock.identityEditable && (
+                <button type="button" className="secondary-button" onClick={() => setSpritePickerOpen(true)} disabled={busy}><ImageIcon size={14} /> 기본 이미지</button>
+              )}
             </div>
           )}
         </div>
