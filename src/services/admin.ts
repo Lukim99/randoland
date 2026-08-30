@@ -7,6 +7,7 @@ import type {
   AdminGlobalNewsEditor,
   AdminGlobalNewsRoundPlan,
   AdminParticipant,
+  AdminOpenOrder,
   AdminParticipantAssetAdjustmentInput,
   AdminSettlementInput,
   AdminSettlementState,
@@ -74,19 +75,29 @@ export async function loadAdminAccess(): Promise<AdminAccess> {
 
 export async function loadAdminConsole(): Promise<AdminConsoleState> {
   const client = requireSupabase()
-  const [stateResult, participantResult] = await Promise.all([
+  const [stateResult, participantResult, orderResult] = await Promise.all([
     client.rpc('randoland_admin_console_get_state'),
     client.rpc('randoland_admin_console_get_participants'),
+    client.rpc('randoland_admin_console_get_open_orders'),
   ])
   const { data, error } = stateResult
   throwIfError(error)
   throwIfError(participantResult.error)
+  throwIfError(orderResult.error)
 
   const state = data as unknown as AdminConsoleState
+  const openOrders = (orderResult.data as unknown as AdminOpenOrder[] | null) ?? []
   return {
     ...state,
     leagues: state.leagues ?? [],
     participants: (participantResult.data as unknown as AdminParticipant[] | null) ?? [],
+    openOrders: openOrders.map((order) => ({
+      ...order,
+      requestedQuantity: Number(order.requestedQuantity),
+      orderPrice: Number(order.orderPrice),
+      leveragePercent: Number(order.leveragePercent),
+      roundNumber: Number(order.roundNumber),
+    })),
     stocks: (state.stocks ?? []).map((stock) => ({
       ...stock,
       logoImageUrl: stock.logoImagePath

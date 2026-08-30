@@ -5,6 +5,7 @@ import type { AdminActionRunner, AdminConsoleState } from '../types/admin'
 import { AdminAuditPanel } from './AdminAuditPanel'
 import { GlobalNewsAdminPanel } from './GlobalNewsAdminPanel'
 import { LeagueAdminPanel } from './LeagueAdminPanel'
+import { AdminOrderMonitorPanel } from './AdminOrderMonitorPanel'
 import { ParticipantAdminPanel } from './ParticipantAdminPanel'
 import { SettlementAdminPanel } from './SettlementAdminPanel'
 import { StockAdminPanel } from './StockAdminPanel'
@@ -102,6 +103,7 @@ export function AdminPage() {
       </section>
 
       <div className="admin-panel-grid">
+        <AdminOrderMonitorPanel leagues={consoleState.leagues} orders={consoleState.openOrders} />
         <GlobalNewsAdminPanel
           leagues={consoleState.leagues}
           busy={busy}

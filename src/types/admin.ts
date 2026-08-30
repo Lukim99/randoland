@@ -103,11 +103,33 @@ export interface AdminAuditEntry {
   createdAt: string
 }
 
+export type AdminOpenOrderSide = 'buy' | 'sell' | 'short' | 'cover'
+export type AdminOpenOrderStatus = 'pending' | 'locked'
+
+export interface AdminOpenOrder {
+  id: string
+  leagueId: string
+  leagueName: string
+  participantId: string
+  participantNickname: string
+  stockId: string
+  ticker: string
+  stockName: string
+  side: AdminOpenOrderSide
+  status: AdminOpenOrderStatus
+  requestedQuantity: number
+  orderPrice: number
+  leveragePercent: number
+  roundNumber: number
+  submittedAt: string
+}
+
 export interface AdminConsoleState {
   role: AdminRole
   leagues: AdminLeague[]
   participants: AdminParticipant[]
   stocks: AdminStock[]
+  openOrders: AdminOpenOrder[]
   auditLog: AdminAuditEntry[]
 }
 

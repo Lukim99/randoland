@@ -134,6 +134,11 @@ export interface DiscussionPost {
   createdAt: string
 }
 
+export interface RecentDiscussionPost extends DiscussionPost {
+  stockName: string
+  ticker: string
+}
+
 export interface ParticipantSummary {
   id: string
   profileImagePath: string | null

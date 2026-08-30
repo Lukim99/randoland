@@ -25,7 +25,8 @@ export function DashboardPage() {
   const { market, myState, newsFeed, loading, refreshing, error, refresh } = useMarket()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const { nextSettlement, remaining, elapsed } = useRoundClock(market?.round?.settlesAt)
-  const selectedStock = market?.stocks.find((stock) => stock.id === selectedId) ?? market?.stocks[0]
+  const listedStocks = market?.stocks.filter((stock) => stock.status !== 'delisted') ?? []
+  const selectedStock = listedStocks.find((stock) => stock.id === selectedId) ?? listedStocks[0]
 
   if (loading && !market) {
     return <DashboardSkeleton />
@@ -171,10 +172,10 @@ export function DashboardPage() {
                 <h2>상장기업 현황</h2>
                 <p>종목을 선택하면 위 차트와 주문서가 함께 변경됩니다.</p>
               </div>
-              <span className="count-chip">{market.stocks.length} 종목</span>
+              <span className="count-chip">{listedStocks.length} 종목</span>
             </div>
             <MarketList
-              stocks={market.stocks}
+              stocks={listedStocks}
               selectedId={selectedStock.id}
               onSelect={(stock) => setSelectedId(stock.id)}
             />

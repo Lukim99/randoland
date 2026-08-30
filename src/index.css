@@ -2066,6 +2066,84 @@ dd {
   padding: clamp(18px, 3vw, 28px);
 }
 
+.discussion-recent {
+  width: min(1040px, 100%);
+  padding: clamp(18px, 3vw, 28px);
+}
+
+.discussion-recent + .discussion-stock-directory {
+  margin-top: 18px;
+}
+
+.discussion-recent-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+
+.discussion-recent-item {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  min-height: 86px;
+  padding: 13px 14px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.012);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  transition: color 180ms ease, background 180ms ease, border-color 180ms ease, transform 180ms ease;
+}
+
+.discussion-recent-item:hover {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+}
+
+.discussion-recent-copy {
+  display: grid;
+  min-width: 0;
+  gap: 5px;
+}
+
+.discussion-recent-copy strong {
+  color: var(--text);
+  font-size: calc(13px + var(--desktop-font-size-increase));
+  line-height: 1.45;
+  word-break: keep-all;
+}
+
+.discussion-recent-copy > small {
+  color: var(--muted);
+  font-size: calc(9px + var(--desktop-font-size-increase));
+}
+
+.discussion-recent-stock {
+  color: var(--accent);
+  font-size: calc(9px + var(--desktop-font-size-increase));
+  font-weight: 750;
+}
+
+.discussion-recent-stock small {
+  margin-left: 4px;
+  color: var(--subtle);
+  font-size: inherit;
+  letter-spacing: 0.04em;
+}
+
+.discussion-recent-item > svg {
+  color: var(--subtle);
+}
+
+.discussion-recent-empty {
+  min-height: 120px;
+  background: rgba(255, 255, 255, 0.012);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
 .discussion-stock-links {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -5643,6 +5721,15 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .discussion-recent-list {
+    grid-template-columns: 1fr;
+  }
+
+  .discussion-recent-item {
+    min-height: 78px;
+    padding: 12px;
+  }
+
   .discussion-stock-links a {
     min-height: 64px;
   }
@@ -6541,6 +6628,67 @@ button:disabled {
 
 .admin-panel--participant {
   grid-column: 1 / -1;
+}
+
+.admin-panel--orders {
+  grid-column: 1 / -1;
+}
+
+.admin-panel--orders .count-chip {
+  margin-left: auto;
+}
+
+.admin-order-monitor-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 0.32fr) minmax(240px, 1fr);
+  gap: 10px;
+}
+
+.admin-order-monitor-toolbar label,
+.admin-order-monitor-toolbar select {
+  min-width: 0;
+}
+
+.admin-order-monitor-toolbar select {
+  width: 100%;
+  height: 39px;
+  padding: 0 11px;
+  color: var(--text);
+  background: #090d0c;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  font-family: inherit;
+  font-size: calc(9px + var(--desktop-font-size-increase));
+  outline: 0;
+}
+
+.admin-order-monitor-toolbar select:focus {
+  border-color: rgba(0, 255, 191, 0.5);
+}
+
+.admin-order-table-wrap {
+  max-height: 420px;
+}
+
+.admin-order-table {
+  min-width: 1180px;
+}
+
+.admin-order-stock {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-order-stock small {
+  color: var(--subtle);
+  font-size: calc(7px + var(--desktop-font-size-increase));
+  letter-spacing: 0.04em;
+}
+
+.admin-table .admin-table-empty {
+  height: 92px;
+  color: var(--muted);
+  text-align: center;
 }
 
 .admin-participant-table-wrap {
@@ -8117,6 +8265,10 @@ button:disabled {
   .admin-audit-panel {
     gap: 15px;
     padding: 17px 15px;
+  }
+
+  .admin-order-monitor-toolbar {
+    grid-template-columns: 1fr;
   }
 
   .admin-form {

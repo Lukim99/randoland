@@ -7,7 +7,7 @@ import { ProfileImage } from '../components/ProfileImage'
 import { StockLogo } from '../components/StockLogo'
 import { formatDiscussionTime, formatKstDateTime } from '../lib/format'
 import { useMarket } from '../market/useMarket'
-import type { DiscussionPost, StockSummary } from '../types/market'
+import type { DiscussionPost, RecentDiscussionPost, StockSummary } from '../types/market'
 
 interface DiscussionComposerModalProps {
   title: string
@@ -150,19 +150,106 @@ function DiscussionStockList({ stocks }: { stocks: StockSummary[] }) {
   )
 }
 
+interface DiscussionRecentFeedProps {
+  posts: RecentDiscussionPost[]
+  stocks: StockSummary[]
+  loading: boolean
+  error: string | null
+}
+
+function DiscussionRecentFeed({ posts, stocks, loading, error }: DiscussionRecentFeedProps) {
+  const stockById = new Map(stocks.map((stock) => [stock.id, stock]))
+
+  return (
+    <section className="panel discussion-recent" aria-labelledby="discussion-recent-title" aria-busy={loading}>
+      <div className="section-heading">
+        <div>
+          <span className="eyebrow">ALL STOCKS</span>
+          <h2 id="discussion-recent-title">전체 종목 최신글</h2>
+        </div>
+        <span className="count-chip">{posts.length}</span>
+      </div>
+
+      {error ? (
+        <p className="page-error" role="alert">{error}</p>
+      ) : loading ? (
+        <div className="skeleton skeleton--chart" aria-label="최신 게시글 불러오는 중" />
+      ) : posts.length > 0 ? (
+        <div className="discussion-recent-list">
+          {posts.map((post) => {
+            const stock = stockById.get(post.stockId)
+            return (
+              <Link className="discussion-recent-item" to={`/discussion/${post.stockId}`} key={post.id}>
+                <StockLogo
+                  src={stock?.logoImageUrl ?? null}
+                  spriteIndex={stock?.logoSpriteIndex ?? 0}
+                  size="sm"
+                  label={`${post.stockName} 로고`}
+                />
+                <span className="discussion-recent-copy">
+                  <span className="discussion-recent-stock">{post.stockName} <small>{post.ticker}</small></span>
+                  <strong>{post.title}</strong>
+                  <small>{post.authorNickname} · <time dateTime={post.createdAt} title={formatKstDateTime(post.createdAt)}>{formatDiscussionTime(post.createdAt)}</time></small>
+                </span>
+                <ChevronRight size={18} aria-hidden="true" />
+              </Link>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="discussion-empty discussion-recent-empty">
+          <MessageSquareText size={23} />
+          <p>아직 작성된 게시글이 없습니다.</p>
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function DiscussionPage() {
   const { stockId } = useParams()
-  const { market, myState, loading, loadDiscussionPosts, createDiscussionPost } = useMarket()
+  const { market, myState, loading, loadRecentDiscussionPosts, loadDiscussionPosts, createDiscussionPost } = useMarket()
   const selectedStock = stockId ? market?.stocks.find((stock) => stock.id === stockId) : undefined
   const [posts, setPosts] = useState<DiscussionPost[]>([])
   const [postsLoading, setPostsLoading] = useState(false)
   const [postsError, setPostsError] = useState<string | null>(null)
+  const [recentPosts, setRecentPosts] = useState<RecentDiscussionPost[]>([])
+  const [recentPostsLoading, setRecentPostsLoading] = useState(false)
+  const [recentPostsError, setRecentPostsError] = useState<string | null>(null)
   const [composerOpen, setComposerOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formMessage, setFormMessage] = useState<string | null>(null)
   const [pageMessage, setPageMessage] = useState<string | null>(null)
+
+  useEffect(() => {
+    const leagueId = market?.league?.id
+    if (stockId || !leagueId) {
+      setRecentPosts([])
+      setRecentPostsLoading(false)
+      setRecentPostsError(null)
+      return undefined
+    }
+
+    let active = true
+    setRecentPostsLoading(true)
+    setRecentPostsError(null)
+    void loadRecentDiscussionPosts(leagueId)
+      .then((nextPosts) => {
+        if (active) setRecentPosts(nextPosts)
+      })
+      .catch((error: unknown) => {
+        if (active) setRecentPostsError(error instanceof Error ? error.message : '최신 게시글을 불러오지 못했습니다.')
+      })
+      .finally(() => {
+        if (active) setRecentPostsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [loadRecentDiscussionPosts, market?.league?.id, stockId])
 
   useEffect(() => {
     if (!selectedStock?.id) {
@@ -272,6 +359,12 @@ export function DiscussionPage() {
             <span className="feature-icon"><MessageSquareText size={28} /></span>
             <h1>종목토론방</h1>
           </header>
+          <DiscussionRecentFeed
+            posts={recentPosts}
+            stocks={market.stocks}
+            loading={recentPostsLoading}
+            error={recentPostsError}
+          />
           <DiscussionStockList stocks={market.stocks} />
         </>
       ) : (

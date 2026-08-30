@@ -8,6 +8,7 @@ import type {
   NewsFeed,
   OrderCapacity,
   OrderSide,
+  RecentDiscussionPost,
   RankingsSnapshot,
 } from '../types/market'
 
@@ -34,6 +35,7 @@ export interface MarketContextValue {
   ) => Promise<void>
   cancelOrder: (orderId: string) => Promise<void>
   uploadProfileImage: (file: File) => Promise<void>
+  loadRecentDiscussionPosts: (leagueId: string) => Promise<RecentDiscussionPost[]>
   loadDiscussionPosts: (stockId: string) => Promise<DiscussionPost[]>
   createDiscussionPost: (stockId: string, title: string, content: string) => Promise<DiscussionPost>
   claimAttendance: () => Promise<{ date: string; awarded: boolean; tokens: number }>

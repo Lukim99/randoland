@@ -11,6 +11,7 @@ import type {
   NewsFeed,
   OrderCapacity,
   OrderSide,
+  RecentDiscussionPost,
   RankingsSnapshot,
 } from '../types/market'
 
@@ -474,6 +475,25 @@ export async function loadDiscussionPosts(stockId: string): Promise<DiscussionPo
   throwIfError(error)
 
   const payload = data as unknown as { posts?: Array<Omit<DiscussionPost, 'authorProfileImageUrl'>> }
+  return (payload.posts ?? []).map((post) => {
+    const authorProfileImagePath = post.authorProfileImagePath ?? null
+    const authorProfileImageUrl = authorProfileImagePath
+      ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
+      : null
+
+    return { ...post, authorProfileImagePath, authorProfileImageUrl }
+  })
+}
+
+export async function loadRecentDiscussionPosts(leagueId: string): Promise<RecentDiscussionPost[]> {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_get_recent_discussion_posts', {
+    p_league_id: leagueId,
+    p_limit: 12,
+  })
+  throwIfError(error)
+
+  const payload = data as unknown as { posts?: Array<Omit<RecentDiscussionPost, 'authorProfileImageUrl'>> }
   return (payload.posts ?? []).map((post) => {
     const authorProfileImagePath = post.authorProfileImagePath ?? null
     const authorProfileImageUrl = authorProfileImagePath

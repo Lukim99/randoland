@@ -9,6 +9,7 @@ import {
   getOrderCapacity as getOrderCapacityRequest,
   joinLeague,
   loadDiscussionPosts as loadDiscussionPostsRequest,
+  loadRecentDiscussionPosts as loadRecentDiscussionPostsRequest,
   loadMarketSnapshot,
   loadMyState,
   loadNewsFeed,
@@ -205,6 +206,11 @@ export function MarketProvider({ children }: PropsWithChildren) {
     [],
   )
 
+  const loadRecentDiscussionPosts = useCallback(
+    (leagueId: string) => loadRecentDiscussionPostsRequest(leagueId),
+    [],
+  )
+
   const createDiscussionPost = useCallback(async (stockId: string, title: string, content: string) => {
     const post = await createDiscussionPostRequest(stockId, title, content)
     return post
@@ -272,6 +278,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       placeOrder,
       cancelOrder,
       uploadProfileImage,
+      loadRecentDiscussionPosts,
       loadDiscussionPosts,
       createDiscussionPost,
       claimAttendance,
@@ -301,6 +308,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       refresh,
       refreshing,
       uploadProfileImage,
+      loadRecentDiscussionPosts,
       loadDiscussionPosts,
       createDiscussionPost,
     ],
