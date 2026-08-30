@@ -1,6 +1,7 @@
 import { createContext } from 'react'
 import type {
   DiscussionPost,
+  DiscussionAttachmentInput,
   LadderChoice,
   LadderResult,
   MarketSnapshot,
@@ -17,6 +18,7 @@ export interface MarketContextValue {
   myState: MyState | null
   rankings: RankingsSnapshot | null
   newsFeed: NewsFeed | null
+  favoriteStockIds: string[]
   loading: boolean
   refreshing: boolean
   error: string | null
@@ -37,7 +39,13 @@ export interface MarketContextValue {
   uploadProfileImage: (file: File) => Promise<void>
   loadRecentDiscussionPosts: (leagueId: string) => Promise<RecentDiscussionPost[]>
   loadDiscussionPosts: (stockId: string) => Promise<DiscussionPost[]>
-  createDiscussionPost: (stockId: string, title: string, content: string) => Promise<DiscussionPost>
+  createDiscussionPost: (
+    stockId: string,
+    title: string,
+    content: string,
+    attachment: DiscussionAttachmentInput | null,
+  ) => Promise<DiscussionPost>
+  setStockFavorite: (stockId: string, favorited: boolean) => Promise<void>
   claimAttendance: () => Promise<{ date: string; awarded: boolean; tokens: number }>
   playLadder: (choice: LadderChoice) => Promise<LadderResult>
   chooseLadderAction: (gameId: string, action: 'go' | 'stop') => Promise<LadderResult>

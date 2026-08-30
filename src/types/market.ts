@@ -123,6 +123,43 @@ export interface NewsFeed {
   editions: NewsEdition[]
 }
 
+export interface DiscussionAttachmentInput {
+  type: 'long_position' | 'short_position' | 'execution'
+  referenceId: string
+}
+
+export interface DiscussionPositionAttachment {
+  type: 'position'
+  positionType: 'long' | 'short'
+  stockId: string
+  ticker: string
+  stockName: string
+  quantity: number
+  averagePrice: number
+  currentPrice: number
+  profit: number
+  returnPercent: number
+  capturedAt: string
+}
+
+export interface DiscussionExecutionAttachment {
+  type: 'execution'
+  stockId: string
+  ticker: string
+  stockName: string
+  side: OrderSide
+  quantity: number
+  executionPrice: number
+  totalAmount: number
+  leveragePercent: number
+  executedAt: string
+  realizedProfit: number | null
+  realizedReturn: number | null
+  capturedAt: string
+}
+
+export type DiscussionAttachment = DiscussionPositionAttachment | DiscussionExecutionAttachment
+
 export interface DiscussionPost {
   id: string
   stockId: string
@@ -131,6 +168,7 @@ export interface DiscussionPost {
   authorProfileImageUrl: string | null
   title: string
   content: string
+  attachment: DiscussionAttachment | null
   createdAt: string
 }
 

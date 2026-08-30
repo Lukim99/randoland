@@ -3,6 +3,7 @@ import { getProfileImageExtension, validateProfileImageFile } from '../lib/profi
 import { supabase } from '../lib/supabase'
 import type {
   CandlePoint,
+  DiscussionAttachmentInput,
   DiscussionPost,
   LadderChoice,
   LadderResult,
@@ -489,7 +490,7 @@ export async function loadRecentDiscussionPosts(leagueId: string): Promise<Recen
   const client = requireSupabase()
   const { data, error } = await client.rpc('randoland_get_recent_discussion_posts', {
     p_league_id: leagueId,
-    p_limit: 12,
+    p_limit: 3,
   })
   throwIfError(error)
 
@@ -504,12 +505,19 @@ export async function loadRecentDiscussionPosts(leagueId: string): Promise<Recen
   })
 }
 
-export async function createDiscussionPost(stockId: string, title: string, content: string) {
+export async function createDiscussionPost(
+  stockId: string,
+  title: string,
+  content: string,
+  attachment: DiscussionAttachmentInput | null,
+) {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_create_discussion_post', {
+  const { data, error } = await client.rpc('randoland_create_discussion_post_v2', {
     p_stock_id: stockId,
     p_title: title,
     p_content: content,
+    p_attachment_type: attachment?.type ?? null,
+    p_attachment_reference_id: attachment?.referenceId ?? null,
   })
   throwIfError(error)
   const post = data as unknown as Omit<DiscussionPost, 'authorProfileImageUrl'>
@@ -518,6 +526,26 @@ export async function createDiscussionPost(stockId: string, title: string, conte
     ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
     : null
   return { ...post, authorProfileImagePath, authorProfileImageUrl }
+}
+
+export async function loadStockFavoriteIds(leagueId: string): Promise<string[]> {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_get_stock_favorites', {
+    p_league_id: leagueId,
+  })
+  throwIfError(error)
+  const payload = data as unknown as { stockIds?: string[] }
+  return payload.stockIds ?? []
+}
+
+export async function setStockFavorite(stockId: string, favorited: boolean) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_set_stock_favorite', {
+    p_stock_id: stockId,
+    p_favorited: favorited,
+  })
+  throwIfError(error)
+  return data as unknown as { stockId: string; favorited: boolean }
 }
 
 export async function claimAttendance(leagueId: string) {

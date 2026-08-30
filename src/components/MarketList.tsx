@@ -1,17 +1,29 @@
-import { ArrowUpRight, ChevronRight } from 'lucide-react'
+import { ArrowUpRight, ChevronRight, Star } from 'lucide-react'
 import { Link } from 'react-router'
 import { formatPercent, formatPrice, movementClass } from '../lib/format'
 import type { StockSummary } from '../types/market'
 import { MiniCandles } from './MiniCandles'
 import { StockLogo } from './StockLogo'
 
+const emptyFavoriteStockIds = new Set<string>()
+
 interface MarketListProps {
   stocks: StockSummary[]
   selectedId?: string
   onSelect?: (stock: StockSummary) => void
+  favoriteStockIds?: ReadonlySet<string>
+  onToggleFavorite?: (stock: StockSummary, favorited: boolean) => void
+  canFavorite?: boolean
 }
 
-export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
+export function MarketList({
+  stocks,
+  selectedId,
+  onSelect,
+  favoriteStockIds = emptyFavoriteStockIds,
+  onToggleFavorite,
+  canFavorite = false,
+}: MarketListProps) {
   return (
     <>
       <div className="market-table-wrap desktop-market-table">
@@ -23,6 +35,7 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
               <th className="align-right">현재가</th>
               <th className="align-right">등락률</th>
               <th>14R 차트</th>
+              <th aria-label="즐겨찾기" />
               <th aria-label="상세" />
             </tr>
           </thead>
@@ -47,6 +60,19 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
                 </td>
                 <td>
                   <MiniCandles candles={stock.candles} label={stock.name} />
+                </td>
+                <td>
+                  <button
+                    className={`favorite-button${favoriteStockIds.has(stock.id) ? ' is-active' : ''}`}
+                    type="button"
+                    aria-label={`${stock.name} 즐겨찾기 ${favoriteStockIds.has(stock.id) ? '해제' : '추가'}`}
+                    aria-pressed={favoriteStockIds.has(stock.id)}
+                    disabled={!canFavorite}
+                    title={canFavorite ? undefined : '리그 참가 후 즐겨찾기를 사용할 수 있습니다.'}
+                    onClick={() => onToggleFavorite?.(stock, !favoriteStockIds.has(stock.id))}
+                  >
+                    <Star size={17} fill={favoriteStockIds.has(stock.id) ? 'currentColor' : 'none'} />
+                  </button>
                 </td>
                 <td>
                   <Link className="row-link" to={`/stock/${stock.id}`} aria-label={`${stock.name} 상세 보기`}>
@@ -79,6 +105,17 @@ export function MarketList({ stocks, selectedId, onSelect }: MarketListProps) {
             </button>
             <div className="mobile-stock-card__foot">
               <MiniCandles candles={stock.candles} label={stock.name} />
+              <button
+                className={`favorite-button${favoriteStockIds.has(stock.id) ? ' is-active' : ''}`}
+                type="button"
+                aria-label={`${stock.name} 즐겨찾기 ${favoriteStockIds.has(stock.id) ? '해제' : '추가'}`}
+                aria-pressed={favoriteStockIds.has(stock.id)}
+                disabled={!canFavorite}
+                title={canFavorite ? undefined : '리그 참가 후 즐겨찾기를 사용할 수 있습니다.'}
+                onClick={() => onToggleFavorite?.(stock, !favoriteStockIds.has(stock.id))}
+              >
+                <Star size={17} fill={favoriteStockIds.has(stock.id) ? 'currentColor' : 'none'} />
+              </button>
               <Link to={`/stock/${stock.id}`}>
                 종목 보기 <ChevronRight size={15} />
               </Link>

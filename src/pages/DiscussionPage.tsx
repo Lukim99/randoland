@@ -1,21 +1,36 @@
-import { ArrowLeft, ChevronRight, MessageSquareText, PenLine, Send, X } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { ArrowLeft, ChevronRight, MessageSquareText, Paperclip, PenLine, Send, Star, X } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useParams } from 'react-router'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
 import { ProfileImage } from '../components/ProfileImage'
 import { StockLogo } from '../components/StockLogo'
-import { formatDiscussionTime, formatKstDateTime } from '../lib/format'
+import { formatDiscussionTime, formatKstDateTime, formatPercent, formatPrice, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
-import type { DiscussionPost, RecentDiscussionPost, StockSummary } from '../types/market'
+import type {
+  DiscussionAttachment,
+  DiscussionAttachmentInput,
+  DiscussionPost,
+  RecentDiscussionPost,
+  StockSummary,
+} from '../types/market'
+
+interface DiscussionAttachmentOption {
+  input: DiscussionAttachmentInput
+  label: string
+  detail: string
+}
 
 interface DiscussionComposerModalProps {
   title: string
   content: string
   message: string | null
   submitting: boolean
+  attachmentOptions: DiscussionAttachmentOption[]
+  attachment: DiscussionAttachmentInput | null
   onTitleChange: (value: string) => void
   onContentChange: (value: string) => void
+  onAttachmentChange: (value: DiscussionAttachmentInput | null) => void
   onClose: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }
@@ -25,8 +40,11 @@ function DiscussionComposerModal({
   content,
   message,
   submitting,
+  attachmentOptions,
+  attachment,
   onTitleChange,
   onContentChange,
+  onAttachmentChange,
   onClose,
   onSubmit,
 }: DiscussionComposerModalProps) {
@@ -105,6 +123,32 @@ function DiscussionComposerModal({
             <small>{content.length}/2,000</small>
           </label>
 
+          <fieldset className="discussion-attachment-picker">
+            <legend><Paperclip size={15} /> 보유종목·체결결과 첨부 <small>선택</small></legend>
+            {attachmentOptions.length > 0 ? (
+              <div>
+                {attachmentOptions.map((option) => {
+                  const selected = attachment?.type === option.input.type
+                    && attachment.referenceId === option.input.referenceId
+                  return (
+                    <button
+                      key={`${option.input.type}-${option.input.referenceId}`}
+                      className={selected ? 'is-selected' : undefined}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => onAttachmentChange(selected ? null : option.input)}
+                    >
+                      <span><strong>{option.label}</strong><small>{option.detail}</small></span>
+                      <span>{selected ? '첨부됨' : '첨부'}</span>
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <p>이 종목에 첨부할 보유 내역이나 체결 결과가 없습니다.</p>
+            )}
+          </fieldset>
+
           {message && <p className="form-message is-error" role="alert">{message}</p>}
 
           <footer>
@@ -120,7 +164,19 @@ function DiscussionComposerModal({
   )
 }
 
-function DiscussionStockList({ stocks }: { stocks: StockSummary[] }) {
+interface DiscussionStockListProps {
+  stocks: StockSummary[]
+  favoriteStockIds: ReadonlySet<string>
+  canFavorite: boolean
+  onToggleFavorite: (stock: StockSummary, favorited: boolean) => void
+}
+
+function DiscussionStockList({
+  stocks,
+  favoriteStockIds,
+  canFavorite,
+  onToggleFavorite,
+}: DiscussionStockListProps) {
   return (
     <section className="panel discussion-stock-directory" aria-labelledby="discussion-stock-list-title">
       <div className="section-heading">
@@ -131,22 +187,106 @@ function DiscussionStockList({ stocks }: { stocks: StockSummary[] }) {
       </div>
       <nav className="discussion-stock-links" aria-label="상장 종목 토론방 목록">
         {stocks.map((stock) => (
+          <div className="discussion-stock-link-row" key={stock.id}>
+            <Link to={`/discussion/${stock.id}`}>
+              <StockLogo
+                src={stock.logoImageUrl}
+                spriteIndex={stock.logoSpriteIndex}
+                size="md"
+                label={`${stock.name} 로고`}
+              />
+              <span>
+                <strong>{stock.name}</strong>
+                <small>{stock.ticker}</small>
+              </span>
+              <ChevronRight size={18} aria-hidden="true" />
+            </Link>
+            <button
+              className={`favorite-button${favoriteStockIds.has(stock.id) ? ' is-active' : ''}`}
+              type="button"
+              aria-label={`${stock.name} 즐겨찾기 ${favoriteStockIds.has(stock.id) ? '해제' : '추가'}`}
+              aria-pressed={favoriteStockIds.has(stock.id)}
+              disabled={!canFavorite}
+              title={canFavorite ? undefined : '리그 참가 후 즐겨찾기를 사용할 수 있습니다.'}
+              onClick={() => onToggleFavorite(stock, !favoriteStockIds.has(stock.id))}
+            >
+              <Star size={17} fill={favoriteStockIds.has(stock.id) ? 'currentColor' : 'none'} />
+            </button>
+          </div>
+        ))}
+      </nav>
+    </section>
+  )
+}
+
+function DiscussionFavoriteStocks({ stocks }: { stocks: StockSummary[] }) {
+  if (stocks.length === 0) return null
+
+  return (
+    <section className="panel discussion-favorites" aria-labelledby="discussion-favorites-title">
+      <div className="section-heading section-heading--compact">
+        <div>
+          <span className="eyebrow">FAVORITES</span>
+          <h2 id="discussion-favorites-title">즐겨찾기 토론방</h2>
+        </div>
+        <span className="count-chip">{stocks.length}</span>
+      </div>
+      <div className="discussion-favorite-links">
+        {stocks.map((stock) => (
           <Link key={stock.id} to={`/discussion/${stock.id}`}>
             <StockLogo
               src={stock.logoImageUrl}
               spriteIndex={stock.logoSpriteIndex}
-              size="md"
+              size="sm"
               label={`${stock.name} 로고`}
             />
-            <span>
-              <strong>{stock.name}</strong>
-              <small>{stock.ticker}</small>
-            </span>
-            <ChevronRight size={18} aria-hidden="true" />
+            <span><strong>{stock.name}</strong><small>{stock.ticker}</small></span>
+            <ChevronRight size={16} aria-hidden="true" />
           </Link>
         ))}
-      </nav>
+      </div>
     </section>
+  )
+}
+
+function DiscussionAttachmentCard({ attachment }: { attachment: DiscussionAttachment }) {
+  if (attachment.type === 'position') {
+    return (
+      <div className="discussion-attachment-card">
+        <div>
+          <span>{attachment.positionType === 'long' ? '보유종목' : '공매도 보유'}</span>
+          <small>게시 시점</small>
+        </div>
+        <strong>{attachment.stockName} {formatPrice(attachment.quantity)}주</strong>
+        <p className={movementClass(attachment.profit)}>
+          {attachment.profit > 0 ? '+' : ''}{formatPrice(attachment.profit)} RP
+          <span>({formatPercent(attachment.returnPercent)})</span>
+        </p>
+        <small>평균 {formatPrice(attachment.averagePrice)} RP · 현재 {formatPrice(attachment.currentPrice)} RP</small>
+      </div>
+    )
+  }
+
+  const sideLabel = {
+    buy: '매수',
+    sell: '매도',
+    short: '공매도',
+    cover: '공매도 청산',
+  }[attachment.side]
+
+  return (
+    <div className="discussion-attachment-card">
+      <div><span>{sideLabel} 체결</span><small>{attachment.executedAt ? formatKstDateTime(attachment.executedAt) : '체결 완료'}</small></div>
+      <strong>{attachment.stockName} {formatPrice(attachment.quantity)}주</strong>
+      <p>{formatPrice(attachment.totalAmount)} RP</p>
+      <small>1주당 {formatPrice(attachment.executionPrice)} RP · {attachment.leveragePercent > 0 ? `레버리지 ${attachment.leveragePercent}%` : `${attachment.ticker} ${attachment.side.toUpperCase()}`}</small>
+      {attachment.realizedProfit !== null && (
+        <p className={`discussion-attachment-result ${movementClass(attachment.realizedProfit)}`}>
+          실현손익 {attachment.realizedProfit > 0 ? '+' : ''}{formatPrice(attachment.realizedProfit)} RP
+          {attachment.realizedReturn !== null && ` (${formatPercent(attachment.realizedReturn)})`}
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -208,8 +348,23 @@ function DiscussionRecentFeed({ posts, stocks, loading, error }: DiscussionRecen
 
 export function DiscussionPage() {
   const { stockId } = useParams()
-  const { market, myState, loading, loadRecentDiscussionPosts, loadDiscussionPosts, createDiscussionPost } = useMarket()
-  const selectedStock = stockId ? market?.stocks.find((stock) => stock.id === stockId) : undefined
+  const {
+    market,
+    myState,
+    favoriteStockIds,
+    loading,
+    loadRecentDiscussionPosts,
+    loadDiscussionPosts,
+    createDiscussionPost,
+    setStockFavorite,
+  } = useMarket()
+  const favoriteStockIdSet = useMemo(() => new Set(favoriteStockIds), [favoriteStockIds])
+  const discussionStocks = useMemo(() => {
+    const stocks = market?.stocks.filter((stock) => stock.status !== 'delisted') ?? []
+    return [...stocks].sort((left, right) => Number(favoriteStockIdSet.has(right.id)) - Number(favoriteStockIdSet.has(left.id)))
+  }, [favoriteStockIdSet, market?.stocks])
+  const favoriteStocks = discussionStocks.filter((stock) => favoriteStockIdSet.has(stock.id))
+  const selectedStock = stockId ? discussionStocks.find((stock) => stock.id === stockId) : undefined
   const [posts, setPosts] = useState<DiscussionPost[]>([])
   const [postsLoading, setPostsLoading] = useState(false)
   const [postsError, setPostsError] = useState<string | null>(null)
@@ -219,9 +374,51 @@ export function DiscussionPage() {
   const [composerOpen, setComposerOpen] = useState(false)
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
+  const [attachment, setAttachment] = useState<DiscussionAttachmentInput | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [formMessage, setFormMessage] = useState<string | null>(null)
   const [pageMessage, setPageMessage] = useState<string | null>(null)
+  const [favoriteError, setFavoriteError] = useState<string | null>(null)
+
+  const attachmentOptions = useMemo<DiscussionAttachmentOption[]>(() => {
+    if (!selectedStock || !myState?.joined) return []
+    const options: DiscussionAttachmentOption[] = []
+    const longPosition = myState.positions.find((position) => position.stockId === selectedStock.id && position.quantity > 0)
+    if (longPosition) {
+      const returnPercent = longPosition.averagePrice > 0
+        ? ((longPosition.currentPrice - longPosition.averagePrice) / longPosition.averagePrice) * 100
+        : 0
+      options.push({
+        input: { type: 'long_position', referenceId: longPosition.id },
+        label: '보유종목·수익률',
+        detail: `${formatPrice(longPosition.quantity)}주 · ${formatPercent(returnPercent)}`,
+      })
+    }
+
+    const shortPosition = myState.shortPositions.find((position) => position.stockId === selectedStock.id && position.quantity > 0)
+    if (shortPosition) {
+      options.push({
+        input: { type: 'short_position', referenceId: shortPosition.id },
+        label: '공매도 보유·수익률',
+        detail: `${formatPrice(shortPosition.quantity)}주 · ${formatPercent(shortPosition.unrealizedReturn)}`,
+      })
+    }
+
+    myState.orders
+      .filter((order) => order.stockId === selectedStock.id && order.status === 'executed' && order.executionPrice)
+      .sort((left, right) => Date.parse(right.executedAt ?? right.submittedAt) - Date.parse(left.executedAt ?? left.submittedAt))
+      .slice(0, 10)
+      .forEach((order) => {
+        const sideLabel = { buy: '매수', sell: '매도', short: '공매도', cover: '공매도 청산' }[order.side]
+        options.push({
+          input: { type: 'execution', referenceId: order.id },
+          label: `${sideLabel} 체결결과`,
+          detail: `${formatPrice(order.executedQuantity ?? order.requestedQuantity)}주 · ${formatPrice(order.executionPrice ?? order.orderPrice)} RP`,
+        })
+      })
+
+    return options
+  }, [myState, selectedStock])
 
   useEffect(() => {
     const leagueId = market?.league?.id
@@ -283,6 +480,17 @@ export function DiscussionPage() {
     setFormMessage(null)
   }
 
+  async function handleFavorite(stock: StockSummary, favorited: boolean) {
+    setFavoriteError(null)
+    try {
+      await setStockFavorite(stock.id, favorited)
+    } catch (favoriteRequestError) {
+      setFavoriteError(favoriteRequestError instanceof Error
+        ? favoriteRequestError.message
+        : '즐겨찾기를 변경하지 못했습니다.')
+    }
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!selectedStock) return
@@ -302,11 +510,12 @@ export function DiscussionPage() {
     setFormMessage(null)
     setPageMessage(null)
     try {
-      await createDiscussionPost(selectedStock.id, normalizedTitle, normalizedContent)
+      await createDiscussionPost(selectedStock.id, normalizedTitle, normalizedContent, attachment)
       const nextPosts = await loadDiscussionPosts(selectedStock.id)
       setPosts(nextPosts)
       setTitle('')
       setContent('')
+      setAttachment(null)
       setComposerOpen(false)
       setPageMessage('게시글이 등록되었습니다.')
     } catch (error) {
@@ -320,7 +529,7 @@ export function DiscussionPage() {
     return <div className="skeleton skeleton--chart" aria-label="토론방 불러오는 중" />
   }
 
-  if (!market?.stocks.length) {
+  if (!discussionStocks.length) {
     return (
       <div className="discussion-page">
         <header className="discussion-page-header">
@@ -359,13 +568,20 @@ export function DiscussionPage() {
             <span className="feature-icon"><MessageSquareText size={28} /></span>
             <h1>종목토론방</h1>
           </header>
+          {favoriteError && <p className="page-error" role="alert">{favoriteError}</p>}
+          <DiscussionFavoriteStocks stocks={favoriteStocks} />
           <DiscussionRecentFeed
             posts={recentPosts}
-            stocks={market.stocks}
+            stocks={discussionStocks}
             loading={recentPostsLoading}
             error={recentPostsError}
           />
-          <DiscussionStockList stocks={market.stocks} />
+          <DiscussionStockList
+            stocks={discussionStocks}
+            favoriteStockIds={favoriteStockIdSet}
+            canFavorite={Boolean(myState?.joined)}
+            onToggleFavorite={(stock, favorited) => void handleFavorite(stock, favorited)}
+          />
         </>
       ) : (
         <div className="discussion-board">
@@ -383,21 +599,34 @@ export function DiscussionPage() {
               <span className="eyebrow">{selectedStock.ticker}</span>
               <h1>{selectedStock.name} 토론방</h1>
             </div>
-            <button
-              className="action-button discussion-write-button"
-              type="button"
-              onClick={() => {
-                setPageMessage(null)
-                setComposerOpen(true)
-              }}
-              disabled={!myState?.joined}
-              title={myState?.joined ? undefined : '리그 참가 후 글을 작성할 수 있습니다.'}
-            >
-              <PenLine size={16} /> 글쓰기
-            </button>
+            <div className="discussion-board-actions">
+              <button
+                className={`favorite-button${favoriteStockIdSet.has(selectedStock.id) ? ' is-active' : ''}`}
+                type="button"
+                aria-label={`${selectedStock.name} 즐겨찾기 ${favoriteStockIdSet.has(selectedStock.id) ? '해제' : '추가'}`}
+                aria-pressed={favoriteStockIdSet.has(selectedStock.id)}
+                disabled={!myState?.joined}
+                onClick={() => void handleFavorite(selectedStock, !favoriteStockIdSet.has(selectedStock.id))}
+              >
+                <Star size={18} fill={favoriteStockIdSet.has(selectedStock.id) ? 'currentColor' : 'none'} />
+              </button>
+              <button
+                className="action-button discussion-write-button"
+                type="button"
+                onClick={() => {
+                  setPageMessage(null)
+                  setComposerOpen(true)
+                }}
+                disabled={!myState?.joined}
+                title={myState?.joined ? undefined : '리그 참가 후 글을 작성할 수 있습니다.'}
+              >
+                <PenLine size={16} /> 글쓰기
+              </button>
+            </div>
           </header>
 
           {!myState?.joined && <LeagueJoinCard compact />}
+          {favoriteError && <p className="page-error" role="alert">{favoriteError}</p>}
           {pageMessage && <p className="form-message discussion-page-message" role="status">{pageMessage}</p>}
 
           <section className="discussion-feed" aria-live="polite" aria-busy={postsLoading}>
@@ -422,6 +651,7 @@ export function DiscussionPage() {
                 <div className="discussion-post-body">
                   <h2>{post.title}</h2>
                   <p>{post.content}</p>
+                  {post.attachment && <DiscussionAttachmentCard attachment={post.attachment} />}
                 </div>
               </article>
             )) : (
@@ -438,8 +668,11 @@ export function DiscussionPage() {
               content={content}
               message={formMessage}
               submitting={submitting}
+              attachmentOptions={attachmentOptions}
+              attachment={attachment}
               onTitleChange={setTitle}
               onContentChange={setContent}
+              onAttachmentChange={setAttachment}
               onClose={closeComposer}
               onSubmit={(event) => void handleSubmit(event)}
             />

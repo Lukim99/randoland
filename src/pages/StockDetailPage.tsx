@@ -1,4 +1,5 @@
-import { ArrowLeft, Layers3 } from 'lucide-react'
+import { ArrowLeft, Layers3, MessageSquareText, Star } from 'lucide-react'
+import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { CandlestickChart } from '../components/CandlestickChart'
 import { OrderPanel } from '../components/OrderPanel'
@@ -9,7 +10,8 @@ import { useMarket } from '../market/useMarket'
 
 export function StockDetailPage() {
   const { stockId } = useParams()
-  const { market, newsFeed, loading } = useMarket()
+  const { market, myState, newsFeed, favoriteStockIds, loading, setStockFavorite } = useMarket()
+  const [favoriteError, setFavoriteError] = useState<string | null>(null)
 
   if (loading && !market) return <div className="skeleton skeleton--chart" aria-label="종목 불러오는 중" />
 
@@ -18,6 +20,19 @@ export function StockDetailPage() {
 
   const latest = stock.candles.at(-1)
   const latestEdition = newsFeed?.editions[0]
+  const currentStockId = stock.id
+  const isFavorite = favoriteStockIds.includes(currentStockId)
+
+  async function handleFavorite() {
+    setFavoriteError(null)
+    try {
+      await setStockFavorite(currentStockId, !isFavorite)
+    } catch (favoriteRequestError) {
+      setFavoriteError(favoriteRequestError instanceof Error
+        ? favoriteRequestError.message
+        : '즐겨찾기를 변경하지 못했습니다.')
+    }
+  }
 
   return (
     <div className="stock-detail-page">
@@ -30,17 +45,38 @@ export function StockDetailPage() {
             <p>{stock.description}</p>
           </div>
         </div>
-        <div className="stock-detail-quote">
-          <small>현재가</small>
-          <strong>{formatPrice(stock.currentPrice)} RP</strong>
-          <span className={`movement ${movementClass(stock.changePercent)}`}>{formatPercent(stock.changePercent)}</span>
-          {stock.marketAction !== 'normal' && (
-            <span className={`stock-market-action stock-market-action--${stock.marketAction}`}>
-              {stock.marketAction === 'halt' ? '거래정지' : '상장폐지'}
-            </span>
-          )}
+        <div className="stock-detail-side">
+          <div className="stock-detail-actions">
+            <button
+              className={`secondary-action-button${isFavorite ? ' is-favorite' : ''}`}
+              type="button"
+              aria-pressed={isFavorite}
+              disabled={!myState?.joined || stock.status === 'delisted'}
+              onClick={() => void handleFavorite()}
+              title={myState?.joined ? undefined : '리그 참가 후 즐겨찾기를 사용할 수 있습니다.'}
+            >
+              <Star size={16} fill={isFavorite ? 'currentColor' : 'none'} />
+              {isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
+            </button>
+            {stock.status !== 'delisted' && (
+              <Link className="secondary-action-button" to={`/discussion/${stock.id}`}>
+                <MessageSquareText size={16} /> 종목토론방
+              </Link>
+            )}
+          </div>
+          <div className="stock-detail-quote">
+            <small>현재가</small>
+            <strong>{formatPrice(stock.currentPrice)} RP</strong>
+            <span className={`movement ${movementClass(stock.changePercent)}`}>{formatPercent(stock.changePercent)}</span>
+            {stock.marketAction !== 'normal' && (
+              <span className={`stock-market-action stock-market-action--${stock.marketAction}`}>
+                {stock.marketAction === 'halt' ? '거래정지' : '상장폐지'}
+              </span>
+            )}
+          </div>
         </div>
       </header>
+      {favoriteError && <p className="form-message is-error" role="alert">{favoriteError}</p>}
 
       <div className="stock-detail-layout">
         <div className="stock-detail-main">

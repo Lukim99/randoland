@@ -9,7 +9,7 @@ import {
   ShieldCheck,
   Wallet,
 } from 'lucide-react'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { CandlestickChart } from '../components/CandlestickChart'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
@@ -22,11 +22,38 @@ import { formatKstDateTime, formatPercent, formatPrice, formatRp, movementClass 
 import { useMarket } from '../market/useMarket'
 
 export function DashboardPage() {
-  const { market, myState, newsFeed, loading, refreshing, error, refresh } = useMarket()
+  const {
+    market,
+    myState,
+    newsFeed,
+    favoriteStockIds,
+    loading,
+    refreshing,
+    error,
+    refresh,
+    setStockFavorite,
+  } = useMarket()
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  const [favoriteError, setFavoriteError] = useState<string | null>(null)
   const { nextSettlement, remaining, elapsed } = useRoundClock(market?.round?.settlesAt)
-  const listedStocks = market?.stocks.filter((stock) => stock.status !== 'delisted') ?? []
+  const favoriteStockIdSet = useMemo(() => new Set(favoriteStockIds), [favoriteStockIds])
+  const listedStocks = useMemo(() => {
+    const stocks = market?.stocks.filter((stock) => stock.status !== 'delisted') ?? []
+    return [...stocks].sort((left, right) => Number(favoriteStockIdSet.has(right.id)) - Number(favoriteStockIdSet.has(left.id)))
+  }, [favoriteStockIdSet, market?.stocks])
+  const favoriteStocks = listedStocks.filter((stock) => favoriteStockIdSet.has(stock.id))
   const selectedStock = listedStocks.find((stock) => stock.id === selectedId) ?? listedStocks[0]
+
+  async function handleFavorite(stockId: string, favorited: boolean) {
+    setFavoriteError(null)
+    try {
+      await setStockFavorite(stockId, favorited)
+    } catch (favoriteRequestError) {
+      setFavoriteError(favoriteRequestError instanceof Error
+        ? favoriteRequestError.message
+        : '즐겨찾기를 변경하지 못했습니다.')
+    }
+  }
 
   if (loading && !market) {
     return <DashboardSkeleton />
@@ -174,10 +201,32 @@ export function DashboardPage() {
               </div>
               <span className="count-chip">{listedStocks.length} 종목</span>
             </div>
+            {favoriteError && <p className="form-message is-error" role="alert">{favoriteError}</p>}
+            {favoriteStocks.length > 0 && (
+              <div className="favorite-stock-bar" aria-label="즐겨찾기 종목">
+                <span>즐겨찾기</span>
+                <div>
+                  {favoriteStocks.map((stock) => (
+                    <button key={stock.id} type="button" onClick={() => setSelectedId(stock.id)}>
+                      <StockLogo
+                        src={stock.logoImageUrl}
+                        spriteIndex={stock.logoSpriteIndex}
+                        size="sm"
+                        label={`${stock.name} 종목 이미지`}
+                      />
+                      <span>{stock.name}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             <MarketList
               stocks={listedStocks}
               selectedId={selectedStock.id}
               onSelect={(stock) => setSelectedId(stock.id)}
+              favoriteStockIds={favoriteStockIdSet}
+              canFavorite={Boolean(myState?.joined)}
+              onToggleFavorite={(stock, favorited) => void handleFavorite(stock.id, favorited)}
             />
           </section>
         </>

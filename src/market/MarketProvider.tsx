@@ -10,6 +10,7 @@ import {
   joinLeague,
   loadDiscussionPosts as loadDiscussionPostsRequest,
   loadRecentDiscussionPosts as loadRecentDiscussionPostsRequest,
+  loadStockFavoriteIds,
   loadMarketSnapshot,
   loadMyState,
   loadNewsFeed,
@@ -18,9 +19,18 @@ import {
   playLadder as playLadderRequest,
   playLadderSecond as playLadderSecondRequest,
   playLadderThird as playLadderThirdRequest,
+  setStockFavorite as setStockFavoriteRequest,
   uploadProfileImage as uploadProfileImageRequest,
 } from '../services/market'
-import type { LadderChoice, MarketSnapshot, MyState, NewsFeed, OrderSide, RankingsSnapshot } from '../types/market'
+import type {
+  DiscussionAttachmentInput,
+  LadderChoice,
+  MarketSnapshot,
+  MyState,
+  NewsFeed,
+  OrderSide,
+  RankingsSnapshot,
+} from '../types/market'
 import { MarketContext, type MarketContextValue } from './market-context'
 
 const realtimeTables = [
@@ -68,6 +78,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
   const [myState, setMyState] = useState<MyState | null>(null)
   const [rankings, setRankings] = useState<RankingsSnapshot | null>(null)
   const [newsFeed, setNewsFeed] = useState<NewsFeed | null>(null)
+  const [favoriteStockIds, setFavoriteStockIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -86,12 +97,14 @@ export function MarketProvider({ children }: PropsWithChildren) {
       let nextMyState: MyState | null = null
       let nextRankings: RankingsSnapshot | null = null
       let nextNewsFeed: NewsFeed | null = null
+      let nextFavoriteStockIds: string[] = []
 
       if (nextMarket.league) {
-        ;[nextMyState, nextRankings, nextNewsFeed] = await Promise.all([
+        ;[nextMyState, nextRankings, nextNewsFeed, nextFavoriteStockIds] = await Promise.all([
           loadMyState(nextMarket.league.id),
           loadRankings(nextMarket.league.id),
           loadNewsFeed(nextMarket.league.id),
+          loadStockFavoriteIds(nextMarket.league.id),
         ])
       }
 
@@ -100,6 +113,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       setMyState(nextMyState)
       setRankings(nextRankings)
       setNewsFeed(nextNewsFeed)
+      setFavoriteStockIds(nextFavoriteStockIds)
     } catch (refreshError) {
       if (requestSequence.current !== requestId) return
       setError(refreshError instanceof Error ? refreshError.message : '시장 정보를 불러오지 못했습니다.')
@@ -211,9 +225,21 @@ export function MarketProvider({ children }: PropsWithChildren) {
     [],
   )
 
-  const createDiscussionPost = useCallback(async (stockId: string, title: string, content: string) => {
-    const post = await createDiscussionPostRequest(stockId, title, content)
+  const createDiscussionPost = useCallback(async (
+    stockId: string,
+    title: string,
+    content: string,
+    attachment: DiscussionAttachmentInput | null,
+  ) => {
+    const post = await createDiscussionPostRequest(stockId, title, content, attachment)
     return post
+  }, [])
+
+  const setStockFavorite = useCallback(async (stockId: string, favorited: boolean) => {
+    await setStockFavoriteRequest(stockId, favorited)
+    setFavoriteStockIds((current) => favorited
+      ? current.includes(stockId) ? current : [...current, stockId]
+      : current.filter((favoriteStockId) => favoriteStockId !== stockId))
   }, [])
 
   const claimAttendance = useCallback(async () => {
@@ -269,6 +295,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       myState,
       rankings,
       newsFeed,
+      favoriteStockIds,
       loading,
       refreshing,
       error,
@@ -281,6 +308,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       loadRecentDiscussionPosts,
       loadDiscussionPosts,
       createDiscussionPost,
+      setStockFavorite,
       claimAttendance,
       playLadder,
       chooseLadderAction,
@@ -305,12 +333,14 @@ export function MarketProvider({ children }: PropsWithChildren) {
       playLadderThird,
       rankings,
       newsFeed,
+      favoriteStockIds,
       refresh,
       refreshing,
       uploadProfileImage,
       loadRecentDiscussionPosts,
       loadDiscussionPosts,
       createDiscussionPost,
+      setStockFavorite,
     ],
   )
 
