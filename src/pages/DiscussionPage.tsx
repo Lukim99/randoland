@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, Heart, MessageCircle, MessageSquareText, Paperclip, PenLine, Send, Star, X } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Heart, MessageCircle, MessageSquareText, Paperclip, PenLine, Send, Star, Trash2, X } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useParams } from 'react-router'
@@ -297,6 +297,8 @@ interface DiscussionPostCardProps {
   liking: boolean
   onLike: (post: DiscussionPost) => Promise<void>
   onComment: (postId: string, content: string) => Promise<void>
+  onDeletePost: (postId: string) => Promise<void>
+  onDeleteComment: (postId: string, commentId: string) => Promise<void>
 }
 
 function DiscussionPostCard({
@@ -305,10 +307,13 @@ function DiscussionPostCard({
   liking,
   onLike,
   onComment,
+  onDeletePost,
+  onDeleteComment,
 }: DiscussionPostCardProps) {
   const [commentDraft, setCommentDraft] = useState('')
   const [commentSubmitting, setCommentSubmitting] = useState(false)
   const [actionMessage, setActionMessage] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
 
   async function handleCommentSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -336,6 +341,31 @@ function DiscussionPostCard({
     }
   }
 
+  async function handlePostDelete() {
+    if (!window.confirm('이 게시글을 삭제하시겠습니까? 댓글과 좋아요도 함께 삭제됩니다.')) return
+    setDeletingId(post.id)
+    setActionMessage(null)
+    try {
+      await onDeletePost(post.id)
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : '게시글을 삭제하지 못했습니다.')
+      setDeletingId(null)
+    }
+  }
+
+  async function handleCommentDelete(commentId: string) {
+    if (!window.confirm('이 댓글을 삭제하시겠습니까?')) return
+    setDeletingId(commentId)
+    setActionMessage(null)
+    try {
+      await onDeleteComment(post.id, commentId)
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : '댓글을 삭제하지 못했습니다.')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <article className="panel discussion-post">
       <header className="discussion-post-author">
@@ -350,6 +380,16 @@ function DiscussionPostCard({
             {formatDiscussionTime(post.createdAt)}
           </time>
         </div>
+        {post.ownedByMe && (
+          <button
+            className="discussion-delete-button"
+            type="button"
+            disabled={deletingId === post.id}
+            onClick={() => void handlePostDelete()}
+          >
+            <Trash2 size={14} aria-hidden="true" /> {deletingId === post.id ? '삭제 중' : '글 삭제'}
+          </button>
+        )}
       </header>
       <div className="discussion-post-body">
         <h2>{post.title}</h2>
@@ -388,6 +428,16 @@ function DiscussionPostCard({
                     <time dateTime={comment.createdAt} title={formatKstDateTime(comment.createdAt)}>
                       {formatDiscussionTime(comment.createdAt)}
                     </time>
+                    {comment.ownedByMe && (
+                      <button
+                        className="discussion-delete-button"
+                        type="button"
+                        disabled={deletingId === comment.id}
+                        onClick={() => void handleCommentDelete(comment.id)}
+                      >
+                        <Trash2 size={13} aria-hidden="true" /> {deletingId === comment.id ? '삭제 중' : '삭제'}
+                      </button>
+                    )}
                   </header>
                   <p>{comment.content}</p>
                 </div>
@@ -493,6 +543,8 @@ export function DiscussionPage() {
     setStockFavorite,
     setDiscussionPostLike,
     createDiscussionComment,
+    deleteDiscussionPost,
+    deleteDiscussionComment,
   } = useMarket()
   const favoriteStockIdSet = useMemo(() => new Set(favoriteStockIds), [favoriteStockIds])
   const discussionStocks = useMemo(() => {
@@ -656,6 +708,23 @@ export function DiscussionPage() {
           ...post,
           commentCount: post.commentCount + 1,
           comments: [...post.comments, comment],
+        }
+      : post))
+  }
+
+  async function handlePostDelete(postId: string) {
+    await deleteDiscussionPost(postId)
+    setPosts((currentPosts) => currentPosts.filter((post) => post.id !== postId))
+    setPageMessage('게시글을 삭제했습니다.')
+  }
+
+  async function handleCommentDelete(postId: string, commentId: string) {
+    await deleteDiscussionComment(commentId)
+    setPosts((currentPosts) => currentPosts.map((post) => post.id === postId
+      ? {
+          ...post,
+          commentCount: Math.max(0, post.commentCount - 1),
+          comments: post.comments.filter((comment) => comment.id !== commentId),
         }
       : post))
   }
@@ -829,6 +898,8 @@ export function DiscussionPage() {
                 liking={likingPostId !== null}
                 onLike={handleLike}
                 onComment={handleComment}
+                onDeletePost={handlePostDelete}
+                onDeleteComment={handleCommentDelete}
               />
             )) : (
               <div className="panel discussion-empty">

@@ -9,7 +9,7 @@ export function AuthGate() {
     return (
       <main className="app-loading" aria-live="polite">
         <span className="brand-loader" aria-hidden="true" />
-        <p>란도랜드2 거래소를 불러오는 중입니다.</p>
+        <p>란도랜드 거래소를 불러오는 중입니다.</p>
       </main>
     )
   }

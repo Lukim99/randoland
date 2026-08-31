@@ -102,6 +102,8 @@ const errorTranslations: Array<[string, string]> = [
   ['Join the league before writing a discussion post', '리그 참가 후 게시글을 작성할 수 있습니다.'],
   ['Discussion title must contain', '제목은 1~80자로 입력해 주세요.'],
   ['Discussion content must contain', '내용은 1~2,000자로 입력해 주세요.'],
+  ['Only the author can delete this discussion post', '본인이 작성한 게시글만 삭제할 수 있습니다.'],
+  ['Only the author can delete this discussion comment', '본인이 작성한 댓글만 삭제할 수 있습니다.'],
   ['Randoland administrator access is required', '리그 관리자 권한이 필요합니다.'],
   ['Another Randoland league is already operating', '현재 운영 중인 리그를 종료하거나 중단한 뒤 새 리그를 개최할 수 있습니다.'],
   ['League start date cannot be in the past', '리그 시작일은 오늘보다 이전일 수 없습니다.'],
@@ -497,6 +499,7 @@ export async function loadDiscussionPosts(
         ...comment,
         authorProfileImagePath: commentProfileImagePath,
         authorProfileImageUrl,
+        ownedByMe: Boolean(comment.ownedByMe),
       }
     })
 
@@ -504,6 +507,7 @@ export async function loadDiscussionPosts(
       ...post,
       authorProfileImagePath,
       authorProfileImageUrl,
+      ownedByMe: Boolean(post.ownedByMe),
       likeCount: Number(post.likeCount ?? 0),
       likedByMe: Boolean(post.likedByMe),
       commentCount: Number(post.commentCount ?? comments.length),
@@ -531,6 +535,7 @@ export async function loadRecentDiscussionPosts(leagueId: string): Promise<Recen
       ...post,
       authorProfileImagePath,
       authorProfileImageUrl,
+      ownedByMe: Boolean(post.ownedByMe),
       likeCount: Number(post.likeCount ?? 0),
       likedByMe: Boolean(post.likedByMe),
       commentCount: Number(post.commentCount ?? 0),
@@ -563,6 +568,7 @@ export async function createDiscussionPost(
     ...post,
     authorProfileImagePath,
     authorProfileImageUrl,
+    ownedByMe: true,
     likeCount: Number(post.likeCount ?? 0),
     likedByMe: Boolean(post.likedByMe),
     commentCount: Number(post.commentCount ?? 0),
@@ -612,7 +618,25 @@ export async function createDiscussionComment(postId: string, content: string): 
   const authorProfileImageUrl = authorProfileImagePath
     ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
     : null
-  return { ...comment, authorProfileImagePath, authorProfileImageUrl }
+  return { ...comment, authorProfileImagePath, authorProfileImageUrl, ownedByMe: true }
+}
+
+export async function deleteDiscussionPost(postId: string) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_delete_discussion_post', {
+    p_post_id: postId,
+  })
+  throwIfError(error)
+  return data as unknown as { postId: string; stockId: string; deleted: true }
+}
+
+export async function deleteDiscussionComment(commentId: string) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_delete_discussion_comment', {
+    p_comment_id: commentId,
+  })
+  throwIfError(error)
+  return data as unknown as { commentId: string; postId: string; deleted: true }
 }
 
 export async function claimAttendance(leagueId: string) {

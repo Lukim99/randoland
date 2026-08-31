@@ -2462,6 +2462,32 @@ dd {
   font-variant-numeric: tabular-nums;
 }
 
+.discussion-delete-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 30px;
+  padding: 0 8px;
+  color: var(--subtle);
+  font-size: calc(8px + var(--desktop-font-size-increase));
+  font-weight: 700;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+}
+
+.discussion-post-author > .discussion-delete-button,
+.discussion-comment header > .discussion-delete-button {
+  margin-left: auto;
+}
+
+.discussion-delete-button:hover:not(:disabled) {
+  color: #ff758e;
+  background: rgba(255, 86, 120, 0.07);
+  border-color: rgba(255, 86, 120, 0.16);
+}
+
 .discussion-post-body {
   display: grid;
   gap: 10px;

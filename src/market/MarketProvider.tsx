@@ -7,6 +7,8 @@ import {
   claimAttendance as claimAttendanceRequest,
   createDiscussionComment as createDiscussionCommentRequest,
   createDiscussionPost as createDiscussionPostRequest,
+  deleteDiscussionComment as deleteDiscussionCommentRequest,
+  deleteDiscussionPost as deleteDiscussionPostRequest,
   getOrderCapacity as getOrderCapacityRequest,
   joinLeague,
   loadDiscussionPosts as loadDiscussionPostsRequest,
@@ -255,6 +257,16 @@ export function MarketProvider({ children }: PropsWithChildren) {
     [],
   )
 
+  const deleteDiscussionPost = useCallback(
+    (postId: string) => deleteDiscussionPostRequest(postId),
+    [],
+  )
+
+  const deleteDiscussionComment = useCallback(
+    (commentId: string) => deleteDiscussionCommentRequest(commentId),
+    [],
+  )
+
   const claimAttendance = useCallback(async () => {
     const result = await claimAttendanceRequest(requireLeagueId())
     await refreshData(true)
@@ -324,6 +336,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
       setStockFavorite,
       setDiscussionPostLike,
       createDiscussionComment,
+      deleteDiscussionPost,
+      deleteDiscussionComment,
       claimAttendance,
       playLadder,
       chooseLadderAction,
@@ -358,6 +372,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
       setStockFavorite,
       setDiscussionPostLike,
       createDiscussionComment,
+      deleteDiscussionPost,
+      deleteDiscussionComment,
     ],
   )
 

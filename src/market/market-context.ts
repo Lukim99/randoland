@@ -50,6 +50,8 @@ export interface MarketContextValue {
   setStockFavorite: (stockId: string, favorited: boolean) => Promise<void>
   setDiscussionPostLike: (postId: string, liked: boolean) => Promise<{ postId: string; liked: boolean; likeCount: number }>
   createDiscussionComment: (postId: string, content: string) => Promise<DiscussionComment>
+  deleteDiscussionPost: (postId: string) => Promise<{ postId: string; stockId: string; deleted: true }>
+  deleteDiscussionComment: (commentId: string) => Promise<{ commentId: string; postId: string; deleted: true }>
   claimAttendance: () => Promise<{ date: string; awarded: boolean; tokens: number }>
   playLadder: (choice: LadderChoice) => Promise<LadderResult>
   chooseLadderAction: (gameId: string, action: 'go' | 'stop') => Promise<LadderResult>

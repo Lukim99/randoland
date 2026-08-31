@@ -11,13 +11,13 @@ export function LoginPage() {
 
   return (
     <main className="login-page">
-      <section className="login-visual" aria-label="란도랜드2 소개">
+      <section className="login-visual" aria-label="란도랜드 소개">
         <div className="login-visual__top">
           <Brand />
         </div>
         <div className="login-visual__content">
           <h1>
-            란도랜드2에 오신 것을
+            란도랜드에 오신 것을
             <br />환영합니다.
           </h1>
           <p>참가자가 만든 이야기가 뉴스와 주가에 반영되는 모의 주식시장 리그입니다.</p>

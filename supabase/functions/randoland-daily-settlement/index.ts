@@ -214,7 +214,7 @@ Deno.serve(async (request: Request) => {
       }
     }
 
-    console.error("란도랜드2 일일 정산 오류", error);
+    console.error("란도랜드 일일 정산 오류", error);
     return jsonResponse({ status: "failed", error: message }, 500);
   }
 });

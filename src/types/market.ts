@@ -168,6 +168,7 @@ export interface DiscussionComment {
   authorNickname: string
   authorProfileImagePath: string | null
   authorProfileImageUrl: string | null
+  ownedByMe: boolean
   content: string
   createdAt: string
 }
@@ -178,6 +179,7 @@ export interface DiscussionPost {
   authorNickname: string
   authorProfileImagePath: string | null
   authorProfileImageUrl: string | null
+  ownedByMe: boolean
   title: string
   content: string
   attachment: DiscussionAttachment | null
