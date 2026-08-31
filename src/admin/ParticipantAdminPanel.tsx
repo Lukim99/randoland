@@ -14,7 +14,7 @@ import type {
   AdminParticipantAssetType,
   AdminStock,
 } from '../types/admin'
-import { formatPrice, formatRp } from '../lib/format'
+import { formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
 
 interface ParticipantAdminPanelProps {
   leagues: AdminLeague[]
@@ -136,7 +136,7 @@ export function ParticipantAdminPanel({
   async function handleDisqualify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!selectedParticipant) return
-    if (!window.confirm(`${selectedParticipant.nickname} 참가자를 제재하시겠습니까? 대기 주문이 모두 거절됩니다.`)) return
+    if (!window.confirm(`${selectedParticipant.nickname} 참가자를 제재하시겠습니까?`)) return
     const completed = await onRun(
       () => disqualifyAdminParticipant(selectedParticipant.id, sanctionReason, banFuture),
       `${selectedParticipant.nickname} 참가자를 제재했습니다.`,
@@ -197,14 +197,46 @@ export function ParticipantAdminPanel({
       </div>
 
       {selectedParticipant && (
-        <section className="admin-participant-summary" aria-label={`${selectedParticipant.nickname} 자산 상세`}>
-          <div><span>순자산</span><strong>{formatRp(selectedParticipant.netWorth)}</strong></div>
-          <div><span>사용 가능 RP</span><strong>{formatRp(selectedParticipant.availableCash)}</strong></div>
-          <div><span>주식 평가액</span><strong>{formatRp(selectedParticipant.longMarketValue)}</strong></div>
-          <div><span>공매도 상환액</span><strong>{formatRp(selectedParticipant.shortExposure)}</strong></div>
-          <div><span>미수 RP</span><strong>{formatRp(selectedParticipant.receivableRp)}</strong></div>
-          <div><span>출석토큰</span><strong>{formatPrice(selectedParticipant.attendanceTokens)}개</strong></div>
-        </section>
+        <>
+          <section className="admin-participant-summary" aria-label={`${selectedParticipant.nickname} 자산 상세`}>
+            <div><span>순자산</span><strong>{formatRp(selectedParticipant.netWorth)}</strong></div>
+            <div><span>사용 가능 RP</span><strong>{formatRp(selectedParticipant.availableCash)}</strong></div>
+            <div><span>주식 평가액</span><strong>{formatRp(selectedParticipant.longMarketValue)}</strong></div>
+            <div><span>공매도 상환액</span><strong>{formatRp(selectedParticipant.shortExposure)}</strong></div>
+            <div><span>미수 RP</span><strong>{formatRp(selectedParticipant.receivableRp)}</strong></div>
+            <div><span>출석토큰</span><strong>{formatPrice(selectedParticipant.attendanceTokens)}개</strong></div>
+          </section>
+
+          <section className="admin-participant-holdings" aria-labelledby="admin-participant-holdings-title">
+            <header>
+              <div>
+                <span className="eyebrow">HOLDINGS</span>
+                <h3 id="admin-participant-holdings-title">{selectedParticipant.nickname} 보유 주식</h3>
+              </div>
+              <span className="count-chip">{selectedParticipant.holdings.length}종목</span>
+            </header>
+            <div className="admin-table-wrap">
+              <table className="admin-table">
+                <thead><tr><th>종목</th><th>보유수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>평가손익</th><th>수익률</th></tr></thead>
+                <tbody>
+                  {selectedParticipant.holdings.length > 0 ? selectedParticipant.holdings.map((holding) => (
+                    <tr key={holding.stockId}>
+                      <td><span className="admin-order-stock"><strong>{holding.stockName}</strong><small>{holding.ticker}</small></span></td>
+                      <td>{formatQuantity(holding.quantity)}주</td>
+                      <td>{formatPrice(holding.averagePrice)} RP</td>
+                      <td>{formatPrice(holding.currentPrice)} RP</td>
+                      <td>{formatRp(holding.marketValue)}</td>
+                      <td className={movementClass(holding.evaluationProfit)}>{formatRp(holding.evaluationProfit)}</td>
+                      <td className={movementClass(holding.returnPercent)}>{formatPercent(holding.returnPercent)}</td>
+                    </tr>
+                  )) : (
+                    <tr><td className="admin-table-empty" colSpan={7}>현재 보유 중인 주식이 없습니다.</td></tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </>
       )}
 
       <form className="admin-form admin-participant-adjustment" onSubmit={(event) => void handleAdjustment(event)}>
@@ -261,8 +293,8 @@ export function ParticipantAdminPanel({
         {direction === 'revoke' && (
           <p className="admin-form__hint">
             {assetType === 'rp'
-              ? '보유 RP를 초과한 회수분은 미수 RP로 기록되며, 대기 중인 신규 매수·공매도 주문은 거절됩니다.'
-              : `회수 가능: ${formatQuantity(revokeLimit ?? 0)}${assetType === 'attendance_token' ? '개' : '주'}${assetType === 'stock' ? ' · 레버리지와 대기 매도 수량은 제외됩니다.' : ''}`}
+              ? '보유 RP를 초과한 회수분은 미수 RP로 기록되며, 이후 신규 매수·공매도가 제한됩니다.'
+              : `회수 가능: ${formatQuantity(revokeLimit ?? 0)}${assetType === 'attendance_token' ? '개' : '주'}${assetType === 'stock' ? ' · 레버리지 수량은 제외됩니다.' : ''}`}
           </p>
         )}
         <label>

@@ -5,6 +5,7 @@ import {
   chooseLadderAction as chooseLadderActionRequest,
   chooseLadderThirdAction as chooseLadderThirdActionRequest,
   claimAttendance as claimAttendanceRequest,
+  createDiscussionComment as createDiscussionCommentRequest,
   createDiscussionPost as createDiscussionPostRequest,
   getOrderCapacity as getOrderCapacityRequest,
   joinLeague,
@@ -19,11 +20,13 @@ import {
   playLadder as playLadderRequest,
   playLadderSecond as playLadderSecondRequest,
   playLadderThird as playLadderThirdRequest,
+  setDiscussionPostLike as setDiscussionPostLikeRequest,
   setStockFavorite as setStockFavoriteRequest,
   uploadProfileImage as uploadProfileImageRequest,
 } from '../services/market'
 import type {
   DiscussionAttachmentInput,
+  DiscussionSort,
   LadderChoice,
   MarketSnapshot,
   MyState,
@@ -216,7 +219,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
   }, [myState?.participant, refreshData])
 
   const loadDiscussionPosts = useCallback(
-    (stockId: string) => loadDiscussionPostsRequest(stockId),
+    (stockId: string, sort: DiscussionSort = 'latest') => loadDiscussionPostsRequest(stockId, sort),
     [],
   )
 
@@ -241,6 +244,16 @@ export function MarketProvider({ children }: PropsWithChildren) {
       ? current.includes(stockId) ? current : [...current, stockId]
       : current.filter((favoriteStockId) => favoriteStockId !== stockId))
   }, [])
+
+  const setDiscussionPostLike = useCallback(
+    (postId: string, liked: boolean) => setDiscussionPostLikeRequest(postId, liked),
+    [],
+  )
+
+  const createDiscussionComment = useCallback(
+    (postId: string, content: string) => createDiscussionCommentRequest(postId, content),
+    [],
+  )
 
   const claimAttendance = useCallback(async () => {
     const result = await claimAttendanceRequest(requireLeagueId())
@@ -309,6 +322,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
       loadDiscussionPosts,
       createDiscussionPost,
       setStockFavorite,
+      setDiscussionPostLike,
+      createDiscussionComment,
       claimAttendance,
       playLadder,
       chooseLadderAction,
@@ -341,6 +356,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
       loadDiscussionPosts,
       createDiscussionPost,
       setStockFavorite,
+      setDiscussionPostLike,
+      createDiscussionComment,
     ],
   )
 

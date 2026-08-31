@@ -50,8 +50,11 @@ export interface AdminParticipantHolding {
   ticker: string
   stockName: string
   quantity: number
+  averagePrice: number
   currentPrice: number
   marketValue: number
+  evaluationProfit: number
+  returnPercent: number
   recoverableQuantity: number
 }
 
@@ -104,7 +107,7 @@ export interface AdminAuditEntry {
 }
 
 export type AdminOpenOrderSide = 'buy' | 'sell' | 'short' | 'cover'
-export type AdminOpenOrderStatus = 'pending' | 'locked'
+export type AdminOpenOrderStatus = 'executed'
 
 export interface AdminOpenOrder {
   id: string
@@ -122,6 +125,7 @@ export interface AdminOpenOrder {
   leveragePercent: number
   roundNumber: number
   submittedAt: string
+  executedAt: string
 }
 
 export interface AdminConsoleState {

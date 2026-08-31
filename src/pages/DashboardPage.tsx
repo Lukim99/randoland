@@ -82,9 +82,6 @@ export function DashboardPage() {
   }
 
   const participant = myState?.participant
-  const pendingOrderCount = (myState?.orders ?? []).filter(
-    (order) => order.status === 'pending' || order.status === 'locked',
-  ).length
   const latestCandle = selectedStock?.candles.at(-1)
   const latestEdition = newsFeed?.editions[0]
 
@@ -99,12 +96,12 @@ export function DashboardPage() {
             {refreshing && <span className="live-refresh-chip">갱신 중</span>}
           </div>
           <h1>
-            {market.round ? (elapsed ? '일괄 정산을 처리하고 있습니다' : '다음 일괄 체결까지') : '첫 라운드를 준비하고 있습니다'}
+            {market.round ? (elapsed ? '라운드 정산을 처리하고 있습니다' : '다음 가격 갱신까지') : '첫 라운드를 준비하고 있습니다'}
             <strong>{market.round ? (elapsed ? '정산 중' : remaining) : '준비 중'}</strong>
           </h1>
           <p>
             {market.round
-              ? `접수된 주문은 ${formatKstDateTime(nextSettlement.toISOString())}에 주문 시점 가격으로 체결됩니다.`
+              ? `주문은 현재가로 즉시 체결되며, 뉴스와 가격은 ${formatKstDateTime(nextSettlement.toISOString())}에 갱신됩니다.`
               : '운영 일정을 준비하고 있습니다.'}
           </p>
         </div>
@@ -127,7 +124,7 @@ export function DashboardPage() {
           <div>
             <small>주문 가능 RP</small>
             <strong>{participant ? formatRp(participant.availableCash) : '-'}</strong>
-            <span>대기 주문 {pendingOrderCount}건</span>
+            <span>주문 제출 즉시 현재가 체결</span>
           </div>
         </article>
         <article className="stat-card">

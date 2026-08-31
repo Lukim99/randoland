@@ -48,11 +48,11 @@ export function LeagueAdminPanel({ leagues, busy, onRun }: LeagueAdminPanelProps
     event.preventDefault()
     if (!selectedStopLeagueId) return
     const target = operatingLeagues.find(({ id }) => id === selectedStopLeagueId)
-    if (!window.confirm(`${target?.name ?? '선택한 리그'}를 중단하시겠습니까? 대기 주문은 모두 거절됩니다.`)) return
+    if (!window.confirm(`${target?.name ?? '선택한 리그'}를 중단하시겠습니까?`)) return
 
     const completed = await onRun(
       () => stopAdminLeague(selectedStopLeagueId, stopReason),
-      '리그를 중단하고 대기 주문을 정리했습니다.',
+      '리그를 중단했습니다.',
     )
     if (completed) setStopReason('')
   }

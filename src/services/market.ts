@@ -4,7 +4,9 @@ import { supabase } from '../lib/supabase'
 import type {
   CandlePoint,
   DiscussionAttachmentInput,
+  DiscussionComment,
   DiscussionPost,
+  DiscussionSort,
   LadderChoice,
   LadderResult,
   MarketSnapshot,
@@ -467,11 +469,15 @@ export async function uploadProfileImage(
   return data
 }
 
-export async function loadDiscussionPosts(stockId: string): Promise<DiscussionPost[]> {
+export async function loadDiscussionPosts(
+  stockId: string,
+  sort: DiscussionSort = 'latest',
+): Promise<DiscussionPost[]> {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_get_discussion_posts', {
+  const { data, error } = await client.rpc('randoland_get_discussion_posts_v2', {
     p_stock_id: stockId,
     p_limit: 100,
+    p_sort: sort,
   })
   throwIfError(error)
 
@@ -482,7 +488,27 @@ export async function loadDiscussionPosts(stockId: string): Promise<DiscussionPo
       ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
       : null
 
-    return { ...post, authorProfileImagePath, authorProfileImageUrl }
+    const comments = (post.comments ?? []).map((comment) => {
+      const commentProfileImagePath = comment.authorProfileImagePath ?? null
+      const authorProfileImageUrl = commentProfileImagePath
+        ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(commentProfileImagePath).data.publicUrl
+        : null
+      return {
+        ...comment,
+        authorProfileImagePath: commentProfileImagePath,
+        authorProfileImageUrl,
+      }
+    })
+
+    return {
+      ...post,
+      authorProfileImagePath,
+      authorProfileImageUrl,
+      likeCount: Number(post.likeCount ?? 0),
+      likedByMe: Boolean(post.likedByMe),
+      commentCount: Number(post.commentCount ?? comments.length),
+      comments,
+    }
   })
 }
 
@@ -490,7 +516,7 @@ export async function loadRecentDiscussionPosts(leagueId: string): Promise<Recen
   const client = requireSupabase()
   const { data, error } = await client.rpc('randoland_get_recent_discussion_posts', {
     p_league_id: leagueId,
-    p_limit: 3,
+    p_limit: 10,
   })
   throwIfError(error)
 
@@ -501,7 +527,15 @@ export async function loadRecentDiscussionPosts(leagueId: string): Promise<Recen
       ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
       : null
 
-    return { ...post, authorProfileImagePath, authorProfileImageUrl }
+    return {
+      ...post,
+      authorProfileImagePath,
+      authorProfileImageUrl,
+      likeCount: Number(post.likeCount ?? 0),
+      likedByMe: Boolean(post.likedByMe),
+      commentCount: Number(post.commentCount ?? 0),
+      comments: post.comments ?? [],
+    }
   })
 }
 
@@ -525,7 +559,15 @@ export async function createDiscussionPost(
   const authorProfileImageUrl = authorProfileImagePath
     ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
     : null
-  return { ...post, authorProfileImagePath, authorProfileImageUrl }
+  return {
+    ...post,
+    authorProfileImagePath,
+    authorProfileImageUrl,
+    likeCount: Number(post.likeCount ?? 0),
+    likedByMe: Boolean(post.likedByMe),
+    commentCount: Number(post.commentCount ?? 0),
+    comments: post.comments ?? [],
+  }
 }
 
 export async function loadStockFavoriteIds(leagueId: string): Promise<string[]> {
@@ -546,6 +588,31 @@ export async function setStockFavorite(stockId: string, favorited: boolean) {
   })
   throwIfError(error)
   return data as unknown as { stockId: string; favorited: boolean }
+}
+
+export async function setDiscussionPostLike(postId: string, liked: boolean) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_set_discussion_post_like', {
+    p_post_id: postId,
+    p_liked: liked,
+  })
+  throwIfError(error)
+  return data as unknown as { postId: string; liked: boolean; likeCount: number }
+}
+
+export async function createDiscussionComment(postId: string, content: string): Promise<DiscussionComment> {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc('randoland_create_discussion_comment', {
+    p_post_id: postId,
+    p_content: content,
+  })
+  throwIfError(error)
+  const comment = data as unknown as Omit<DiscussionComment, 'authorProfileImageUrl'>
+  const authorProfileImagePath = comment.authorProfileImagePath ?? null
+  const authorProfileImageUrl = authorProfileImagePath
+    ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
+    : null
+  return { ...comment, authorProfileImagePath, authorProfileImageUrl }
 }
 
 export async function claimAttendance(leagueId: string) {

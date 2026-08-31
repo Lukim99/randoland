@@ -62,7 +62,7 @@ export function SettlementAdminPanel({ leagues, busy, onRun }: SettlementAdminPa
     if (!activeLeague || !round || !settlementState.canExecute) return
 
     const confirmed = window.confirm(
-      `${round.roundNumber}라운드를 지금 실제 정산합니다. 저장된 가격 계획과 글로벌·개별뉴스 원문, 대기 주문 체결, 다음 라운드 전환이 즉시 반영됩니다. 계속할까요?`,
+      `${round.roundNumber}라운드를 지금 실제 정산합니다. 저장된 가격 계획과 글로벌·개별뉴스 원문, 배당·자동 청산, 다음 라운드 전환이 즉시 반영됩니다. 계속할까요?`,
     )
     if (!confirmed) return
 
@@ -123,7 +123,7 @@ export function SettlementAdminPanel({ leagues, busy, onRun }: SettlementAdminPa
               <dt><Clock3 size={13} aria-hidden="true" /> 예정 시각</dt>
               <dd>{formatKstDateTime(round.settlesAt)}</dd>
             </div>
-            <div><dt>대기 주문</dt><dd>{round.waitingOrderCount}건</dd></div>
+            <div><dt>미체결 주문</dt><dd>{round.waitingOrderCount}건</dd></div>
             <div><dt>활성 종목</dt><dd>{settlementState?.activeStockCount ?? 0}개</dd></div>
             <div><dt>미입력 가격</dt><dd>{settlementState?.missingPlanCount ?? 0}개</dd></div>
             <div><dt>글로벌 뉴스</dt><dd>{settlementState?.globalNewsReady ? '입력 완료' : '입력 필요'}</dd></div>

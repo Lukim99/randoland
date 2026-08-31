@@ -1,4 +1,4 @@
-import { ArrowLeft, ChevronRight, MessageSquareText, Paperclip, PenLine, Send, Star, X } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Heart, MessageCircle, MessageSquareText, Paperclip, PenLine, Send, Star, X } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useParams } from 'react-router'
@@ -11,6 +11,7 @@ import type {
   DiscussionAttachment,
   DiscussionAttachmentInput,
   DiscussionPost,
+  DiscussionSort,
   RecentDiscussionPost,
   StockSummary,
 } from '../types/market'
@@ -290,6 +291,135 @@ function DiscussionAttachmentCard({ attachment }: { attachment: DiscussionAttach
   )
 }
 
+interface DiscussionPostCardProps {
+  post: DiscussionPost
+  canInteract: boolean
+  liking: boolean
+  onLike: (post: DiscussionPost) => Promise<void>
+  onComment: (postId: string, content: string) => Promise<void>
+}
+
+function DiscussionPostCard({
+  post,
+  canInteract,
+  liking,
+  onLike,
+  onComment,
+}: DiscussionPostCardProps) {
+  const [commentDraft, setCommentDraft] = useState('')
+  const [commentSubmitting, setCommentSubmitting] = useState(false)
+  const [actionMessage, setActionMessage] = useState<string | null>(null)
+
+  async function handleCommentSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const normalizedContent = commentDraft.trim()
+    if (!normalizedContent || normalizedContent.length > 1000) return
+
+    setCommentSubmitting(true)
+    setActionMessage(null)
+    try {
+      await onComment(post.id, normalizedContent)
+      setCommentDraft('')
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : '댓글을 등록하지 못했습니다.')
+    } finally {
+      setCommentSubmitting(false)
+    }
+  }
+
+  async function handleLike() {
+    setActionMessage(null)
+    try {
+      await onLike(post)
+    } catch (error) {
+      setActionMessage(error instanceof Error ? error.message : '좋아요를 변경하지 못했습니다.')
+    }
+  }
+
+  return (
+    <article className="panel discussion-post">
+      <header className="discussion-post-author">
+        <ProfileImage
+          src={post.authorProfileImageUrl}
+          size="md"
+          label={`${post.authorNickname} 프로필 사진`}
+        />
+        <div>
+          <strong>{post.authorNickname}</strong>
+          <time dateTime={post.createdAt} title={formatKstDateTime(post.createdAt)}>
+            {formatDiscussionTime(post.createdAt)}
+          </time>
+        </div>
+      </header>
+      <div className="discussion-post-body">
+        <h2>{post.title}</h2>
+        <p>{post.content}</p>
+        {post.attachment && <DiscussionAttachmentCard attachment={post.attachment} />}
+      </div>
+
+      <div className="discussion-post-actions" aria-label="게시글 반응">
+        <button
+          className={post.likedByMe ? 'is-active' : undefined}
+          type="button"
+          aria-pressed={post.likedByMe}
+          disabled={!canInteract || liking}
+          title={canInteract ? undefined : '리그 참가 후 좋아요를 누를 수 있습니다.'}
+          onClick={() => void handleLike()}
+        >
+          <Heart size={17} fill={post.likedByMe ? 'currentColor' : 'none'} aria-hidden="true" />
+          좋아요 {post.likeCount}
+        </button>
+        <span><MessageCircle size={17} aria-hidden="true" /> 댓글 {post.commentCount}</span>
+      </div>
+
+      <section className="discussion-comments" aria-label={`${post.title} 댓글`}>
+        {post.comments.length > 0 && (
+          <div className="discussion-comment-list">
+            {post.comments.map((comment) => (
+              <article className="discussion-comment" key={comment.id}>
+                <ProfileImage
+                  src={comment.authorProfileImageUrl}
+                  size="sm"
+                  label={`${comment.authorNickname} 프로필 사진`}
+                />
+                <div>
+                  <header>
+                    <strong>{comment.authorNickname}</strong>
+                    <time dateTime={comment.createdAt} title={formatKstDateTime(comment.createdAt)}>
+                      {formatDiscussionTime(comment.createdAt)}
+                    </time>
+                  </header>
+                  <p>{comment.content}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+
+        {canInteract ? (
+          <form className="discussion-comment-form" onSubmit={(event) => void handleCommentSubmit(event)}>
+            <label className="sr-only" htmlFor={`discussion-comment-${post.id}`}>댓글 내용</label>
+            <input
+              id={`discussion-comment-${post.id}`}
+              value={commentDraft}
+              maxLength={1000}
+              placeholder="댓글을 입력하세요"
+              disabled={commentSubmitting}
+              onChange={(event) => setCommentDraft(event.target.value)}
+            />
+            <button type="submit" disabled={commentSubmitting || !commentDraft.trim()}>
+              <Send size={15} aria-hidden="true" /> {commentSubmitting ? '등록 중' : '등록'}
+            </button>
+          </form>
+        ) : (
+          <p className="discussion-comment-gate">리그 참가 후 댓글을 작성할 수 있습니다.</p>
+        )}
+        {actionMessage && <p className="form-message is-error" role="alert">{actionMessage}</p>}
+      </section>
+    </article>
+  )
+}
+
 interface DiscussionRecentFeedProps {
   posts: RecentDiscussionPost[]
   stocks: StockSummary[]
@@ -330,6 +460,10 @@ function DiscussionRecentFeed({ posts, stocks, loading, error }: DiscussionRecen
                   <span className="discussion-recent-stock">{post.stockName} <small>{post.ticker}</small></span>
                   <strong>{post.title}</strong>
                   <small>{post.authorNickname} · <time dateTime={post.createdAt} title={formatKstDateTime(post.createdAt)}>{formatDiscussionTime(post.createdAt)}</time></small>
+                  <span className="discussion-recent-reactions">
+                    <span><Heart size={13} aria-hidden="true" /> {post.likeCount}</span>
+                    <span><MessageCircle size={13} aria-hidden="true" /> {post.commentCount}</span>
+                  </span>
                 </span>
                 <ChevronRight size={18} aria-hidden="true" />
               </Link>
@@ -357,6 +491,8 @@ export function DiscussionPage() {
     loadDiscussionPosts,
     createDiscussionPost,
     setStockFavorite,
+    setDiscussionPostLike,
+    createDiscussionComment,
   } = useMarket()
   const favoriteStockIdSet = useMemo(() => new Set(favoriteStockIds), [favoriteStockIds])
   const discussionStocks = useMemo(() => {
@@ -366,6 +502,8 @@ export function DiscussionPage() {
   const favoriteStocks = discussionStocks.filter((stock) => favoriteStockIdSet.has(stock.id))
   const selectedStock = stockId ? discussionStocks.find((stock) => stock.id === stockId) : undefined
   const [posts, setPosts] = useState<DiscussionPost[]>([])
+  const [postSort, setPostSort] = useState<DiscussionSort>('latest')
+  const [likingPostId, setLikingPostId] = useState<string | null>(null)
   const [postsLoading, setPostsLoading] = useState(false)
   const [postsError, setPostsError] = useState<string | null>(null)
   const [recentPosts, setRecentPosts] = useState<RecentDiscussionPost[]>([])
@@ -458,7 +596,7 @@ export function DiscussionPage() {
     let active = true
     setPostsLoading(true)
     setPostsError(null)
-    void loadDiscussionPosts(selectedStock.id)
+    void loadDiscussionPosts(selectedStock.id, postSort)
       .then((nextPosts) => {
         if (active) setPosts(nextPosts)
       })
@@ -472,7 +610,7 @@ export function DiscussionPage() {
     return () => {
       active = false
     }
-  }, [loadDiscussionPosts, selectedStock?.id])
+  }, [loadDiscussionPosts, postSort, selectedStock?.id])
 
   function closeComposer() {
     if (submitting) return
@@ -489,6 +627,37 @@ export function DiscussionPage() {
         ? favoriteRequestError.message
         : '즐겨찾기를 변경하지 못했습니다.')
     }
+  }
+
+  async function handleLike(post: DiscussionPost) {
+    if (!selectedStock || likingPostId) return
+    setLikingPostId(post.id)
+    try {
+      const result = await setDiscussionPostLike(post.id, !post.likedByMe)
+      setPosts((currentPosts) => {
+        const nextPosts = currentPosts.map((currentPost) => currentPost.id === post.id
+          ? { ...currentPost, likedByMe: result.liked, likeCount: result.likeCount }
+          : currentPost)
+        return postSort === 'likes'
+          ? [...nextPosts].sort((left, right) => (
+            right.likeCount - left.likeCount || Date.parse(right.createdAt) - Date.parse(left.createdAt)
+          ))
+          : nextPosts
+      })
+    } finally {
+      setLikingPostId(null)
+    }
+  }
+
+  async function handleComment(postId: string, commentContent: string) {
+    const comment = await createDiscussionComment(postId, commentContent)
+    setPosts((currentPosts) => currentPosts.map((post) => post.id === postId
+      ? {
+          ...post,
+          commentCount: post.commentCount + 1,
+          comments: [...post.comments, comment],
+        }
+      : post))
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -511,7 +680,7 @@ export function DiscussionPage() {
     setPageMessage(null)
     try {
       await createDiscussionPost(selectedStock.id, normalizedTitle, normalizedContent, attachment)
-      const nextPosts = await loadDiscussionPosts(selectedStock.id)
+      const nextPosts = await loadDiscussionPosts(selectedStock.id, postSort)
       setPosts(nextPosts)
       setTitle('')
       setContent('')
@@ -629,31 +798,38 @@ export function DiscussionPage() {
           {favoriteError && <p className="page-error" role="alert">{favoriteError}</p>}
           {pageMessage && <p className="form-message discussion-page-message" role="status">{pageMessage}</p>}
 
+          <div className="discussion-feed-toolbar" role="group" aria-label="게시글 정렬">
+            <button
+              className={postSort === 'latest' ? 'is-active' : undefined}
+              type="button"
+              aria-pressed={postSort === 'latest'}
+              onClick={() => setPostSort('latest')}
+            >
+              최신순
+            </button>
+            <button
+              className={postSort === 'likes' ? 'is-active' : undefined}
+              type="button"
+              aria-pressed={postSort === 'likes'}
+              onClick={() => setPostSort('likes')}
+            >
+              좋아요순
+            </button>
+          </div>
+
           <section className="discussion-feed" aria-live="polite" aria-busy={postsLoading}>
             {postsError && <p className="page-error" role="alert">{postsError}</p>}
             {postsLoading ? (
               <div className="skeleton skeleton--chart" aria-label="게시글 불러오는 중" />
             ) : posts.length > 0 ? posts.map((post) => (
-              <article className="panel discussion-post" key={post.id}>
-                <header className="discussion-post-author">
-                  <ProfileImage
-                    src={post.authorProfileImageUrl}
-                    size="md"
-                    label={`${post.authorNickname} 프로필 사진`}
-                  />
-                  <div>
-                    <strong>{post.authorNickname}</strong>
-                    <time dateTime={post.createdAt} title={formatKstDateTime(post.createdAt)}>
-                      {formatDiscussionTime(post.createdAt)}
-                    </time>
-                  </div>
-                </header>
-                <div className="discussion-post-body">
-                  <h2>{post.title}</h2>
-                  <p>{post.content}</p>
-                  {post.attachment && <DiscussionAttachmentCard attachment={post.attachment} />}
-                </div>
-              </article>
+              <DiscussionPostCard
+                key={post.id}
+                post={post}
+                canInteract={Boolean(myState?.joined)}
+                liking={likingPostId !== null}
+                onLike={handleLike}
+                onComment={handleComment}
+              />
             )) : (
               <div className="panel discussion-empty">
                 <MessageSquareText size={23} />

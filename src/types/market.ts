@@ -160,6 +160,18 @@ export interface DiscussionExecutionAttachment {
 
 export type DiscussionAttachment = DiscussionPositionAttachment | DiscussionExecutionAttachment
 
+export type DiscussionSort = 'latest' | 'likes'
+
+export interface DiscussionComment {
+  id: string
+  postId: string
+  authorNickname: string
+  authorProfileImagePath: string | null
+  authorProfileImageUrl: string | null
+  content: string
+  createdAt: string
+}
+
 export interface DiscussionPost {
   id: string
   stockId: string
@@ -169,6 +181,10 @@ export interface DiscussionPost {
   title: string
   content: string
   attachment: DiscussionAttachment | null
+  likeCount: number
+  likedByMe: boolean
+  commentCount: number
+  comments: DiscussionComment[]
   createdAt: string
 }
 

@@ -34,9 +34,9 @@ export function AdminOrderMonitorPanel({ leagues, orders }: AdminOrderMonitorPan
       <header className="admin-panel__header">
         <span className="admin-panel__icon"><ClipboardList size={19} aria-hidden="true" /></span>
         <div>
-          <span className="eyebrow">OPEN ORDERS</span>
-          <h2>플레이어 주문 모니터링</h2>
-          <p>현재 접수 대기 또는 정산 잠금 상태인 주문을 조회합니다.</p>
+          <span className="eyebrow">EXECUTIONS</span>
+          <h2>실시간 체결 모니터링</h2>
+          <p>플레이어가 현재가로 체결한 최근 주문을 조회합니다.</p>
         </div>
         <span className="count-chip" aria-label={`조회된 주문 ${visibleOrders.length}건`}>{visibleOrders.length}</span>
       </header>
@@ -69,11 +69,11 @@ export function AdminOrderMonitorPanel({ leagues, orders }: AdminOrderMonitorPan
               <th>종목</th>
               <th>거래 형태</th>
               <th>수량</th>
-              <th>주문가격</th>
+              <th>체결가</th>
               <th>레버리지</th>
               <th>대상 라운드</th>
               <th>상태</th>
-              <th>접수 시각</th>
+              <th>체결 시각</th>
             </tr>
           </thead>
           <tbody>
@@ -88,14 +88,12 @@ export function AdminOrderMonitorPanel({ leagues, orders }: AdminOrderMonitorPan
                 <td>{order.leveragePercent > 0 ? `${formatPrice(order.leveragePercent)}%` : '-'}</td>
                 <td>{order.roundNumber}라운드</td>
                 <td>
-                  <span className={`admin-status ${order.status === 'locked' ? 'admin-status--warning' : 'admin-status--active'}`}>
-                    {order.status === 'locked' ? '정산 잠금' : '접수 대기'}
-                  </span>
+                  <span className="admin-status admin-status--active">체결 완료</span>
                 </td>
-                <td>{formatKstDateTime(order.submittedAt)}</td>
+                <td>{formatKstDateTime(order.executedAt)}</td>
               </tr>
             )) : (
-              <tr><td className="admin-table-empty" colSpan={10}>조건에 맞는 현재 주문이 없습니다.</td></tr>
+              <tr><td className="admin-table-empty" colSpan={10}>조건에 맞는 체결 기록이 없습니다.</td></tr>
             )}
           </tbody>
         </table>
