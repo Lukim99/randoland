@@ -12,6 +12,7 @@ const actionLabels: Record<string, string> = {
   league_created: '리그 개최',
   league_stopped: '리그 중단',
   participant_disqualified: '사용자 제재',
+  participant_nickname_changed: '플레이어 닉네임 변경',
   participant_asset_granted: '플레이어 자산 지급',
   participant_asset_revoked: '플레이어 자산 회수',
   user_ban_revoked: '이후 참가 제한 해제',

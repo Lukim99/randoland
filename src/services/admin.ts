@@ -155,6 +155,28 @@ export async function revokeAdminBan(userId: string, reason: string) {
   return data
 }
 
+export async function updateAdminParticipantNickname(
+  participantId: string,
+  nickname: string,
+) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc(
+    'randoland_admin_console_update_participant_nickname',
+    {
+      p_participant_id: participantId,
+      p_nickname: nickname,
+    },
+  )
+  throwIfError(error)
+  return data as unknown as {
+    participantId: string
+    previousNickname: string
+    nickname: string
+    updatedPostCount: number
+    updatedCommentCount: number
+  }
+}
+
 export async function adjustAdminParticipantAsset(
   input: AdminParticipantAssetAdjustmentInput,
 ) {

@@ -7311,6 +7311,7 @@ button:disabled {
   font-size: calc(13px + var(--desktop-font-size-increase));
 }
 
+.admin-participant-nickname > .primary-button,
 .admin-participant-adjustment > .primary-button,
 .admin-participant-adjustment > .danger-button {
   justify-self: start;

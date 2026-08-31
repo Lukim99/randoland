@@ -85,7 +85,7 @@ export function LeagueJoinCard({ compact = false }: LeagueJoinCardProps) {
         </label>
         <div className="league-join-points">
           <span><CheckCircle2 size={14} /> 카카오 계정 기준 1인 1참가</span>
-          <span><CheckCircle2 size={14} /> 참가 후 닉네임 변경 불가</span>
+          <span><CheckCircle2 size={14} /> 참가 후 직접 변경 불가</span>
         </div>
         {message && <p className="form-message is-error" role="alert">{message}</p>}
       </div>

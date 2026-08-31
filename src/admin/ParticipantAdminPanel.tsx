@@ -1,10 +1,11 @@
-import { Coins, Search, ShieldBan, ShieldCheck, TicketCheck } from 'lucide-react'
-import { useMemo, useState, type FormEvent } from 'react'
+import { Coins, PenLine, Search, ShieldBan, ShieldCheck, TicketCheck } from 'lucide-react'
+import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   adjustAdminParticipantAsset,
   createAdminRequestKey,
   disqualifyAdminParticipant,
   revokeAdminBan,
+  updateAdminParticipantNickname,
 } from '../services/admin'
 import type {
   AdminActionRunner,
@@ -43,6 +44,7 @@ export function ParticipantAdminPanel({
 }: ParticipantAdminPanelProps) {
   const [query, setQuery] = useState('')
   const [participantId, setParticipantId] = useState('')
+  const [nickname, setNickname] = useState('')
   const [sanctionReason, setSanctionReason] = useState('')
   const [banFuture, setBanFuture] = useState(true)
   const [assetType, setAssetType] = useState<AdminParticipantAssetType>('rp')
@@ -56,6 +58,7 @@ export function ParticipantAdminPanel({
     ? participantId
     : participants[0]?.id ?? ''
   const selectedParticipant = participants.find(({ id }) => id === selectedParticipantId)
+  const normalizedNickname = nickname.trim().normalize('NFC')
   const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR')
   const visibleParticipants = participants.filter((participant) => (
     !normalizedQuery
@@ -65,6 +68,10 @@ export function ParticipantAdminPanel({
     () => new Map(leagues.map((league) => [league.id, league.name])),
     [leagues],
   )
+
+  useEffect(() => {
+    setNickname(selectedParticipant?.nickname ?? '')
+  }, [selectedParticipant?.id, selectedParticipant?.nickname])
 
   const adjustableStocks = stocks.filter((stock) => (
     stock.leagueId === selectedParticipant?.leagueId
@@ -133,6 +140,16 @@ export function ParticipantAdminPanel({
     }
   }
 
+  async function handleNicknameChange(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!selectedParticipant) return
+
+    await onRun(
+      () => updateAdminParticipantNickname(selectedParticipant.id, normalizedNickname),
+      `${selectedParticipant.nickname} 참가자의 닉네임을 "${normalizedNickname}"로 변경했습니다.`,
+    )
+  }
+
   async function handleDisqualify(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!selectedParticipant) return
@@ -167,7 +184,7 @@ export function ParticipantAdminPanel({
         <div>
           <span className="eyebrow">PARTICIPANT</span>
           <h2>리그 참가 플레이어 관리</h2>
-          <p>총 보유 자산을 확인하고 이벤트 자산을 지급하거나 회수합니다.</p>
+          <p>닉네임과 총 보유 자산을 관리하고 이벤트 자산을 지급하거나 회수합니다.</p>
         </div>
       </header>
 
@@ -206,6 +223,38 @@ export function ParticipantAdminPanel({
             <div><span>미수 RP</span><strong>{formatRp(selectedParticipant.receivableRp)}</strong></div>
             <div><span>출석토큰</span><strong>{formatPrice(selectedParticipant.attendanceTokens)}개</strong></div>
           </section>
+
+          <form className="admin-form admin-participant-nickname" onSubmit={(event) => void handleNicknameChange(event)}>
+            <h3><PenLine size={16} aria-hidden="true" /> 닉네임 변경</h3>
+            <div className="admin-form__columns">
+              <label>
+                <span>현재 닉네임</span>
+                <input type="text" value={selectedParticipant.nickname} disabled />
+              </label>
+              <label>
+                <span>새 닉네임</span>
+                <input
+                  type="text"
+                  value={nickname}
+                  maxLength={16}
+                  pattern="(?:[가-힣]{1,8}|[A-Za-z0-9]{1,16})"
+                  title="한글 1~8자 또는 영문·숫자 1~16자로 입력해 주세요."
+                  autoComplete="off"
+                  onChange={(event) => setNickname(event.target.value)}
+                  disabled={busy}
+                  required
+                />
+              </label>
+            </div>
+            <p className="admin-form__hint">한글 8자 이하 또는 영문·숫자 16자 이하 · 같은 리그에서는 중복 사용할 수 없습니다.</p>
+            <button
+              className="primary-button"
+              type="submit"
+              disabled={busy || normalizedNickname.length === 0 || normalizedNickname === selectedParticipant.nickname}
+            >
+              닉네임 변경
+            </button>
+          </form>
 
           <section className="admin-participant-holdings" aria-labelledby="admin-participant-holdings-title">
             <header>
