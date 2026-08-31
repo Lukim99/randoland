@@ -92,7 +92,7 @@ export function DashboardPage() {
           <div className="round-label">
             <span className="status-dot" />
             {market.league.name}
-            {market.round && ` · ${market.round.number}라운드`}
+            {market.round && ` · 다음 ${market.round.number}라운드`}
             {refreshing && <span className="live-refresh-chip">갱신 중</span>}
           </div>
           <h1>
