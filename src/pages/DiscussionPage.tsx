@@ -274,19 +274,26 @@ function DiscussionAttachmentCard({ attachment }: { attachment: DiscussionAttach
     short: '공매도',
     cover: '공매도 청산',
   }[attachment.side]
+  const realizedProfit = (
+    attachment.side === 'sell' || attachment.side === 'cover'
+  ) ? attachment.realizedProfit : null
 
   return (
     <div className="discussion-attachment-card">
       <div><span>{sideLabel} 체결</span><small>{attachment.executedAt ? formatKstDateTime(attachment.executedAt) : '체결 완료'}</small></div>
       <strong>{attachment.stockName} {formatPrice(attachment.quantity)}주</strong>
-      <p>{formatPrice(attachment.totalAmount)} RP</p>
-      <small>1주당 {formatPrice(attachment.executionPrice)} RP · {attachment.leveragePercent > 0 ? `레버리지 ${attachment.leveragePercent}%` : `${attachment.ticker} ${attachment.side.toUpperCase()}`}</small>
-      {attachment.realizedProfit !== null && (
-        <p className={`discussion-attachment-result ${movementClass(attachment.realizedProfit)}`}>
-          실현손익 {attachment.realizedProfit > 0 ? '+' : ''}{formatPrice(attachment.realizedProfit)} RP
-          {attachment.realizedReturn !== null && ` (${formatPercent(attachment.realizedReturn)})`}
+      {realizedProfit !== null ? (
+        <p className={`discussion-attachment-profit ${movementClass(realizedProfit)}`}>
+          {realizedProfit > 0 ? '+' : ''}{formatPrice(realizedProfit)} RP
+          {attachment.realizedReturn !== null && <span>({formatPercent(attachment.realizedReturn)})</span>}
         </p>
+      ) : (
+        <p>{formatPrice(attachment.totalAmount)} RP</p>
       )}
+      <small>
+        {realizedProfit !== null && `체결금액 ${formatPrice(attachment.totalAmount)} RP · `}
+        1주당 {formatPrice(attachment.executionPrice)} RP · {attachment.leveragePercent > 0 ? `레버리지 ${attachment.leveragePercent}%` : `${attachment.ticker} ${attachment.side.toUpperCase()}`}
+      </small>
     </div>
   )
 }
@@ -827,16 +834,22 @@ export function DiscussionPage() {
             <Link className="discussion-back-button" to="/discussion" aria-label="종목 목록으로 돌아가기">
               <ArrowLeft size={18} aria-hidden="true" />
             </Link>
-            <StockLogo
-              src={selectedStock.logoImageUrl}
-              spriteIndex={selectedStock.logoSpriteIndex}
-              size="lg"
-              label={`${selectedStock.name} 로고`}
-            />
-            <div>
-              <span className="eyebrow">{selectedStock.ticker}</span>
-              <h1>{selectedStock.name} 토론방</h1>
-            </div>
+            <Link
+              className="discussion-stock-detail-link"
+              to={`/stock/${selectedStock.id}`}
+              aria-label={`${selectedStock.name} 종목 상세 보기`}
+            >
+              <StockLogo
+                src={selectedStock.logoImageUrl}
+                spriteIndex={selectedStock.logoSpriteIndex}
+                size="lg"
+                label=""
+              />
+              <span>
+                <span className="eyebrow">{selectedStock.ticker}</span>
+                <h1>{selectedStock.name} 토론방</h1>
+              </span>
+            </Link>
             <div className="discussion-board-actions">
               <button
                 className={`favorite-button${favoriteStockIdSet.has(selectedStock.id) ? ' is-active' : ''}`}

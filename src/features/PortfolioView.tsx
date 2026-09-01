@@ -9,6 +9,7 @@ import {
   WalletCards,
 } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
+import { Link } from 'react-router'
 import { StockLogo } from '../components/StockLogo'
 import { formatKstDateTime, formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
@@ -150,7 +151,12 @@ export function PortfolioView() {
                             const stock = market?.stocks.find((item) => item.id === holding.stockId)
                             return (
                               <tr key={holding.key}>
-                                <td><span className="holding-stock"><StockLogo src={stock?.logoImageUrl} spriteIndex={stock?.logoSpriteIndex ?? 0} size="sm" label="" /><span><strong>{holding.name}</strong><small>{holding.ticker} · {holding.holdingRounds}라운드</small></span></span></td>
+                                <td>
+                                  <Link className="holding-stock holding-stock-link" to={`/stock/${holding.stockId}`}>
+                                    <StockLogo src={stock?.logoImageUrl} spriteIndex={stock?.logoSpriteIndex ?? 0} size="sm" label="" />
+                                    <span><strong>{holding.name}</strong><small>{holding.ticker} · {holding.holdingRounds}라운드</small></span>
+                                  </Link>
+                                </td>
                                 <td><span className={`position-type ${holding.type}`}>{holding.type === 'long' ? '매수' : '공매도'}</span></td>
                                 <td>{formatPrice(holding.quantity)}주</td>
                                 <td>{formatPrice(holding.averagePrice)}</td>
@@ -172,7 +178,10 @@ export function PortfolioView() {
                         return (
                           <article className="holding-mobile-card" key={holding.key}>
                             <div className="holding-mobile-card__head">
-                              <span className="holding-stock"><StockLogo src={stock?.logoImageUrl} spriteIndex={stock?.logoSpriteIndex ?? 0} size="sm" label="" /><span><strong>{holding.name}</strong><small>{holding.ticker} · {holding.quantity}주</small></span></span>
+                              <Link className="holding-stock holding-stock-link" to={`/stock/${holding.stockId}`}>
+                                <StockLogo src={stock?.logoImageUrl} spriteIndex={stock?.logoSpriteIndex ?? 0} size="sm" label="" />
+                                <span><strong>{holding.name}</strong><small>{holding.ticker} · {holding.quantity}주</small></span>
+                              </Link>
                               <span className={`position-type ${holding.type}`}>{holding.type === 'long' ? '매수' : '공매도'}</span>
                             </div>
                             <dl>
