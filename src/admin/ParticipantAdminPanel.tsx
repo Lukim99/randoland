@@ -1,10 +1,11 @@
-import { Coins, PenLine, Search, ShieldBan, ShieldCheck, TicketCheck } from 'lucide-react'
+import { Coins, Eye, PenLine, Search, ShieldBan, ShieldCheck, TicketCheck } from 'lucide-react'
 import { useEffect, useMemo, useState, type FormEvent } from 'react'
 import {
   adjustAdminParticipantAsset,
   createAdminRequestKey,
   disqualifyAdminParticipant,
   revokeAdminBan,
+  setAdminParticipantSpectator,
   updateAdminParticipantNickname,
 } from '../services/admin'
 import type {
@@ -161,6 +162,20 @@ export function ParticipantAdminPanel({
     if (completed) setSanctionReason('')
   }
 
+  async function handleSpectatorChange() {
+    if (!selectedParticipant) return
+    const nextIsSpectator = !selectedParticipant.isSpectator
+    const actionLabel = nextIsSpectator ? '관전자로 설정' : '일반 참가자로 전환'
+    if (!window.confirm(
+      `${selectedParticipant.nickname} 참가자를 ${actionLabel}하시겠습니까?\n거래와 자산 등 다른 기능은 유지되며 주간 순위에서만 제외됩니다.`,
+    )) return
+
+    await onRun(
+      () => setAdminParticipantSpectator(selectedParticipant.id, nextIsSpectator),
+      `${selectedParticipant.nickname} 참가자를 ${actionLabel}했습니다.`,
+    )
+  }
+
   async function handleRevokeBan() {
     if (!selectedParticipant?.activeBan) return
     const completed = await onRun(
@@ -184,7 +199,7 @@ export function ParticipantAdminPanel({
         <div>
           <span className="eyebrow">PARTICIPANT</span>
           <h2>리그 참가 플레이어 관리</h2>
-          <p>닉네임과 총 보유 자산을 관리하고 이벤트 자산을 지급하거나 회수합니다.</p>
+          <p>닉네임, 관전자 여부와 총 보유 자산을 관리하고 이벤트 자산을 지급하거나 회수합니다.</p>
         </div>
       </header>
 
@@ -207,7 +222,7 @@ export function ParticipantAdminPanel({
               <td><strong>{formatRp(participant.netWorth)}</strong></td>
               <td>{formatRp(participant.cashBalance)}</td>
               <td>{formatPrice(participant.attendanceTokens)}개</td>
-              <td><span className={`admin-status${participant.disqualifiedAt ? ' admin-status--archived' : participant.activeBan ? ' admin-status--warning' : ' admin-status--active'}`}>{participant.disqualifiedAt ? '리그 제재' : participant.activeBan ? '이후 참가 제한' : '정상'}</span></td>
+              <td><span className={`admin-status${participant.disqualifiedAt ? ' admin-status--archived' : participant.isSpectator || participant.activeBan ? ' admin-status--warning' : ' admin-status--active'}`}>{participant.disqualifiedAt ? '리그 제재' : participant.isSpectator ? '관전자' : participant.activeBan ? '이후 참가 제한' : '정상'}</span></td>
             </tr>
           ))}</tbody>
         </table>
@@ -222,6 +237,21 @@ export function ParticipantAdminPanel({
             <div><span>공매도 상환액</span><strong>{formatRp(selectedParticipant.shortExposure)}</strong></div>
             <div><span>미수 RP</span><strong>{formatRp(selectedParticipant.receivableRp)}</strong></div>
             <div><span>출석토큰</span><strong>{formatPrice(selectedParticipant.attendanceTokens)}개</strong></div>
+          </section>
+
+          <section className="admin-form admin-participant-spectator" aria-labelledby="admin-participant-spectator-title">
+            <h3 id="admin-participant-spectator-title"><Eye size={16} aria-hidden="true" /> 관전자 설정</h3>
+            <p className="admin-form__hint">
+              관전자는 거래, 자산, 토론 등 다른 기능은 동일하게 이용하며 공개 주간 순위에서만 제외됩니다.
+            </p>
+            <button
+              className={selectedParticipant.isSpectator ? 'secondary-button' : 'primary-button'}
+              type="button"
+              onClick={() => void handleSpectatorChange()}
+              disabled={busy}
+            >
+              {selectedParticipant.isSpectator ? '일반 참가자로 전환' : '관전자로 설정'}
+            </button>
           </section>
 
           <form className="admin-form admin-participant-nickname" onSubmit={(event) => void handleNicknameChange(event)}>
@@ -294,7 +324,7 @@ export function ParticipantAdminPanel({
           <label>
             <span>대상 플레이어</span>
             <select value={selectedParticipantId} onChange={(event) => selectParticipant(event.target.value)} disabled={participants.length === 0 || busy}>
-              {participants.map((participant) => <option key={participant.id} value={participant.id}>{participant.nickname} · {leagueNameById.get(participant.leagueId)}{participant.disqualifiedAt ? ' · 제재됨' : ''}</option>)}
+              {participants.map((participant) => <option key={participant.id} value={participant.id}>{participant.nickname} · {leagueNameById.get(participant.leagueId)}{participant.isSpectator ? ' · 관전자' : ''}{participant.disqualifiedAt ? ' · 제재됨' : ''}</option>)}
             </select>
           </label>
           <label>

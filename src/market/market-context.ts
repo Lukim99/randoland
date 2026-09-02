@@ -39,7 +39,7 @@ export interface MarketContextValue {
   ) => Promise<void>
   cancelOrder: (orderId: string) => Promise<void>
   uploadProfileImage: (file: File) => Promise<void>
-  loadRecentDiscussionPosts: (leagueId: string) => Promise<RecentDiscussionPost[]>
+  loadRecentDiscussionPosts: (leagueId: string, limit?: number) => Promise<RecentDiscussionPost[]>
   loadDiscussionPosts: (stockId: string, sort?: DiscussionSort) => Promise<DiscussionPost[]>
   createDiscussionPost: (
     stockId: string,

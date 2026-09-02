@@ -21,6 +21,8 @@ import { useRoundClock } from '../hooks/useRoundClock'
 import { formatKstDateTime, formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 
+type MarketChangeSort = 'default' | 'ascending' | 'descending'
+
 export function DashboardPage() {
   const {
     market,
@@ -35,12 +37,23 @@ export function DashboardPage() {
   } = useMarket()
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [favoriteError, setFavoriteError] = useState<string | null>(null)
+  const [changeSort, setChangeSort] = useState<MarketChangeSort>('default')
   const { nextSettlement, remaining, elapsed } = useRoundClock(market?.round?.settlesAt)
   const favoriteStockIdSet = useMemo(() => new Set(favoriteStockIds), [favoriteStockIds])
   const listedStocks = useMemo(() => {
     const stocks = market?.stocks.filter((stock) => stock.status !== 'delisted') ?? []
-    return [...stocks].sort((left, right) => Number(favoriteStockIdSet.has(right.id)) - Number(favoriteStockIdSet.has(left.id)))
-  }, [favoriteStockIdSet, market?.stocks])
+    return [...stocks].sort((left, right) => {
+      const favoriteOrder = Number(favoriteStockIdSet.has(right.id)) - Number(favoriteStockIdSet.has(left.id))
+      if (favoriteOrder !== 0) return favoriteOrder
+      if (changeSort === 'ascending' && left.changePercent !== right.changePercent) {
+        return left.changePercent - right.changePercent
+      }
+      if (changeSort === 'descending' && left.changePercent !== right.changePercent) {
+        return right.changePercent - left.changePercent
+      }
+      return changeSort === 'default' ? 0 : left.name.localeCompare(right.name, 'ko-KR')
+    })
+  }, [changeSort, favoriteStockIdSet, market?.stocks])
   const favoriteStocks = listedStocks.filter((stock) => favoriteStockIdSet.has(stock.id))
   const selectedStock = listedStocks.find((stock) => stock.id === selectedId) ?? listedStocks[0]
 
@@ -139,8 +152,8 @@ export function DashboardPage() {
           <span className="stat-icon"><EyeOff size={19} /></span>
           <div>
             <small>최근 공개 순위</small>
-            <strong>{myState?.latestRank ? `${myState.latestRank.rank}위` : '비공개'}</strong>
-            <span>매주 일요일 09:00 공개</span>
+            <strong>{participant?.isSpectator ? '관전자' : myState?.latestRank ? `${myState.latestRank.rank}위` : '비공개'}</strong>
+            <span>{participant?.isSpectator ? '주간 순위 집계 제외' : '매주 일요일 09:00 공개'}</span>
           </div>
         </article>
       </section>
@@ -196,7 +209,21 @@ export function DashboardPage() {
                 <h2>상장기업 현황</h2>
                 <p>종목을 선택하면 위 차트와 주문서가 함께 변경됩니다.</p>
               </div>
-              <span className="count-chip">{listedStocks.length} 종목</span>
+              <div className="market-list-controls">
+                <label>
+                  <span className="sr-only">등락률 정렬</span>
+                  <select
+                    value={changeSort}
+                    onChange={(event) => setChangeSort(event.target.value as MarketChangeSort)}
+                    aria-label="등락률 정렬"
+                  >
+                    <option value="default">기본순</option>
+                    <option value="ascending">등락률 오름차순</option>
+                    <option value="descending">등락률 내림차순</option>
+                  </select>
+                </label>
+                <span className="count-chip">{listedStocks.length} 종목</span>
+              </div>
             </div>
             {favoriteError && <p className="form-message is-error" role="alert">{favoriteError}</p>}
             {favoriteStocks.length > 0 && (

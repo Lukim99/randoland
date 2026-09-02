@@ -115,6 +115,7 @@ const errorTranslations: Array<[string, string]> = [
   ['League cannot be stopped while settlement is running', '정산이 진행 중입니다. 정산 완료 후 리그를 중단해 주세요.'],
   ['A disqualification reason must contain', '제재 사유는 5자 이상 500자 이하로 입력해 주세요.'],
   ['Participant is already disqualified', '이미 제재된 참가자입니다.'],
+  ['A participant is required for spectator status change', '관전자 여부를 변경할 참가자를 선택해 주세요.'],
   ['A participant is required for nickname change', '닉네임을 변경할 참가자를 선택해 주세요.'],
   ['Participant was not found', '참가자 정보를 찾지 못했습니다. 새로고침 후 다시 시도해 주세요.'],
   ['Participant nickname is unchanged', '현재 닉네임과 다른 닉네임을 입력해 주세요.'],
@@ -259,7 +260,7 @@ export async function loadNewsFeed(leagueId: string): Promise<NewsFeed> {
 
 export async function loadMyState(leagueId: string): Promise<MyState> {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_get_my_state', {
+  const { data, error } = await client.rpc('randoland_get_my_state_v2', {
     p_league_id: leagueId,
   })
   throwIfError(error)
@@ -340,6 +341,7 @@ export async function loadMyState(leagueId: string): Promise<MyState> {
     listing: listings[0] ?? null,
     participant: {
       ...state.participant,
+      isSpectator: Boolean(state.participant.isSpectator),
       profileImagePath,
       profileImageUrl,
       receivableRp: state.participant.receivableRp ?? 0,
@@ -519,11 +521,14 @@ export async function loadDiscussionPosts(
   })
 }
 
-export async function loadRecentDiscussionPosts(leagueId: string): Promise<RecentDiscussionPost[]> {
+export async function loadRecentDiscussionPosts(
+  leagueId: string,
+  limit = 10,
+): Promise<RecentDiscussionPost[]> {
   const client = requireSupabase()
   const { data, error } = await client.rpc('randoland_get_recent_discussion_posts', {
     p_league_id: leagueId,
-    p_limit: 10,
+    p_limit: limit,
   })
   throwIfError(error)
 

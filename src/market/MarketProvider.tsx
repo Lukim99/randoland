@@ -226,7 +226,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
   )
 
   const loadRecentDiscussionPosts = useCallback(
-    (leagueId: string) => loadRecentDiscussionPostsRequest(leagueId),
+    (leagueId: string, limit = 10) => loadRecentDiscussionPostsRequest(leagueId, limit),
     [],
   )
 

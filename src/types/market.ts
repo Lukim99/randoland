@@ -200,6 +200,7 @@ export interface ParticipantSummary {
   profileImagePath: string | null
   profileImageUrl: string | null
   nickname: string
+  isSpectator: boolean
   cashBalance: number
   reservedCash: number
   availableCash: number

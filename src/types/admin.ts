@@ -28,6 +28,7 @@ export interface AdminParticipant {
   leagueId: string
   userId: string
   nickname: string
+  isSpectator: boolean
   cashBalance: number
   reservedCash: number
   availableCash: number

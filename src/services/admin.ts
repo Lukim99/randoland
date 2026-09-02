@@ -177,6 +177,26 @@ export async function updateAdminParticipantNickname(
   }
 }
 
+export async function setAdminParticipantSpectator(
+  participantId: string,
+  isSpectator: boolean,
+) {
+  const client = requireSupabase()
+  const { data, error } = await client.rpc(
+    'randoland_admin_console_set_participant_spectator',
+    {
+      p_participant_id: participantId,
+      p_is_spectator: isSpectator,
+    },
+  )
+  throwIfError(error)
+  return data as unknown as {
+    participantId: string
+    isSpectator: boolean
+    changed: boolean
+  }
+}
+
 export async function adjustAdminParticipantAsset(
   input: AdminParticipantAssetAdjustmentInput,
 ) {

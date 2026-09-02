@@ -1335,6 +1335,29 @@ dd {
   line-height: 1.5;
 }
 
+.market-list-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.market-list-controls select {
+  height: 32px;
+  padding: 0 30px 0 10px;
+  color: var(--text);
+  background: #090d0c;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  font: inherit;
+  font-size: calc(8px + var(--desktop-font-size-increase));
+  outline: 0;
+}
+
+.market-list-controls select:focus-visible {
+  border-color: rgba(0, 255, 191, 0.5);
+  box-shadow: 0 0 0 2px rgba(0, 255, 191, 0.1);
+}
+
 .count-chip,
 .news-time,
 .theme-pill,
@@ -2131,6 +2154,16 @@ dd {
   margin-bottom: 14px;
 }
 
+.discussion-page-header--recent {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+
+.discussion-page-header--recent h1 {
+  margin-top: 4px;
+}
+
 .discussion-stock-directory {
   width: min(880px, 100%);
   padding: clamp(18px, 3vw, 28px);
@@ -2268,6 +2301,29 @@ dd {
   background: rgba(255, 255, 255, 0.012);
   border: 1px solid var(--border);
   border-radius: 12px;
+}
+
+.discussion-recent-view-all {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-height: 42px;
+  margin-top: 13px;
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.018);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: calc(10px + var(--desktop-font-size-increase));
+  font-weight: 750;
+  transition: color 160ms ease, background 160ms ease, border-color 160ms ease;
+}
+
+.discussion-recent-view-all:hover,
+.discussion-recent-view-all:focus-visible {
+  color: var(--accent);
+  background: var(--accent-soft);
+  border-color: rgba(0, 255, 191, 0.22);
 }
 
 .discussion-stock-links {
@@ -7361,6 +7417,8 @@ button:disabled {
 }
 
 .admin-participant-nickname > .primary-button,
+.admin-participant-spectator > .primary-button,
+.admin-participant-spectator > .secondary-button,
 .admin-participant-adjustment > .primary-button,
 .admin-participant-adjustment > .danger-button {
   justify-self: start;

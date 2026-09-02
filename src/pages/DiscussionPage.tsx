@@ -1,7 +1,7 @@
 import { ArrowLeft, ChevronRight, Heart, MessageCircle, MessageSquareText, Paperclip, PenLine, Send, Star, Trash2, X } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
-import { Link, useParams } from 'react-router'
+import { Link, useParams, useSearchParams } from 'react-router'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
 import { ProfileImage } from '../components/ProfileImage'
 import { StockLogo } from '../components/StockLogo'
@@ -482,9 +482,16 @@ interface DiscussionRecentFeedProps {
   stocks: StockSummary[]
   loading: boolean
   error: string | null
+  showViewAllLink?: boolean
 }
 
-function DiscussionRecentFeed({ posts, stocks, loading, error }: DiscussionRecentFeedProps) {
+function DiscussionRecentFeed({
+  posts,
+  stocks,
+  loading,
+  error,
+  showViewAllLink = false,
+}: DiscussionRecentFeedProps) {
   const stockById = new Map(stocks.map((stock) => [stock.id, stock]))
 
   return (
@@ -533,12 +540,19 @@ function DiscussionRecentFeed({ posts, stocks, loading, error }: DiscussionRecen
           <p>아직 작성된 게시글이 없습니다.</p>
         </div>
       )}
+      {showViewAllLink && !loading && !error && posts.length > 0 && (
+        <Link className="discussion-recent-view-all" to="/discussion?view=recent">
+          전체 최신글 보기 <ChevronRight size={16} aria-hidden="true" />
+        </Link>
+      )}
     </section>
   )
 }
 
 export function DiscussionPage() {
   const { stockId } = useParams()
+  const [searchParams] = useSearchParams()
+  const showAllRecent = !stockId && searchParams.get('view') === 'recent'
   const {
     market,
     myState,
@@ -629,7 +643,7 @@ export function DiscussionPage() {
     let active = true
     setRecentPostsLoading(true)
     setRecentPostsError(null)
-    void loadRecentDiscussionPosts(leagueId)
+    void loadRecentDiscussionPosts(leagueId, showAllRecent ? 100 : 10)
       .then((nextPosts) => {
         if (active) setRecentPosts(nextPosts)
       })
@@ -643,7 +657,7 @@ export function DiscussionPage() {
     return () => {
       active = false
     }
-  }, [loadRecentDiscussionPosts, market?.league?.id, stockId])
+  }, [loadRecentDiscussionPosts, market?.league?.id, showAllRecent, stockId])
 
   useEffect(() => {
     if (!selectedStock?.id) {
@@ -808,26 +822,47 @@ export function DiscussionPage() {
   return (
     <div className="discussion-page">
       {!selectedStock ? (
-        <>
-          <header className="discussion-page-header">
-            <span className="feature-icon"><MessageSquareText size={28} /></span>
-            <h1>종목토론방</h1>
-          </header>
-          {favoriteError && <p className="page-error" role="alert">{favoriteError}</p>}
-          <DiscussionFavoriteStocks stocks={favoriteStocks} />
-          <DiscussionRecentFeed
-            posts={recentPosts}
-            stocks={discussionStocks}
-            loading={recentPostsLoading}
-            error={recentPostsError}
-          />
-          <DiscussionStockList
-            stocks={discussionStocks}
-            favoriteStockIds={favoriteStockIdSet}
-            canFavorite={Boolean(myState?.joined)}
-            onToggleFavorite={(stock, favorited) => void handleFavorite(stock, favorited)}
-          />
-        </>
+        showAllRecent ? (
+          <>
+            <header className="discussion-page-header discussion-page-header--recent">
+              <Link className="discussion-back-button" to="/discussion" aria-label="종목토론방 첫 화면으로 돌아가기">
+                <ArrowLeft size={18} aria-hidden="true" />
+              </Link>
+              <div>
+                <span className="eyebrow">ALL STOCKS</span>
+                <h1>전체 최신글</h1>
+              </div>
+            </header>
+            <DiscussionRecentFeed
+              posts={recentPosts}
+              stocks={discussionStocks}
+              loading={recentPostsLoading}
+              error={recentPostsError}
+            />
+          </>
+        ) : (
+          <>
+            <header className="discussion-page-header">
+              <span className="feature-icon"><MessageSquareText size={28} /></span>
+              <h1>종목토론방</h1>
+            </header>
+            {favoriteError && <p className="page-error" role="alert">{favoriteError}</p>}
+            <DiscussionFavoriteStocks stocks={favoriteStocks} />
+            <DiscussionRecentFeed
+              posts={recentPosts}
+              stocks={discussionStocks}
+              loading={recentPostsLoading}
+              error={recentPostsError}
+              showViewAllLink
+            />
+            <DiscussionStockList
+              stocks={discussionStocks}
+              favoriteStockIds={favoriteStockIdSet}
+              canFavorite={Boolean(myState?.joined)}
+              onToggleFavorite={(stock, favorited) => void handleFavorite(stock, favorited)}
+            />
+          </>
+        )
       ) : (
         <div className="discussion-board">
           <header className="panel discussion-board-header">
