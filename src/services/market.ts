@@ -1,4 +1,5 @@
 import type { PostgrestError } from '@supabase/supabase-js'
+import { getDiscussionImageExtension, validateDiscussionImageFile } from '../lib/discussion-image'
 import { getProfileImageExtension, validateProfileImageFile } from '../lib/profile-image'
 import { supabase } from '../lib/supabase'
 import type {
@@ -20,6 +21,8 @@ import type {
 
 const PROFILE_IMAGE_BUCKET = 'randoland-profile-images'
 const STOCK_LOGO_BUCKET = 'randoland-stock-logos'
+const DISCUSSION_IMAGE_BUCKET = 'randoland-discussion-images'
+const DISCUSSION_IMAGE_URL_LIFETIME_SECONDS = 60 * 60
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000
 
 function normalizeCandleDates(candles: CandlePoint[]): CandlePoint[] {
@@ -102,6 +105,8 @@ const errorTranslations: Array<[string, string]> = [
   ['Join the league before writing a discussion post', '리그 참가 후 게시글을 작성할 수 있습니다.'],
   ['Discussion title must contain', '제목은 1~80자로 입력해 주세요.'],
   ['Discussion content must contain', '내용은 1~2,000자로 입력해 주세요.'],
+  ['Discussion image path is invalid', '첨부 사진 경로를 확인하지 못했습니다. 다시 선택해 주세요.'],
+  ['Uploaded discussion image was not found', '업로드한 첨부 사진을 확인하지 못했습니다. 다시 선택해 주세요.'],
   ['Only the author can delete this discussion post', '본인이 작성한 게시글만 삭제할 수 있습니다.'],
   ['Only the author can delete this discussion comment', '본인이 작성한 댓글만 삭제할 수 있습니다.'],
   ['Randoland administrator access is required', '리그 관리자 권한이 필요합니다.'],
@@ -476,6 +481,25 @@ export async function uploadProfileImage(
   return data
 }
 
+async function loadDiscussionImageUrls(imagePaths: Array<string | null>) {
+  const paths = [...new Set(imagePaths.filter((path): path is string => Boolean(path)))]
+  const imageUrlByPath = new Map<string, string>()
+  if (paths.length === 0) return imageUrlByPath
+
+  const client = requireSupabase()
+  const { data, error } = await client.storage
+    .from(DISCUSSION_IMAGE_BUCKET)
+    .createSignedUrls(paths, DISCUSSION_IMAGE_URL_LIFETIME_SECONDS)
+  if (error) throw new Error(error.message)
+
+  data.forEach((image) => {
+    if (image.path && image.signedUrl && !image.error) {
+      imageUrlByPath.set(image.path, image.signedUrl)
+    }
+  })
+  return imageUrlByPath
+}
+
 export async function loadDiscussionPosts(
   stockId: string,
   sort: DiscussionSort = 'latest',
@@ -488,8 +512,10 @@ export async function loadDiscussionPosts(
   })
   throwIfError(error)
 
-  const payload = data as unknown as { posts?: Array<Omit<DiscussionPost, 'authorProfileImageUrl'>> }
-  return (payload.posts ?? []).map((post) => {
+  const payload = data as unknown as { posts?: Array<Omit<DiscussionPost, 'authorProfileImageUrl' | 'imageUrl'>> }
+  const posts = payload.posts ?? []
+  const imageUrlByPath = await loadDiscussionImageUrls(posts.map((post) => post.imagePath ?? null))
+  return posts.map((post) => {
     const authorProfileImagePath = post.authorProfileImagePath ?? null
     const authorProfileImageUrl = authorProfileImagePath
       ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
@@ -512,6 +538,8 @@ export async function loadDiscussionPosts(
       ...post,
       authorProfileImagePath,
       authorProfileImageUrl,
+      imagePath: post.imagePath ?? null,
+      imageUrl: post.imagePath ? imageUrlByPath.get(post.imagePath) ?? null : null,
       ownedByMe: Boolean(post.ownedByMe),
       likeCount: Number(post.likeCount ?? 0),
       likedByMe: Boolean(post.likedByMe),
@@ -532,8 +560,10 @@ export async function loadRecentDiscussionPosts(
   })
   throwIfError(error)
 
-  const payload = data as unknown as { posts?: Array<Omit<RecentDiscussionPost, 'authorProfileImageUrl'>> }
-  return (payload.posts ?? []).map((post) => {
+  const payload = data as unknown as { posts?: Array<Omit<RecentDiscussionPost, 'authorProfileImageUrl' | 'imageUrl'>> }
+  const posts = payload.posts ?? []
+  const imageUrlByPath = await loadDiscussionImageUrls(posts.map((post) => post.imagePath ?? null))
+  return posts.map((post) => {
     const authorProfileImagePath = post.authorProfileImagePath ?? null
     const authorProfileImageUrl = authorProfileImagePath
       ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
@@ -543,6 +573,8 @@ export async function loadRecentDiscussionPosts(
       ...post,
       authorProfileImagePath,
       authorProfileImageUrl,
+      imagePath: post.imagePath ?? null,
+      imageUrl: post.imagePath ? imageUrlByPath.get(post.imagePath) ?? null : null,
       ownedByMe: Boolean(post.ownedByMe),
       likeCount: Number(post.likeCount ?? 0),
       likedByMe: Boolean(post.likedByMe),
@@ -557,25 +589,55 @@ export async function createDiscussionPost(
   title: string,
   content: string,
   attachment: DiscussionAttachmentInput | null,
+  imageFile: File | null,
 ) {
   const client = requireSupabase()
-  const { data, error } = await client.rpc('randoland_create_discussion_post_v2', {
+  let imagePath: string | null = null
+
+  if (imageFile) {
+    const validationError = validateDiscussionImageFile(imageFile)
+    if (validationError) throw new Error(validationError)
+
+    const { data: authData, error: authError } = await client.auth.getUser()
+    if (authError) throw new Error(authError.message)
+    if (!authData.user) throw new Error('로그인이 필요합니다.')
+
+    const imageId = globalThis.crypto?.randomUUID?.()
+    if (!imageId) throw new Error('이 브라우저에서는 사진 첨부를 지원하지 않습니다.')
+
+    imagePath = `${authData.user.id}/post-${imageId}.${getDiscussionImageExtension(imageFile)}`
+    const { error: uploadError } = await client.storage.from(DISCUSSION_IMAGE_BUCKET).upload(imagePath, imageFile, {
+      cacheControl: '3600',
+      contentType: imageFile.type,
+      upsert: false,
+    })
+    if (uploadError) throw new Error(uploadError.message)
+  }
+
+  const { data, error } = await client.rpc('randoland_create_discussion_post_v3', {
     p_stock_id: stockId,
     p_title: title,
     p_content: content,
     p_attachment_type: attachment?.type ?? null,
     p_attachment_reference_id: attachment?.referenceId ?? null,
+    p_image_path: imagePath,
   })
+  if (error && imagePath && !error.message.includes('Failed to fetch')) {
+    await client.storage.from(DISCUSSION_IMAGE_BUCKET).remove([imagePath])
+  }
   throwIfError(error)
-  const post = data as unknown as Omit<DiscussionPost, 'authorProfileImageUrl'>
+  const post = data as unknown as Omit<DiscussionPost, 'authorProfileImageUrl' | 'imageUrl'>
   const authorProfileImagePath = post.authorProfileImagePath ?? null
   const authorProfileImageUrl = authorProfileImagePath
     ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
     : null
+  const imageUrlByPath = await loadDiscussionImageUrls([post.imagePath ?? null])
   return {
     ...post,
     authorProfileImagePath,
     authorProfileImageUrl,
+    imagePath: post.imagePath ?? null,
+    imageUrl: post.imagePath ? imageUrlByPath.get(post.imagePath) ?? null : null,
     ownedByMe: true,
     likeCount: Number(post.likeCount ?? 0),
     likedByMe: Boolean(post.likedByMe),
@@ -635,7 +697,11 @@ export async function deleteDiscussionPost(postId: string) {
     p_post_id: postId,
   })
   throwIfError(error)
-  return data as unknown as { postId: string; stockId: string; deleted: true }
+  const result = data as unknown as { postId: string; stockId: string; imagePath: string | null; deleted: true }
+  if (result.imagePath) {
+    await client.storage.from(DISCUSSION_IMAGE_BUCKET).remove([result.imagePath])
+  }
+  return result
 }
 
 export async function deleteDiscussionComment(commentId: string) {

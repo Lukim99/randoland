@@ -183,6 +183,8 @@ export interface DiscussionPost {
   title: string
   content: string
   attachment: DiscussionAttachment | null
+  imagePath: string | null
+  imageUrl: string | null
   likeCount: number
   likedByMe: boolean
   commentCount: number

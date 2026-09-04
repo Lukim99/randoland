@@ -1,10 +1,11 @@
-import { ArrowLeft, ChevronRight, Heart, MessageCircle, MessageSquareText, Paperclip, PenLine, Send, Star, Trash2, X } from 'lucide-react'
+import { ArrowLeft, ChevronRight, Heart, ImagePlus, MessageCircle, MessageSquareText, Paperclip, PenLine, Send, Star, Trash2, X } from 'lucide-react'
 import { useEffect, useId, useMemo, useRef, useState, type FormEvent } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useParams, useSearchParams } from 'react-router'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
 import { ProfileImage } from '../components/ProfileImage'
 import { StockLogo } from '../components/StockLogo'
+import { validateDiscussionImageFile } from '../lib/discussion-image'
 import { formatDiscussionTime, formatKstDateTime, formatPercent, formatPrice, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import type {
@@ -29,9 +30,12 @@ interface DiscussionComposerModalProps {
   submitting: boolean
   attachmentOptions: DiscussionAttachmentOption[]
   attachment: DiscussionAttachmentInput | null
+  imageFile: File | null
+  imagePreviewUrl: string | null
   onTitleChange: (value: string) => void
   onContentChange: (value: string) => void
   onAttachmentChange: (value: DiscussionAttachmentInput | null) => void
+  onImageChange: (file: File | null) => void
   onClose: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
 }
@@ -43,15 +47,19 @@ function DiscussionComposerModal({
   submitting,
   attachmentOptions,
   attachment,
+  imageFile,
+  imagePreviewUrl,
   onTitleChange,
   onContentChange,
   onAttachmentChange,
+  onImageChange,
   onClose,
   onSubmit,
 }: DiscussionComposerModalProps) {
   const titleId = useId()
   const descriptionId = useId()
   const titleInputRef = useRef<HTMLInputElement>(null)
+  const imageInputRef = useRef<HTMLInputElement>(null)
   const closeRef = useRef(onClose)
 
   useEffect(() => {
@@ -147,6 +155,43 @@ function DiscussionComposerModal({
               </div>
             ) : (
               <p>이 종목에 첨부할 보유 내역이나 체결 결과가 없습니다.</p>
+            )}
+          </fieldset>
+
+          <fieldset className="discussion-image-picker">
+            <legend><ImagePlus size={15} /> 사진 첨부 <small>선택 · 최대 5MB</small></legend>
+            <input
+              ref={imageInputRef}
+              className="sr-only"
+              type="file"
+              accept="image/png,image/jpeg,image/webp,.png,.jpg,.jpeg,.webp"
+              disabled={submitting}
+              onChange={(event) => {
+                onImageChange(event.currentTarget.files?.[0] ?? null)
+                event.currentTarget.value = ''
+              }}
+            />
+            {imageFile && imagePreviewUrl ? (
+              <div className="discussion-image-preview">
+                <img src={imagePreviewUrl} alt="첨부할 사진 미리보기" />
+                <div>
+                  <span>{imageFile.name}</span>
+                  <small>{(imageFile.size / (1024 * 1024)).toFixed(1)}MB</small>
+                </div>
+                <button type="button" onClick={() => onImageChange(null)} disabled={submitting}>
+                  <Trash2 size={14} aria-hidden="true" /> 제거
+                </button>
+              </div>
+            ) : (
+              <button
+                className="discussion-image-select-button"
+                type="button"
+                disabled={submitting}
+                onClick={() => imageInputRef.current?.click()}
+              >
+                <ImagePlus size={18} aria-hidden="true" />
+                <span><strong>사진 선택</strong><small>PNG, JPG, WEBP 파일 1장</small></span>
+              </button>
             )}
           </fieldset>
 
@@ -402,6 +447,14 @@ function DiscussionPostCard({
         <h2>{post.title}</h2>
         <p>{post.content}</p>
         {post.attachment && <DiscussionAttachmentCard attachment={post.attachment} />}
+        {post.imageUrl && (
+          <img
+            className="discussion-post-image"
+            src={post.imageUrl}
+            alt={`${post.title} 첨부 사진`}
+            loading="lazy"
+          />
+        )}
       </div>
 
       <div className="discussion-post-actions" aria-label="게시글 반응">
@@ -586,6 +639,8 @@ export function DiscussionPage() {
   const [title, setTitle] = useState('')
   const [content, setContent] = useState('')
   const [attachment, setAttachment] = useState<DiscussionAttachmentInput | null>(null)
+  const [imageFile, setImageFile] = useState<File | null>(null)
+  const [imagePreviewUrl, setImagePreviewUrl] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [formMessage, setFormMessage] = useState<string | null>(null)
   const [pageMessage, setPageMessage] = useState<string | null>(null)
@@ -630,6 +685,17 @@ export function DiscussionPage() {
 
     return options
   }, [myState, selectedStock])
+
+  useEffect(() => {
+    if (!imageFile) {
+      setImagePreviewUrl(null)
+      return undefined
+    }
+
+    const previewUrl = URL.createObjectURL(imageFile)
+    setImagePreviewUrl(previewUrl)
+    return () => URL.revokeObjectURL(previewUrl)
+  }, [imageFile])
 
   useEffect(() => {
     const leagueId = market?.league?.id
@@ -688,6 +754,24 @@ export function DiscussionPage() {
   function closeComposer() {
     if (submitting) return
     setComposerOpen(false)
+    setFormMessage(null)
+  }
+
+  function handleImageChange(file: File | null) {
+    if (!file) {
+      setImageFile(null)
+      setFormMessage(null)
+      return
+    }
+
+    const validationError = validateDiscussionImageFile(file)
+    if (validationError) {
+      setImageFile(null)
+      setFormMessage(validationError)
+      return
+    }
+
+    setImageFile(file)
     setFormMessage(null)
   }
 
@@ -769,12 +853,13 @@ export function DiscussionPage() {
     setFormMessage(null)
     setPageMessage(null)
     try {
-      await createDiscussionPost(selectedStock.id, normalizedTitle, normalizedContent, attachment)
+      await createDiscussionPost(selectedStock.id, normalizedTitle, normalizedContent, attachment, imageFile)
       const nextPosts = await loadDiscussionPosts(selectedStock.id, postSort)
       setPosts(nextPosts)
       setTitle('')
       setContent('')
       setAttachment(null)
+      setImageFile(null)
       setComposerOpen(false)
       setPageMessage('게시글이 등록되었습니다.')
     } catch (error) {
@@ -965,9 +1050,12 @@ export function DiscussionPage() {
               submitting={submitting}
               attachmentOptions={attachmentOptions}
               attachment={attachment}
+              imageFile={imageFile}
+              imagePreviewUrl={imagePreviewUrl}
               onTitleChange={setTitle}
               onContentChange={setContent}
               onAttachmentChange={setAttachment}
+              onImageChange={handleImageChange}
               onClose={closeComposer}
               onSubmit={(event) => void handleSubmit(event)}
             />

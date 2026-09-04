@@ -235,8 +235,9 @@ export function MarketProvider({ children }: PropsWithChildren) {
     title: string,
     content: string,
     attachment: DiscussionAttachmentInput | null,
+    imageFile: File | null,
   ) => {
-    const post = await createDiscussionPostRequest(stockId, title, content, attachment)
+    const post = await createDiscussionPostRequest(stockId, title, content, attachment, imageFile)
     return post
   }, [])
 

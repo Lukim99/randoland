@@ -46,6 +46,7 @@ export interface MarketContextValue {
     title: string,
     content: string,
     attachment: DiscussionAttachmentInput | null,
+    imageFile: File | null,
   ) => Promise<DiscussionPost>
   setStockFavorite: (stockId: string, favorited: boolean) => Promise<void>
   setDiscussionPostLike: (postId: string, liked: boolean) => Promise<{ postId: string; liked: boolean; likeCount: number }>
