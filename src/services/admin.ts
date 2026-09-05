@@ -1,5 +1,7 @@
 import { FunctionsHttpError } from '@supabase/supabase-js'
 import { getStockLogoExtension, validateStockLogoFile } from '../lib/stock-logo'
+import { ICON_IMAGE_MAX_DIMENSION, optimizeImageUpload } from '../lib/optimize-image'
+import { getPublicImageUrl, removePublicImage } from '../lib/public-image'
 import { supabase } from '../lib/supabase'
 import type {
   AdminAccess,
@@ -101,7 +103,7 @@ export async function loadAdminConsole(): Promise<AdminConsoleState> {
     stocks: (state.stocks ?? []).map((stock) => ({
       ...stock,
       logoImageUrl: stock.logoImagePath
-        ? client.storage.from(STOCK_LOGO_BUCKET).getPublicUrl(stock.logoImagePath).data.publicUrl
+        ? getPublicImageUrl(STOCK_LOGO_BUCKET, stock.logoImagePath)
         : null,
     })),
     auditLog: state.auditLog ?? [],
@@ -226,13 +228,14 @@ async function uploadAdminStockLogo(file: File) {
   throwIfError(userError)
   if (!userData.user) throw new Error('관리자 로그인이 필요합니다.')
 
-  const extension = getStockLogoExtension(file)
+  const uploadFile = await optimizeImageUpload(file, ICON_IMAGE_MAX_DIMENSION)
+  const extension = getStockLogoExtension(uploadFile)
   if (!extension) throw new Error('종목 로고 파일 형식을 확인해 주세요.')
 
   const objectPath = `${userData.user.id}/stock-${createAdminRequestKey()}.${extension}`
-  const { error } = await client.storage.from(STOCK_LOGO_BUCKET).upload(objectPath, file, {
+  const { error } = await client.storage.from(STOCK_LOGO_BUCKET).upload(objectPath, uploadFile, {
     cacheControl: '31536000',
-    contentType: file.type,
+    contentType: uploadFile.type,
     upsert: false,
   })
   throwIfError(error)
@@ -240,8 +243,7 @@ async function uploadAdminStockLogo(file: File) {
 }
 
 async function removeAdminStockLogo(objectPath: string) {
-  const client = requireSupabase()
-  await client.storage.from(STOCK_LOGO_BUCKET).remove([objectPath])
+  await removePublicImage(STOCK_LOGO_BUCKET, objectPath)
 }
 
 export async function listAdminStock(input: AdminStockListingInput) {
@@ -281,7 +283,7 @@ export async function loadAdminStockEditor(stockId: string): Promise<AdminStockE
     stock: {
       ...editor.stock,
       logoImageUrl: editor.stock.logoImagePath
-        ? client.storage.from(STOCK_LOGO_BUCKET).getPublicUrl(editor.stock.logoImagePath).data.publicUrl
+        ? getPublicImageUrl(STOCK_LOGO_BUCKET, editor.stock.logoImagePath)
         : null,
     },
     plans: (editor.plans ?? []).map((plan) => ({

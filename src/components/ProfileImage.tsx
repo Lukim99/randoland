@@ -20,6 +20,8 @@ export function ProfileImage({ src, size = 'md', label, className }: ProfileImag
       src={src?.trim() || defaultProfileImage}
       alt={label ?? ''}
       aria-hidden={label ? undefined : true}
+      loading="lazy"
+      decoding="async"
     />
   )
 }

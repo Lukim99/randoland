@@ -19,5 +19,5 @@ export function StockLogo({ src, spriteIndex, size = 'md', label, className }: S
     .filter(Boolean)
     .join(' ')
 
-  return <img className={classes} src={src} alt={label} />
+  return <img className={classes} src={src} alt={label} loading="lazy" decoding="async" />
 }

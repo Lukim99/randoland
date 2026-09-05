@@ -1,7 +1,10 @@
 import type { PostgrestError } from '@supabase/supabase-js'
 import { getDiscussionImageExtension, validateDiscussionImageFile } from '../lib/discussion-image'
 import { getProfileImageExtension, validateProfileImageFile } from '../lib/profile-image'
+import { DISCUSSION_IMAGE_MAX_DIMENSION, ICON_IMAGE_MAX_DIMENSION, optimizeImageUpload } from '../lib/optimize-image'
+import { getPublicImageUrl, removePublicImage } from '../lib/public-image'
 import { supabase } from '../lib/supabase'
+import { DISCUSSION_IMAGE_BUCKET, forgetDiscussionImage, loadDiscussionImageUrls } from './discussion-images'
 import type {
   CandlePoint,
   DiscussionAttachmentInput,
@@ -21,8 +24,6 @@ import type {
 
 const PROFILE_IMAGE_BUCKET = 'randoland-profile-images'
 const STOCK_LOGO_BUCKET = 'randoland-stock-logos'
-const DISCUSSION_IMAGE_BUCKET = 'randoland-discussion-images'
-const DISCUSSION_IMAGE_URL_LIFETIME_SECONDS = 60 * 60
 const DAY_IN_MILLISECONDS = 24 * 60 * 60 * 1000
 
 function normalizeCandleDates(candles: CandlePoint[]): CandlePoint[] {
@@ -238,7 +239,7 @@ export async function loadMarketSnapshot(leagueId?: string | null): Promise<Mark
       logoSpriteIndex: spriteIndexByStockId.get(stock.id) ?? 0,
       logoImagePath: logoImagePathByStockId.get(stock.id) ?? null,
       logoImageUrl: logoImagePathByStockId.get(stock.id)
-        ? client.storage.from(STOCK_LOGO_BUCKET).getPublicUrl(logoImagePathByStockId.get(stock.id)!).data.publicUrl
+        ? getPublicImageUrl(STOCK_LOGO_BUCKET, logoImagePathByStockId.get(stock.id)!)
         : null,
       owner: stock.listedBy ?? stock.owner ?? (stock.isBaseStock ? '기본 상장' : '상장자 비공개'),
       candles: normalizeCandleDates(stock.candles ?? []),
@@ -337,7 +338,7 @@ export async function loadMyState(leagueId: string): Promise<MyState> {
 
   const profileImagePath = participantProfile?.profile_image_path ?? null
   const profileImageUrl = profileImagePath
-    ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(profileImagePath).data.publicUrl
+    ? getPublicImageUrl(PROFILE_IMAGE_BUCKET, profileImagePath)
     : null
 
   return {
@@ -451,12 +452,13 @@ export async function uploadProfileImage(
   const imageId = globalThis.crypto?.randomUUID?.()
   if (!imageId) throw new Error('이 브라우저에서는 이미지 업로드를 지원하지 않습니다.')
 
-  const extension = getProfileImageExtension(file)
+  const uploadFile = await optimizeImageUpload(file, ICON_IMAGE_MAX_DIMENSION)
+  const extension = getProfileImageExtension(uploadFile)
   const profileImagePath = `${authData.user.id}/profile-${imageId}.${extension}`
   const bucket = client.storage.from(PROFILE_IMAGE_BUCKET)
-  const { error: uploadError } = await bucket.upload(profileImagePath, file, {
+  const { error: uploadError } = await bucket.upload(profileImagePath, uploadFile, {
     cacheControl: '31536000',
-    contentType: file.type,
+    contentType: uploadFile.type,
     upsert: false,
   })
   if (uploadError) throw new Error(uploadError.message)
@@ -470,34 +472,15 @@ export async function uploadProfileImage(
     .single()
 
   if (updateError) {
-    await bucket.remove([profileImagePath])
+    await removePublicImage(PROFILE_IMAGE_BUCKET, profileImagePath)
     throw new Error(readableSupabaseError(updateError))
   }
 
   if (currentProfileImagePath && currentProfileImagePath !== profileImagePath) {
-    await bucket.remove([currentProfileImagePath])
+    await removePublicImage(PROFILE_IMAGE_BUCKET, currentProfileImagePath)
   }
 
   return data
-}
-
-async function loadDiscussionImageUrls(imagePaths: Array<string | null>) {
-  const paths = [...new Set(imagePaths.filter((path): path is string => Boolean(path)))]
-  const imageUrlByPath = new Map<string, string>()
-  if (paths.length === 0) return imageUrlByPath
-
-  const client = requireSupabase()
-  const { data, error } = await client.storage
-    .from(DISCUSSION_IMAGE_BUCKET)
-    .createSignedUrls(paths, DISCUSSION_IMAGE_URL_LIFETIME_SECONDS)
-  if (error) throw new Error(error.message)
-
-  data.forEach((image) => {
-    if (image.path && image.signedUrl && !image.error) {
-      imageUrlByPath.set(image.path, image.signedUrl)
-    }
-  })
-  return imageUrlByPath
 }
 
 export async function loadDiscussionPosts(
@@ -518,13 +501,13 @@ export async function loadDiscussionPosts(
   return posts.map((post) => {
     const authorProfileImagePath = post.authorProfileImagePath ?? null
     const authorProfileImageUrl = authorProfileImagePath
-      ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
+      ? getPublicImageUrl(PROFILE_IMAGE_BUCKET, authorProfileImagePath)
       : null
 
     const comments = (post.comments ?? []).map((comment) => {
       const commentProfileImagePath = comment.authorProfileImagePath ?? null
       const authorProfileImageUrl = commentProfileImagePath
-        ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(commentProfileImagePath).data.publicUrl
+        ? getPublicImageUrl(PROFILE_IMAGE_BUCKET, commentProfileImagePath)
         : null
       return {
         ...comment,
@@ -566,7 +549,7 @@ export async function loadRecentDiscussionPosts(
   return posts.map((post) => {
     const authorProfileImagePath = post.authorProfileImagePath ?? null
     const authorProfileImageUrl = authorProfileImagePath
-      ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
+      ? getPublicImageUrl(PROFILE_IMAGE_BUCKET, authorProfileImagePath)
       : null
 
     return {
@@ -605,10 +588,11 @@ export async function createDiscussionPost(
     const imageId = globalThis.crypto?.randomUUID?.()
     if (!imageId) throw new Error('이 브라우저에서는 사진 첨부를 지원하지 않습니다.')
 
-    imagePath = `${authData.user.id}/post-${imageId}.${getDiscussionImageExtension(imageFile)}`
-    const { error: uploadError } = await client.storage.from(DISCUSSION_IMAGE_BUCKET).upload(imagePath, imageFile, {
+    const uploadFile = await optimizeImageUpload(imageFile, DISCUSSION_IMAGE_MAX_DIMENSION)
+    imagePath = `${authData.user.id}/post-${imageId}.${getDiscussionImageExtension(uploadFile)}`
+    const { error: uploadError } = await client.storage.from(DISCUSSION_IMAGE_BUCKET).upload(imagePath, uploadFile, {
       cacheControl: '3600',
-      contentType: imageFile.type,
+      contentType: uploadFile.type,
       upsert: false,
     })
     if (uploadError) throw new Error(uploadError.message)
@@ -629,7 +613,7 @@ export async function createDiscussionPost(
   const post = data as unknown as Omit<DiscussionPost, 'authorProfileImageUrl' | 'imageUrl'>
   const authorProfileImagePath = post.authorProfileImagePath ?? null
   const authorProfileImageUrl = authorProfileImagePath
-    ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
+    ? getPublicImageUrl(PROFILE_IMAGE_BUCKET, authorProfileImagePath)
     : null
   const imageUrlByPath = await loadDiscussionImageUrls([post.imagePath ?? null])
   return {
@@ -686,7 +670,7 @@ export async function createDiscussionComment(postId: string, content: string): 
   const comment = data as unknown as Omit<DiscussionComment, 'authorProfileImageUrl'>
   const authorProfileImagePath = comment.authorProfileImagePath ?? null
   const authorProfileImageUrl = authorProfileImagePath
-    ? client.storage.from(PROFILE_IMAGE_BUCKET).getPublicUrl(authorProfileImagePath).data.publicUrl
+    ? getPublicImageUrl(PROFILE_IMAGE_BUCKET, authorProfileImagePath)
     : null
   return { ...comment, authorProfileImagePath, authorProfileImageUrl, ownedByMe: true }
 }
@@ -699,6 +683,7 @@ export async function deleteDiscussionPost(postId: string) {
   throwIfError(error)
   const result = data as unknown as { postId: string; stockId: string; imagePath: string | null; deleted: true }
   if (result.imagePath) {
+    forgetDiscussionImage(result.imagePath)
     await client.storage.from(DISCUSSION_IMAGE_BUCKET).remove([result.imagePath])
   }
   return result
