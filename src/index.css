@@ -4726,7 +4726,7 @@ button:disabled {
 
 .ranking-row {
   display: grid;
-  grid-template-columns: 40px minmax(130px, 1fr) minmax(115px, 0.7fr) minmax(90px, 0.5fr);
+  grid-template-columns: 40px minmax(0, 1fr);
   align-items: center;
   gap: 12px;
   min-height: 65px;
@@ -4766,14 +4766,6 @@ button:disabled {
   font-size: calc(10px + var(--desktop-font-size-increase));
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.ranking-row > span:not(.rank-number) {
-  display: grid;
-  justify-items: end;
-  gap: 4px;
-  font-size: calc(9px + var(--desktop-font-size-increase));
-  font-variant-numeric: tabular-nums;
 }
 
 .attendance-card {
@@ -6858,14 +6850,6 @@ button:disabled {
     padding-block: 12px;
   }
 
-  .ranking-row > span:not(.rank-number) {
-    grid-column: 2;
-    grid-template-columns: auto 1fr;
-    justify-items: start;
-    align-items: baseline;
-    gap: 8px;
-  }
-
   .attendance-card {
     grid-template-columns: auto minmax(0, 1fr);
     padding: 17px;
@@ -7046,7 +7030,6 @@ button:disabled {
   .award-card strong,
   .ranking-row small,
   .ranking-row > div strong,
-  .ranking-row > span:not(.rank-number),
   .login-feature-grid strong,
   .login-feature-grid small,
   .login-tape,

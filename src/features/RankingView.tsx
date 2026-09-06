@@ -1,6 +1,6 @@
 import { Award, CalendarClock, EyeOff, Trophy } from 'lucide-react'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
-import { formatKstDateTime, formatPercent, formatRp, movementClass } from '../lib/format'
+import { formatKstDateTime } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import type { LeagueAward } from '../types/market'
 
@@ -15,7 +15,7 @@ function formatAwardMetric(award: LeagueAward) {
     return `최장 보유 ${Math.trunc(award.metricValue)}라운드`
   }
 
-  return `최종 수익률 ${formatPercent(award.metricValue)}`
+  return null
 }
 
 export function RankingView() {
@@ -72,8 +72,6 @@ export function RankingView() {
             <article className={`ranking-row${entry.nickname === ownNickname ? ' is-me' : ''}`} key={`${entry.rank}-${entry.nickname}`}>
               <span className={`rank-number rank-${Math.min(entry.rank, 4)}`}>{entry.rank}</span>
               <div><strong>{entry.nickname}</strong><small>매매 {entry.completedTradeCycles}회 · 최장 보유 {entry.longestHoldingRounds}라운드</small></div>
-              <span><small>총 자산</small><strong>{formatRp(entry.netWorth)}</strong></span>
-              <span className={movementClass(entry.returnPercent)}><small>수익률</small><strong>{formatPercent(entry.returnPercent)}</strong></span>
             </article>
           ))}
         </div>
