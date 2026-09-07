@@ -2265,6 +2265,41 @@ dd {
   font-size: calc(9px + var(--desktop-font-size-increase));
 }
 
+.discussion-recent-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px;
+}
+
+.discussion-author-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+.discussion-author-name > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: keep-all;
+}
+
+.discussion-spectator-badge {
+  flex-shrink: 0;
+  padding: 2px 5px;
+  color: var(--accent);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  white-space: nowrap;
+  background: var(--accent-soft);
+  border: 1px solid rgba(0, 255, 191, 0.22);
+  border-radius: 4px;
+}
+
 .discussion-recent-reactions {
   display: flex;
   align-items: center;
@@ -2723,6 +2758,7 @@ dd {
 
 .discussion-comment header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
 }

@@ -353,6 +353,15 @@ interface DiscussionPostCardProps {
   onDeleteComment: (postId: string, commentId: string) => Promise<void>
 }
 
+function DiscussionAuthor({ nickname, isSpectator }: { nickname: string; isSpectator: boolean }) {
+  return (
+    <span className="discussion-author-name">
+      <span>{nickname}</span>
+      {isSpectator && <span className="discussion-spectator-badge">관전</span>}
+    </span>
+  )
+}
+
 function DiscussionPostCard({
   post,
   canInteract,
@@ -427,7 +436,7 @@ function DiscussionPostCard({
           label={`${post.authorNickname} 프로필 사진`}
         />
         <div>
-          <strong>{post.authorNickname}</strong>
+          <strong><DiscussionAuthor nickname={post.authorNickname} isSpectator={post.authorIsSpectator} /></strong>
           <time dateTime={post.createdAt} title={formatKstDateTime(post.createdAt)}>
             {formatDiscussionTime(post.createdAt)}
           </time>
@@ -484,7 +493,7 @@ function DiscussionPostCard({
                 />
                 <div>
                   <header>
-                    <strong>{comment.authorNickname}</strong>
+                    <strong><DiscussionAuthor nickname={comment.authorNickname} isSpectator={comment.authorIsSpectator} /></strong>
                     <time dateTime={comment.createdAt} title={formatKstDateTime(comment.createdAt)}>
                       {formatDiscussionTime(comment.createdAt)}
                     </time>
@@ -576,7 +585,7 @@ function DiscussionRecentFeed({
                 <span className="discussion-recent-copy">
                   <span className="discussion-recent-stock">{post.stockName} <small>{post.ticker}</small></span>
                   <strong>{post.title}</strong>
-                  <small>{post.authorNickname} · <time dateTime={post.createdAt} title={formatKstDateTime(post.createdAt)}>{formatDiscussionTime(post.createdAt)}</time></small>
+                  <small className="discussion-recent-meta"><DiscussionAuthor nickname={post.authorNickname} isSpectator={post.authorIsSpectator} /><span aria-hidden="true">·</span><time dateTime={post.createdAt} title={formatKstDateTime(post.createdAt)}>{formatDiscussionTime(post.createdAt)}</time></small>
                   <span className="discussion-recent-reactions">
                     <span><Heart size={13} aria-hidden="true" /> {post.likeCount}</span>
                     <span><MessageCircle size={13} aria-hidden="true" /> {post.commentCount}</span>

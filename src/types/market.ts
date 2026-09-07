@@ -166,6 +166,7 @@ export interface DiscussionComment {
   id: string
   postId: string
   authorNickname: string
+  authorIsSpectator: boolean
   authorProfileImagePath: string | null
   authorProfileImageUrl: string | null
   ownedByMe: boolean
@@ -177,6 +178,7 @@ export interface DiscussionPost {
   id: string
   stockId: string
   authorNickname: string
+  authorIsSpectator: boolean
   authorProfileImagePath: string | null
   authorProfileImageUrl: string | null
   ownedByMe: boolean
