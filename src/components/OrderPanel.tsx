@@ -1,7 +1,7 @@
 import { Info, Zap, X } from 'lucide-react'
 import { useMemo, useState } from 'react'
 import { useRoundClock } from '../hooks/useRoundClock'
-import { formatPrice, formatRp, movementClass } from '../lib/format'
+import { formatPrice, formatQuantity, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import type { OrderSide, StockSummary } from '../types/market'
 import { StockLogo } from './StockLogo'
@@ -78,9 +78,9 @@ export function OrderPanel({ stock }: OrderPanelProps) {
     setMessage(null)
     try {
       const capacity = await getOrderCapacity(stock.id, side, side === 'buy' ? leverage : 0)
-      const maximum = Math.max(0, Math.floor(capacity.maxQuantity))
+      const maximum = Math.max(0, side === 'sell' ? capacity.maxQuantity : Math.floor(capacity.maxQuantity))
       setQuantity(maximum)
-      if (maximum < 1) setMessage('현재 주문 가능한 수량이 없습니다.')
+      if (maximum <= 0) setMessage('현재 주문 가능한 수량이 없습니다.')
     } catch (capacityError) {
       setMessage(capacityError instanceof Error ? capacityError.message : '최대 주문 수량을 계산하지 못했습니다.')
     } finally {
@@ -91,8 +91,11 @@ export function OrderPanel({ stock }: OrderPanelProps) {
   async function submitOrder() {
     setMessage(null)
 
-    if (!Number.isInteger(quantity) || quantity < 1) {
-      setMessage('주문 수량은 1주 이상의 정수로 입력해 주세요.')
+    const isFullSale = side === 'sell' && quantity === position?.quantity
+    if (!Number.isFinite(quantity) || quantity <= 0 || (!Number.isInteger(quantity) && !isFullSale)) {
+      setMessage(side === 'sell'
+        ? '1주 단위로 입력하거나 최대를 눌러 소수점 잔량까지 전량 매도해 주세요.'
+        : '주문 수량은 1주 이상의 정수로 입력해 주세요.')
       return
     }
     if (disabledReason) {
@@ -158,7 +161,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
         <span>주문 수량</span>
         <small>
           {side === 'sell'
-            ? `보유 ${position?.quantity ?? 0}주`
+            ? `보유 ${formatQuantity(position?.quantity ?? 0)}주`
             : side === 'cover'
               ? `공매도 ${shortPosition?.quantity ?? 0}주`
               : '1주 단위'}
@@ -168,9 +171,9 @@ export function OrderPanel({ stock }: OrderPanelProps) {
         <input
           id={`order-quantity-${stock.id}`}
           type="number"
-          inputMode="numeric"
-          min="1"
-          step="1"
+          inputMode={side === 'sell' ? 'decimal' : 'numeric'}
+          min={side === 'sell' ? '0.00000001' : '1'}
+          step={side === 'sell' ? 'any' : '1'}
           value={quantity}
           onChange={(event) => setQuantity(Number(event.target.value))}
         />
@@ -226,7 +229,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
 
       <p className="order-rule-note"><Zap size={15} aria-hidden="true" />주문 제출 즉시 현재가로 체결됩니다.</p>
       {side === 'buy' && leverage > 0 && (
-        <p className="order-fee-note">레버리지 사용분의 매도 평가액에서 5%가 차감됩니다.</p>
+        <p className="order-fee-note">2라운드 뒤 정산에서 레버리지로 산 수량만 자동 청산됩니다. 자기자금 수량은 유지되며, 레버리지 사용분의 매도 평가액에서 5%가 차감됩니다.</p>
       )}
       {side === 'short' && <p className="order-fee-note">공매도 판매대금은 예수금에 포함되지 않습니다.</p>}
       {disabledReason && <p className="order-disabled-note">{disabledReason}</p>}

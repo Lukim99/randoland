@@ -11,7 +11,7 @@ import {
 import { useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router'
 import { StockLogo } from '../components/StockLogo'
-import { formatKstDateTime, formatPercent, formatPrice, formatRp, movementClass } from '../lib/format'
+import { formatKstDateTime, formatPercent, formatPrice, formatQuantity, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import { ParticipantGate } from './ParticipantGate'
 
@@ -158,7 +158,7 @@ export function PortfolioView() {
                                   </Link>
                                 </td>
                                 <td><span className={`position-type ${holding.type}`}>{holding.type === 'long' ? '매수' : '공매도'}</span></td>
-                                <td>{formatPrice(holding.quantity)}주</td>
+                                <td>{formatQuantity(holding.quantity)}주</td>
                                 <td>{formatPrice(holding.averagePrice)}</td>
                                 <td>{formatPrice(holding.currentPrice)}</td>
                                 <td>{formatRp(holding.entryValue)}</td>

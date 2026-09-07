@@ -69,6 +69,7 @@ const errorTranslations: Array<[string, string]> = [
   ['Orders are not being accepted', '현재 주문 접수 시간이 아닙니다.'],
   ['Order quantity must be a positive whole number', '주문 수량은 1주 이상의 정수로 입력해 주세요.'],
   ['Leverage must be between 0 and 50 percent', '레버리지는 0%부터 50%까지 설정할 수 있습니다.'],
+  ['Fractional shares can only be sold with the full available position', '소수점 잔량은 최대를 눌러 전량 매도해 주세요.'],
   ['Leverage is only available for buy orders', '레버리지는 일반 매수 주문에만 사용할 수 있습니다.'],
   ['Available RP is insufficient', '주문 가능한 RP가 부족합니다.'],
   ['Available shares are insufficient', '주문 가능한 보유 수량이 부족합니다.'],

@@ -268,6 +268,7 @@ export interface OrderSummary {
   roundNumber: number
   side: OrderSide
   orderType: OrderSide
+  executionSource?: 'manual' | 'leverage_liquidation'
   status: OrderStatus
   cashAmount: number | null
   quantity: number | null

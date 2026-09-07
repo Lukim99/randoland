@@ -1,6 +1,6 @@
 import { ClipboardList, Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { formatKstDateTime, formatPrice } from '../lib/format'
+import { formatKstDateTime, formatPrice, formatQuantity } from '../lib/format'
 import type { AdminLeague, AdminOpenOrder, AdminOpenOrderSide } from '../types/admin'
 
 interface AdminOrderMonitorPanelProps {
@@ -83,7 +83,7 @@ export function AdminOrderMonitorPanel({ leagues, orders }: AdminOrderMonitorPan
                 <td>{order.leagueName}</td>
                 <td><span className="admin-order-stock"><strong>{order.stockName}</strong><small>{order.ticker}</small></span></td>
                 <td>{sideLabels[order.side]}</td>
-                <td>{formatPrice(order.requestedQuantity)}주</td>
+                <td>{formatQuantity(order.requestedQuantity)}주</td>
                 <td>{formatPrice(order.orderPrice)} RP</td>
                 <td>{order.leveragePercent > 0 ? `${formatPrice(order.leveragePercent)}%` : '-'}</td>
                 <td>{order.roundNumber}라운드</td>

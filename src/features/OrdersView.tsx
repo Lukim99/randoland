@@ -1,5 +1,5 @@
 import { CheckCircle2 } from 'lucide-react'
-import { formatKstDateTime, formatPrice, formatRp } from '../lib/format'
+import { formatKstDateTime, formatPrice, formatQuantity, formatRp } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import type { OrderSide, OrderSummary } from '../types/market'
 import { ParticipantGate } from './ParticipantGate'
@@ -44,10 +44,10 @@ export function OrdersView() {
                     <strong>{order.stockName}</strong>
                     <small>{order.ticker} · {order.roundNumber}라운드 · {formatKstDateTime(order.executedAt ?? order.submittedAt)}</small>
                   </div>
-                  <div><small>체결수량</small><strong>{formatPrice(order.executedQuantity ?? order.requestedQuantity)}주</strong></div>
+                  <div><small>체결수량</small><strong>{formatQuantity(order.executedQuantity ?? order.requestedQuantity)}주</strong></div>
                   <div><small>체결가</small><strong>{formatPrice(order.executionPrice ?? order.orderPrice)} RP</strong></div>
                   <div><small>체결금액</small><strong>{formatRp(orderAmount(order))}</strong></div>
-                  <strong className="order-status is-executed">체결 완료</strong>
+                  <strong className="order-status is-executed">{order.executionSource === 'leverage_liquidation' ? '레버리지 자동 청산' : '체결 완료'}</strong>
                 </article>
               ))}
             </div>

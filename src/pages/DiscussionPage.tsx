@@ -6,7 +6,7 @@ import { LeagueJoinCard } from '../components/LeagueJoinCard'
 import { ProfileImage } from '../components/ProfileImage'
 import { StockLogo } from '../components/StockLogo'
 import { validateDiscussionImageFile } from '../lib/discussion-image'
-import { formatDiscussionTime, formatKstDateTime, formatPercent, formatPrice, movementClass } from '../lib/format'
+import { formatDiscussionTime, formatKstDateTime, formatPercent, formatPrice, formatQuantity, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import type {
   DiscussionAttachment,
@@ -303,7 +303,7 @@ function DiscussionAttachmentCard({ attachment }: { attachment: DiscussionAttach
           <span>{attachment.positionType === 'long' ? '보유종목' : '공매도 보유'}</span>
           <small>게시 시점</small>
         </div>
-        <strong>{attachment.stockName} {formatPrice(attachment.quantity)}주</strong>
+        <strong>{attachment.stockName} {formatQuantity(attachment.quantity)}주</strong>
         <p className={movementClass(attachment.profit)}>
           {attachment.profit > 0 ? '+' : ''}{formatPrice(attachment.profit)} RP
           <span>({formatPercent(attachment.returnPercent)})</span>
@@ -326,7 +326,7 @@ function DiscussionAttachmentCard({ attachment }: { attachment: DiscussionAttach
   return (
     <div className="discussion-attachment-card">
       <div><span>{sideLabel} 체결</span><small>{attachment.executedAt ? formatKstDateTime(attachment.executedAt) : '체결 완료'}</small></div>
-      <strong>{attachment.stockName} {formatPrice(attachment.quantity)}주</strong>
+      <strong>{attachment.stockName} {formatQuantity(attachment.quantity)}주</strong>
       {realizedProfit !== null ? (
         <p className={`discussion-attachment-profit ${movementClass(realizedProfit)}`}>
           {realizedProfit > 0 ? '+' : ''}{formatPrice(realizedProfit)} RP
@@ -657,7 +657,7 @@ export function DiscussionPage() {
       options.push({
         input: { type: 'long_position', referenceId: longPosition.id },
         label: '보유종목·수익률',
-        detail: `${formatPrice(longPosition.quantity)}주 · ${formatPercent(returnPercent)}`,
+        detail: `${formatQuantity(longPosition.quantity)}주 · ${formatPercent(returnPercent)}`,
       })
     }
 
@@ -666,7 +666,7 @@ export function DiscussionPage() {
       options.push({
         input: { type: 'short_position', referenceId: shortPosition.id },
         label: '공매도 보유·수익률',
-        detail: `${formatPrice(shortPosition.quantity)}주 · ${formatPercent(shortPosition.unrealizedReturn)}`,
+        detail: `${formatQuantity(shortPosition.quantity)}주 · ${formatPercent(shortPosition.unrealizedReturn)}`,
       })
     }
 
@@ -679,7 +679,7 @@ export function DiscussionPage() {
         options.push({
           input: { type: 'execution', referenceId: order.id },
           label: `${sideLabel} 체결결과`,
-          detail: `${formatPrice(order.executedQuantity ?? order.requestedQuantity)}주 · ${formatPrice(order.executionPrice ?? order.orderPrice)} RP`,
+          detail: `${formatQuantity(order.executedQuantity ?? order.requestedQuantity)}주 · ${formatPrice(order.executionPrice ?? order.orderPrice)} RP`,
         })
       })
 

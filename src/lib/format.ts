@@ -2,6 +2,10 @@ export function formatPrice(value: number) {
   return new Intl.NumberFormat('ko-KR').format(Math.round(value))
 }
 
+export function formatQuantity(value: number) {
+  return new Intl.NumberFormat('ko-KR', { maximumFractionDigits: 8 }).format(value)
+}
+
 export function formatRp(value: number) {
   return `${formatPrice(value)} RP`
 }
