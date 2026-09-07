@@ -78,7 +78,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
     setMessage(null)
     try {
       const capacity = await getOrderCapacity(stock.id, side, side === 'buy' ? leverage : 0)
-      const maximum = Math.max(0, side === 'sell' ? capacity.maxQuantity : Math.floor(capacity.maxQuantity))
+      const maximum = Math.max(0, Math.floor(capacity.maxQuantity))
       setQuantity(maximum)
       if (maximum <= 0) setMessage('현재 주문 가능한 수량이 없습니다.')
     } catch (capacityError) {
@@ -91,11 +91,8 @@ export function OrderPanel({ stock }: OrderPanelProps) {
   async function submitOrder() {
     setMessage(null)
 
-    const isFullSale = side === 'sell' && quantity === position?.quantity
-    if (!Number.isFinite(quantity) || quantity <= 0 || (!Number.isInteger(quantity) && !isFullSale)) {
-      setMessage(side === 'sell'
-        ? '1주 단위로 입력하거나 최대를 눌러 소수점 잔량까지 전량 매도해 주세요.'
-        : '주문 수량은 1주 이상의 정수로 입력해 주세요.')
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      setMessage('주문 수량은 1주 이상의 정수로 입력해 주세요.')
       return
     }
     if (disabledReason) {
@@ -171,9 +168,9 @@ export function OrderPanel({ stock }: OrderPanelProps) {
         <input
           id={`order-quantity-${stock.id}`}
           type="number"
-          inputMode={side === 'sell' ? 'decimal' : 'numeric'}
-          min={side === 'sell' ? '0.00000001' : '1'}
-          step={side === 'sell' ? 'any' : '1'}
+          inputMode="numeric"
+          min="1"
+          step="1"
           value={quantity}
           onChange={(event) => setQuantity(Number(event.target.value))}
         />
@@ -229,7 +226,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
 
       <p className="order-rule-note"><Zap size={15} aria-hidden="true" />주문 제출 즉시 현재가로 체결됩니다.</p>
       {side === 'buy' && leverage > 0 && (
-        <p className="order-fee-note">2라운드 뒤 정산에서 레버리지로 산 수량만 자동 청산됩니다. 자기자금 수량은 유지되며, 레버리지 사용분의 매도 평가액에서 5%가 차감됩니다.</p>
+        <p className="order-fee-note">2라운드 뒤 정산에서 레버리지 수량을 1주 단위로 내림해 자동 청산하고 원금을 전액 상환합니다. 자동 청산 금액의 5%가 차감되며, 상환 부족분은 예수금에서 차감하고 모자라면 미수 RP로 기록합니다.</p>
       )}
       {side === 'short' && <p className="order-fee-note">공매도 판매대금은 예수금에 포함되지 않습니다.</p>}
       {disabledReason && <p className="order-disabled-note">{disabledReason}</p>}
