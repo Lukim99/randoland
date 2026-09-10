@@ -24,6 +24,7 @@ interface ParticipantAdminPanelProps {
   stocks: AdminStock[]
   busy: boolean
   onRun: AdminActionRunner
+  onInspectStock: (stock: { id: string; name: string }) => void
 }
 
 const assetLabels: Record<AdminParticipantAssetType, string> = {
@@ -42,6 +43,7 @@ export function ParticipantAdminPanel({
   stocks,
   busy,
   onRun,
+  onInspectStock,
 }: ParticipantAdminPanelProps) {
   const [query, setQuery] = useState('')
   const [participantId, setParticipantId] = useState('')
@@ -59,6 +61,10 @@ export function ParticipantAdminPanel({
     ? participantId
     : participants[0]?.id ?? ''
   const selectedParticipant = participants.find(({ id }) => id === selectedParticipantId)
+  const positions = selectedParticipant ? [
+    ...selectedParticipant.holdings.map((holding) => ({ ...holding, positionType: 'long' as const })),
+    ...selectedParticipant.shortHoldings.map((holding) => ({ ...holding, positionType: 'short' as const })),
+  ] : []
   const normalizedNickname = nickname.trim().normalize('NFC')
   const normalizedQuery = query.trim().toLocaleLowerCase('ko-KR')
   const visibleParticipants = participants.filter((participant) => (
@@ -290,26 +296,27 @@ export function ParticipantAdminPanel({
             <header>
               <div>
                 <span className="eyebrow">HOLDINGS</span>
-                <h3 id="admin-participant-holdings-title">{selectedParticipant.nickname} 보유 주식</h3>
+                <h3 id="admin-participant-holdings-title">{selectedParticipant.nickname} 보유·공매도 종목</h3>
               </div>
-              <span className="count-chip">{selectedParticipant.holdings.length}종목</span>
+              <span className="count-chip">{positions.length}종목</span>
             </header>
             <div className="admin-table-wrap">
-              <table className="admin-table">
-                <thead><tr><th>종목</th><th>보유수량</th><th>평균단가</th><th>현재가</th><th>평가금액</th><th>평가손익</th><th>수익률</th></tr></thead>
+              <table className="admin-table admin-position-table admin-responsive-table">
+                <thead><tr><th>종목</th><th>구분</th><th>수량</th><th>평균단가</th><th>현재가</th><th>평가액·상환액</th><th>평가손익</th><th>수익률</th></tr></thead>
                 <tbody>
-                  {selectedParticipant.holdings.length > 0 ? selectedParticipant.holdings.map((holding) => (
-                    <tr key={holding.stockId}>
-                      <td><span className="admin-order-stock"><strong>{holding.stockName}</strong><small>{holding.ticker}</small></span></td>
-                      <td>{formatQuantity(holding.quantity)}주</td>
-                      <td>{formatPrice(holding.averagePrice)} RP</td>
-                      <td>{formatPrice(holding.currentPrice)} RP</td>
-                      <td>{formatRp(holding.marketValue)}</td>
-                      <td className={movementClass(holding.evaluationProfit)}>{formatRp(holding.evaluationProfit)}</td>
-                      <td className={movementClass(holding.returnPercent)}>{formatPercent(holding.returnPercent)}</td>
+                  {positions.length > 0 ? positions.map((holding) => (
+                    <tr key={`${holding.stockId}:${holding.positionType}`}>
+                      <td data-label="종목"><button className="admin-participant-select admin-order-stock" type="button" onClick={() => onInspectStock({ id: holding.stockId, name: holding.stockName })} aria-label={`${holding.stockName} 보유·공매도 플레이어 조회`}><strong>{holding.stockName}</strong><small>{holding.ticker}</small></button></td>
+                      <td data-label="구분"><span className={`admin-position-badge is-${holding.positionType}`}>{holding.positionType === 'short' ? '공매도' : '일반 보유'}</span></td>
+                      <td data-label="수량">{formatQuantity(holding.quantity)}주</td>
+                      <td data-label={holding.positionType === 'short' ? '평균 진입가' : '평균단가'}>{formatPrice(holding.averagePrice)} RP</td>
+                      <td data-label="현재가">{formatPrice(holding.currentPrice)} RP</td>
+                      <td data-label={holding.positionType === 'short' ? '상환액' : '평가액'}>{formatRp(holding.marketValue)}</td>
+                      <td data-label="평가손익" className={movementClass(holding.evaluationProfit)}>{holding.evaluationProfit > 0 ? '+' : ''}{formatRp(holding.evaluationProfit)}</td>
+                      <td data-label="수익률" className={movementClass(holding.returnPercent)}>{formatPercent(holding.returnPercent)}</td>
                     </tr>
                   )) : (
-                    <tr><td className="admin-table-empty" colSpan={7}>현재 보유 중인 주식이 없습니다.</td></tr>
+                    <tr><td className="admin-table-empty" colSpan={8}>현재 보유하거나 공매도 중인 종목이 없습니다.</td></tr>
                   )}
                 </tbody>
               </table>

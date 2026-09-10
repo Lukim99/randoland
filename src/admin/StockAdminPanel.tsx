@@ -40,6 +40,7 @@ interface StockAdminPanelProps {
   stocks: AdminStock[]
   busy: boolean
   onRun: AdminActionRunner
+  onInspectStock?: (stock: { id: string; name: string }) => void
 }
 
 const stockStatusLabel: Record<string, string> = {
@@ -572,7 +573,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
   )
 }
 
-export function StockAdminPanel({ leagues, participants, stocks, busy, onRun }: StockAdminPanelProps) {
+export function StockAdminPanel({ leagues, participants, stocks, busy, onRun, onInspectStock }: StockAdminPanelProps) {
   const manageableStocks = useMemo(
     () => stocks.filter(({ status }) => status !== 'delisted' && status !== 'rejected'),
     [stocks],
@@ -659,6 +660,12 @@ export function StockAdminPanel({ leagues, participants, stocks, busy, onRun }: 
         </aside>
 
         <div className="admin-stock-workspace__editor">
+          {selectedStockId && onInspectStock && (
+            <button className="secondary-button" type="button" onClick={() => {
+              const stock = stocks.find(({ id }) => id === selectedStockId)
+              if (stock) onInspectStock(stock)
+            }}>이 종목 보유·공매도 플레이어</button>
+          )}
           {editorLoading ? (
             <div className="admin-settlement__loading"><span className="brand-loader" /> 종목 계획을 불러오는 중입니다.</div>
           ) : editorError ? (

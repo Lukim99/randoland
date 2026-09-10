@@ -38,6 +38,7 @@ export interface AdminParticipant {
   longMarketValue: number
   shortExposure: number
   holdings: AdminParticipantHolding[]
+  shortHoldings: AdminParticipantHolding[]
   joinedAt: string
   disqualifiedAt: string | null
   disqualificationReason: string | null
@@ -134,8 +135,28 @@ export interface AdminConsoleState {
   leagues: AdminLeague[]
   participants: AdminParticipant[]
   stocks: AdminStock[]
-  openOrders: AdminOpenOrder[]
   auditLog: AdminAuditEntry[]
+}
+
+export interface AdminExecutionPage {
+  orders: AdminOpenOrder[]
+  total: number
+  page: number
+  pageSize: number
+  asOf: string
+}
+
+export interface AdminStockPosition {
+  participantId: string
+  nickname: string
+  isSpectator: boolean
+  positionType: 'long' | 'short'
+  quantity: number
+  averagePrice: number
+  currentPrice: number
+  marketValue: number
+  evaluationProfit: number
+  returnPercent: number
 }
 
 export interface AdminSettlementRound {

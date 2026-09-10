@@ -9,7 +9,8 @@ import type {
   AdminGlobalNewsEditor,
   AdminGlobalNewsRoundPlan,
   AdminParticipant,
-  AdminOpenOrder,
+  AdminExecutionPage,
+  AdminStockPosition,
   AdminParticipantAssetAdjustmentInput,
   AdminSettlementInput,
   AdminSettlementState,
@@ -77,29 +78,19 @@ export async function loadAdminAccess(): Promise<AdminAccess> {
 
 export async function loadAdminConsole(): Promise<AdminConsoleState> {
   const client = requireSupabase()
-  const [stateResult, participantResult, orderResult] = await Promise.all([
+  const [stateResult, participantResult] = await Promise.all([
     client.rpc('randoland_admin_console_get_state'),
-    client.rpc('randoland_admin_console_get_participants'),
-    client.rpc('randoland_admin_console_get_open_orders'),
+    client.rpc('randoland_admin_console_get_participants_v2'),
   ])
   const { data, error } = stateResult
   throwIfError(error)
   throwIfError(participantResult.error)
-  throwIfError(orderResult.error)
 
   const state = data as unknown as AdminConsoleState
-  const openOrders = (orderResult.data as unknown as AdminOpenOrder[] | null) ?? []
   return {
     ...state,
     leagues: state.leagues ?? [],
     participants: (participantResult.data as unknown as AdminParticipant[] | null) ?? [],
-    openOrders: openOrders.map((order) => ({
-      ...order,
-      requestedQuantity: Number(order.requestedQuantity),
-      orderPrice: Number(order.orderPrice),
-      leveragePercent: Number(order.leveragePercent),
-      roundNumber: Number(order.roundNumber),
-    })),
     stocks: (state.stocks ?? []).map((stock) => ({
       ...stock,
       logoImageUrl: stock.logoImagePath
@@ -108,6 +99,29 @@ export async function loadAdminConsole(): Promise<AdminConsoleState> {
     })),
     auditLog: state.auditLog ?? [],
   }
+}
+
+export async function loadAdminExecutionPage(
+  input: { leagueId: string | null; query: string; page: number; asOf: string | null },
+  signal: AbortSignal,
+): Promise<AdminExecutionPage> {
+  const { data, error } = await requireSupabase().rpc('randoland_admin_console_get_execution_page', {
+    p_league_id: input.leagueId,
+    p_query: input.query,
+    p_page: input.page,
+    p_page_size: 20,
+    p_as_of: input.asOf,
+  }).abortSignal(signal)
+  throwIfError(error)
+  return data as unknown as AdminExecutionPage
+}
+
+export async function loadAdminStockPositions(stockId: string, signal: AbortSignal): Promise<AdminStockPosition[]> {
+  const { data, error } = await requireSupabase().rpc('randoland_admin_console_get_stock_positions', {
+    p_stock_id: stockId,
+  }).abortSignal(signal)
+  throwIfError(error)
+  return (data as unknown as AdminStockPosition[] | null) ?? []
 }
 
 export async function createAdminLeague(input: CreateLeagueInput) {

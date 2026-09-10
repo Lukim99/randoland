@@ -6,6 +6,7 @@ import { AdminAuditPanel } from './AdminAuditPanel'
 import { GlobalNewsAdminPanel } from './GlobalNewsAdminPanel'
 import { LeagueAdminPanel } from './LeagueAdminPanel'
 import { AdminOrderMonitorPanel } from './AdminOrderMonitorPanel'
+import { AdminStockPositionsDialog } from './AdminStockPositionsDialog'
 import { ParticipantAdminPanel } from './ParticipantAdminPanel'
 import { SettlementAdminPanel } from './SettlementAdminPanel'
 import { StockAdminPanel } from './StockAdminPanel'
@@ -16,6 +17,7 @@ export function AdminPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [inspectedStock, setInspectedStock] = useState<{ id: string; name: string } | null>(null)
 
   const refresh = useCallback(async (showLoading = true) => {
     if (showLoading) setLoading(true)
@@ -103,7 +105,7 @@ export function AdminPage() {
       </section>
 
       <div className="admin-panel-grid">
-        <AdminOrderMonitorPanel leagues={consoleState.leagues} orders={consoleState.openOrders} />
+        <AdminOrderMonitorPanel leagues={consoleState.leagues} onInspectStock={setInspectedStock} />
         <GlobalNewsAdminPanel
           leagues={consoleState.leagues}
           busy={busy}
@@ -116,6 +118,7 @@ export function AdminPage() {
         />
         <LeagueAdminPanel leagues={consoleState.leagues} busy={busy} onRun={runAction} />
         <ParticipantAdminPanel
+          onInspectStock={setInspectedStock}
           leagues={consoleState.leagues}
           participants={consoleState.participants}
           stocks={consoleState.stocks}
@@ -123,6 +126,7 @@ export function AdminPage() {
           onRun={runAction}
         />
         <StockAdminPanel
+          onInspectStock={setInspectedStock}
           leagues={consoleState.leagues}
           participants={consoleState.participants}
           stocks={consoleState.stocks}
@@ -132,6 +136,7 @@ export function AdminPage() {
       </div>
 
       <AdminAuditPanel entries={consoleState.auditLog} />
+      {inspectedStock && <AdminStockPositionsDialog key={inspectedStock.id} stock={inspectedStock} onClose={() => setInspectedStock(null)} />}
     </div>
   )
 }
