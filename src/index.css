@@ -9543,6 +9543,10 @@ button:disabled {
 .loan-status { color: #00ffbf; background: rgba(0,255,191,.06); padding: 6px 10px; border-radius: 6px; font-size: 12px; white-space: nowrap; }
 .loan-status.is-completed { color: var(--muted); background: rgba(255,255,255,.04); }
 .admin-panel--loans { display: grid; align-content: start; gap: 16px; }
+.admin-panel--loans .admin-form label > span,
+.admin-panel--loans .admin-form__hint { font-size: 13px; }
+.admin-panel--loans .admin-form input:not([type='checkbox']),
+.admin-panel--loans .admin-form select { font-size: 14px; }
 .admin-form .loan-toggle { display: flex; align-items: center; gap: 10px; }
 .loan-toggle input { accent-color: #00ffbf; width: 17px; height: 17px; }
 .loan-admin-history { font-size: 14px; }

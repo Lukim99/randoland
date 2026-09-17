@@ -17,16 +17,16 @@ function LoanAccount({ leagueId }: { leagueId: string }) {
   const [confirming, setConfirming] = useState(false)
   const [uncertain, setUncertain] = useState(false)
   const request = useRef<{ amount: number; version: string; key: string } | null>(null)
-  const loading = useRef(false)
+  const loadSequence = useRef(0)
 
   const reload = useCallback(async () => {
-    if (loading.current) return
-    loading.current = true
+    const sequence = ++loadSequence.current
     try {
-      setState(await loadLoanState(leagueId))
+      const next = await loadLoanState(leagueId)
+      if (sequence === loadSequence.current) setState(next)
     } catch (nextError) {
-      setError(nextError instanceof Error ? nextError.message : '대출 정보를 불러오지 못했습니다.')
-    } finally { loading.current = false }
+      if (sequence === loadSequence.current) setError(nextError instanceof Error ? nextError.message : '대출 정보를 불러오지 못했습니다.')
+    }
   }, [leagueId])
 
   const latestEntryId = myState?.ledger[0]?.id
