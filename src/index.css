@@ -4259,6 +4259,10 @@ button:disabled {
   word-break: keep-all;
 }
 
+.ledger-history article strong { font-size: 14px; white-space: nowrap; }
+.ledger-history article small { font-size: 12px; line-height: 1.5; }
+.ledger-history article > span { min-width: 0; }
+
 .admin-bulk-assets { display: grid; gap: 16px; min-width: 0; }
 .admin-bulk-toolbar { padding: 0; }
 .admin-bulk-toolbar > span { flex-basis: 100%; color: var(--muted); font-size: 13px; }

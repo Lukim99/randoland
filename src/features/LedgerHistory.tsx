@@ -62,7 +62,7 @@ function LedgerPages({ leagueId, operationsOnly }: { leagueId: string; operation
   </>
 }
 
-export function LedgerHistory({ leagueId }: { leagueId: string }) {
+export function LedgerHistory({ leagueId, latestEntryId }: { leagueId: string; latestEntryId?: string }) {
   const [operationsOnly, setOperationsOnly] = useState(false)
   const [revision, setRevision] = useState(0)
   return <>
@@ -71,6 +71,6 @@ export function LedgerHistory({ leagueId }: { leagueId: string }) {
       <button className={operationsOnly ? 'primary-button' : 'secondary-button'} type="button" aria-pressed={operationsOnly} onClick={() => setOperationsOnly(true)}>운영 지급·회수</button>
       <button className="secondary-button" type="button" onClick={() => setRevision((value) => value + 1)}>새로고침</button>
     </div>
-    <LedgerPages key={`${operationsOnly}:${revision}`} leagueId={leagueId} operationsOnly={operationsOnly} />
+    <LedgerPages key={`${operationsOnly}:${revision}:${latestEntryId ?? ''}`} leagueId={leagueId} operationsOnly={operationsOnly} />
   </>
 }

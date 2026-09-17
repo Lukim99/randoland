@@ -200,7 +200,7 @@ export function PortfolioView() {
 
             {activeTab === 'ledger' && (
               <div id="portfolio-panel-ledger" role="tabpanel" aria-labelledby="portfolio-tab-ledger">
-                {market?.league && <LedgerHistory key={participant.id} leagueId={market.league.id} />}
+                {market?.league && <LedgerHistory key={participant.id} leagueId={market.league.id} latestEntryId={myState.ledger[0]?.id} />}
               </div>
             )}
           </section>
