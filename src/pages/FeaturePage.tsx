@@ -60,7 +60,7 @@ export function FeaturePage({ kind }: FeaturePageProps) {
   const ActiveView = views[kind]
 
   return (
-    <div className="feature-page">
+    <div className={`feature-page${kind === 'loans' ? ' feature-page--loans' : ''}`}>
       <header className="feature-header">
         <span className="feature-icon"><Icon size={28} /></span>
         <h1>{page.title}</h1>
