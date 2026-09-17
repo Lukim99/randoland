@@ -3919,6 +3919,56 @@ button:disabled {
   color: var(--warning);
 }
 
+.account-loan-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 22px;
+  padding: 14px 17px;
+  border-top: 1px solid var(--border);
+  background: rgba(0, 255, 191, 0.025);
+  font-size: calc(10px + var(--desktop-font-size-increase));
+}
+
+.account-loan-summary__label,
+.account-loan-summary > a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.account-loan-summary__label {
+  font-weight: 750;
+}
+
+.account-loan-summary__label > svg,
+.account-loan-summary > a {
+  color: var(--accent);
+}
+
+.account-loan-summary__amounts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: var(--muted);
+}
+
+.account-loan-summary__amounts > span {
+  white-space: nowrap;
+}
+
+.account-loan-summary__amounts strong {
+  margin-left: 4px;
+  color: var(--text);
+  font-variant-numeric: tabular-nums;
+}
+
+.account-loan-summary > a {
+  margin-left: auto;
+  min-height: 32px;
+}
+
 .receivable-alert {
   display: flex;
   align-items: center;
@@ -7177,6 +7227,16 @@ button:disabled {
 
   .account-summary-grid > div:nth-last-child(-n + 2) {
     border-bottom: 0;
+  }
+
+  .account-loan-summary {
+    gap: 6px 12px;
+    padding: 10px 14px 14px;
+  }
+
+  .account-loan-summary__amounts {
+    order: 1;
+    flex-basis: 100%;
   }
 
   .receivable-alert {

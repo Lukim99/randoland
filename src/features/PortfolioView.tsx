@@ -1,6 +1,7 @@
 import {
   AlertTriangle,
   Banknote,
+  ChevronRight,
   Landmark,
   ReceiptText,
   Scale,
@@ -103,8 +104,17 @@ export function PortfolioView() {
               <div><dt>공매도 평가손익</dt><dd className={movementClass(participant.shortUnrealizedProfit)}>{participant.shortUnrealizedProfit > 0 ? '+' : ''}{formatRp(participant.shortUnrealizedProfit)}</dd></div>
               <div><dt>레버리지 잔액</dt><dd>{formatRp(participant.leveragePrincipal)}</dd><small>예상 차감 {formatRp(participant.projectedLeverageFee)}</small></div>
               <div className={participant.receivableRp > 0 ? 'has-receivable' : ''}><dt>미수 RP</dt><dd>{formatRp(participant.receivableRp)}</dd></div>
-              <div><dt>란도뱅크 대출 원리금</dt><dd>{formatRp(participant.loanPrincipal + participant.loanInterest)}</dd><small>원금 {formatRp(participant.loanPrincipal)} · 이자 {formatRp(participant.loanInterest)}</small></div>
             </dl>
+            {(participant.loanPrincipal > 0 || participant.loanInterest > 0) && (
+              <div className="account-loan-summary">
+                <span className="account-loan-summary__label"><Landmark size={16} aria-hidden="true" /> 란도뱅크 대출</span>
+                <div className="account-loan-summary__amounts">
+                  <span>원금 <strong>{formatRp(participant.loanPrincipal)}</strong></span>
+                  <span>이자 <strong>{formatRp(participant.loanInterest)}</strong></span>
+                </div>
+                <Link to="/loans">대출 내역 <ChevronRight size={15} aria-hidden="true" /></Link>
+              </div>
+            )}
           </section>
 
           {participant.receivableRp > 0 && (
