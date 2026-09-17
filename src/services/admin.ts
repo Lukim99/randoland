@@ -9,6 +9,9 @@ import type {
   AdminGlobalNewsEditor,
   AdminGlobalNewsRoundPlan,
   AdminParticipant,
+  AdminBulkAssetInput,
+  AdminBulkAssetPlayer,
+  AdminBulkAssetResult,
   AdminExecutionPage,
   AdminStockPosition,
   AdminParticipantAssetAdjustmentInput,
@@ -23,6 +26,25 @@ import type {
 import { readableSupabaseError } from './market'
 
 const STOCK_LOGO_BUCKET = 'randoland-stock-logos'
+
+export async function adjustAdminAssets(input: AdminBulkAssetInput, expected: AdminBulkAssetPlayer[] | null = null): Promise<AdminBulkAssetResult> {
+  const { data, error } = await requireSupabase().rpc('randoland_admin_bulk_adjust_assets', {
+    p_league_id: input.leagueId,
+    p_participant_ids: input.participantIds,
+    p_asset_type: input.assetType,
+    p_direction: input.direction,
+    p_mode: input.mode,
+    p_amount: input.amount,
+    p_tiers: input.tiers,
+    p_stock_id: input.stockId,
+    p_reason: input.reason,
+    p_request_key: input.requestKey,
+    p_preview: expected === null,
+    p_expected: expected,
+  })
+  throwIfError(error)
+  return data as unknown as AdminBulkAssetResult
+}
 
 function requireSupabase() {
   if (!supabase) throw new Error('Supabase 연결 정보가 설정되지 않았습니다.')

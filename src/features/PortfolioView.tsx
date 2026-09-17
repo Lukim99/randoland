@@ -4,34 +4,15 @@ import {
   Landmark,
   ReceiptText,
   Scale,
-  TrendingDown,
-  TrendingUp,
   WalletCards,
 } from 'lucide-react'
 import { useState, type KeyboardEvent } from 'react'
 import { Link } from 'react-router'
 import { StockLogo } from '../components/StockLogo'
-import { formatKstDateTime, formatPercent, formatPrice, formatQuantity, formatRp, movementClass } from '../lib/format'
+import { formatPercent, formatPrice, formatQuantity, formatRp, movementClass } from '../lib/format'
 import { useMarket } from '../market/useMarket'
+import { LedgerHistory } from './LedgerHistory'
 import { ParticipantGate } from './ParticipantGate'
-
-const ledgerLabels: Record<string, string> = {
-  initial_balance: '초기 자금',
-  buy: '매수 체결',
-  sell: '매도 체결',
-  short_open: '공매도 체결',
-  short_cover: '청산',
-  short_profit: '공매도 이익',
-  short_loss: '공매도 손실',
-  receivable_created: '미수 RP 발생',
-  receivable_repayment: '미수 RP 상환',
-  leverage_borrow: '레버리지 사용',
-  leverage_repayment: '레버리지 상환',
-  leverage_fee: '레버리지 차감',
-  ladder_reward: '홀짝 보상',
-  dividend: '주식 배당',
-  admin_adjustment: '운영 조정',
-}
 
 type PortfolioTab = 'balance' | 'profit' | 'ledger'
 
@@ -219,17 +200,7 @@ export function PortfolioView() {
 
             {activeTab === 'ledger' && (
               <div id="portfolio-panel-ledger" role="tabpanel" aria-labelledby="portfolio-tab-ledger">
-                {myState.ledger.length > 0 ? (
-                  <div className="ledger-history">
-                    {myState.ledger.map((entry) => (
-                      <article key={entry.id}>
-                        <span className="ledger-icon">{entry.amount >= 0 ? <TrendingUp size={17} /> : <TrendingDown size={17} />}</span>
-                        <span><strong>{ledgerLabels[entry.type] ?? entry.type}</strong><small>{formatKstDateTime(entry.createdAt)}</small></span>
-                        <span><strong className={movementClass(entry.amount)}>{entry.amount > 0 ? '+' : ''}{formatRp(entry.amount)}</strong><small>예수금 {formatRp(entry.balanceAfter)}{entry.receivableAfter > 0 ? ` · 미수 ${formatRp(entry.receivableAfter)}` : ''}</small></span>
-                      </article>
-                    ))}
-                  </div>
-                ) : <p className="muted-empty portfolio-empty">RP 내역이 없습니다.</p>}
+                {market?.league && <LedgerHistory key={participant.id} leagueId={market.league.id} />}
               </div>
             )}
           </section>

@@ -13,6 +13,7 @@ import type {
   DiscussionSort,
   LadderChoice,
   LadderResult,
+  LedgerEntry,
   MarketSnapshot,
   MyState,
   NewsFeed,
@@ -262,6 +263,17 @@ export async function loadNewsFeed(leagueId: string): Promise<NewsFeed> {
       items: edition.items ?? [],
     })),
   }
+}
+
+export async function loadLedgerPage(leagueId: string, operationsOnly: boolean, before: LedgerEntry | null, signal: AbortSignal): Promise<{ entries: LedgerEntry[]; hasMore: boolean }> {
+  const { data, error } = await requireSupabase().rpc('randoland_get_my_ledger_page', {
+    p_league_id: leagueId,
+    p_before_at: before?.createdAt ?? null,
+    p_before_id: before?.id ?? null,
+    p_operations_only: operationsOnly,
+  }).abortSignal(signal)
+  throwIfError(error)
+  return data as unknown as { entries: LedgerEntry[]; hasMore: boolean }
 }
 
 export async function loadMyState(leagueId: string): Promise<MyState> {

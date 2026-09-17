@@ -73,6 +73,35 @@ export interface AdminParticipantAssetAdjustmentInput {
   requestKey: string
 }
 
+export type AdminAssetMode = 'fixed' | 'percent' | 'tiers'
+export interface AdminAssetTier { upTo: number | null; percent: number }
+export interface AdminBulkAssetInput {
+  leagueId: string
+  participantIds: string[]
+  assetType: AdminParticipantAssetType
+  direction: AdminParticipantAssetDirection
+  mode: AdminAssetMode
+  amount: number | null
+  tiers: AdminAssetTier[] | null
+  stockId: string | null
+  reason: string
+  requestKey: string
+}
+export interface AdminBulkAssetPlayer {
+  participantId: string
+  nickname: string
+  netWorth: number
+  cashBalance: number
+  receivableRp: number
+  percent: number | null
+  amount: number
+  status?: 'completed' | 'skipped'
+}
+export interface AdminBulkAssetResult {
+  status: 'preview' | 'completed'
+  players: AdminBulkAssetPlayer[]
+}
+
 export interface AdminStock {
   id: string
   leagueId: string
