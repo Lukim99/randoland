@@ -225,6 +225,8 @@ export interface ParticipantSummary {
   leveragePrincipal: number
   projectedLeverageFee: number
   netWorth: number
+  loanPrincipal: number
+  loanInterest: number
   attendedToday: boolean
   attendanceDate: string
   ladderStreak: number

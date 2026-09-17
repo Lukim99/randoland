@@ -5,6 +5,7 @@ import type { AdminActionRunner, AdminConsoleState } from '../types/admin'
 import { AdminAuditPanel } from './AdminAuditPanel'
 import { GlobalNewsAdminPanel } from './GlobalNewsAdminPanel'
 import { LeagueAdminPanel } from './LeagueAdminPanel'
+import { LoanAdminPanel } from './LoanAdminPanel'
 import { AdminOrderMonitorPanel } from './AdminOrderMonitorPanel'
 import { AdminStockPositionsDialog } from './AdminStockPositionsDialog'
 import { ParticipantAdminPanel } from './ParticipantAdminPanel'
@@ -117,6 +118,7 @@ export function AdminPage() {
           onRun={runAction}
         />
         <LeagueAdminPanel leagues={consoleState.leagues} busy={busy} onRun={runAction} />
+        <LoanAdminPanel leagues={consoleState.leagues} busy={busy} onRun={runAction} />
         <ParticipantAdminPanel
           onInspectStock={setInspectedStock}
           leagues={consoleState.leagues}

@@ -7,6 +7,7 @@ interface AdminAuditPanelProps {
 }
 
 const actionLabels: Record<string, string> = {
+  loan_settings_updated: '란도뱅크 대출 설정 변경',
   admin_access_granted: '관리자 권한 부여',
   admin_access_revoked: '관리자 권한 해제',
   league_created: '리그 개최',

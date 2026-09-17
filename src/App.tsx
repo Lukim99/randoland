@@ -33,6 +33,7 @@ function App() {
           <Route path="discussion" element={loadPage(<DiscussionPage />)} />
           <Route path="discussion/:stockId" element={loadPage(<DiscussionPage />)} />
           <Route path="portfolio" element={loadPage(<FeaturePage kind="portfolio" />)} />
+          <Route path="loans" element={loadPage(<FeaturePage kind="loans" />)} />
           <Route path="orders" element={loadPage(<FeaturePage kind="orders" />)} />
           <Route path="listing" element={loadPage(<FeaturePage kind="listing" />)} />
           <Route path="ranking" element={loadPage(<FeaturePage kind="ranking" />)} />

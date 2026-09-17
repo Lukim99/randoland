@@ -103,6 +103,7 @@ export function PortfolioView() {
               <div><dt>공매도 평가손익</dt><dd className={movementClass(participant.shortUnrealizedProfit)}>{participant.shortUnrealizedProfit > 0 ? '+' : ''}{formatRp(participant.shortUnrealizedProfit)}</dd></div>
               <div><dt>레버리지 잔액</dt><dd>{formatRp(participant.leveragePrincipal)}</dd><small>예상 차감 {formatRp(participant.projectedLeverageFee)}</small></div>
               <div className={participant.receivableRp > 0 ? 'has-receivable' : ''}><dt>미수 RP</dt><dd>{formatRp(participant.receivableRp)}</dd></div>
+              <div><dt>란도뱅크 대출 원리금</dt><dd>{formatRp(participant.loanPrincipal + participant.loanInterest)}</dd><small>원금 {formatRp(participant.loanPrincipal)} · 이자 {formatRp(participant.loanInterest)}</small></div>
             </dl>
           </section>
 

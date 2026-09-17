@@ -371,6 +371,8 @@ export async function loadMyState(leagueId: string): Promise<MyState> {
       totalUnrealizedReturn: state.participant.totalUnrealizedReturn ?? 0,
       leveragePrincipal: state.participant.leveragePrincipal ?? 0,
       projectedLeverageFee: state.participant.projectedLeverageFee ?? 0,
+      loanPrincipal: state.participant.loanPrincipal ?? 0,
+      loanInterest: state.participant.loanInterest ?? 0,
     },
   }
 }

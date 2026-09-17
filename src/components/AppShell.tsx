@@ -6,6 +6,7 @@ import {
   Gift,
   ImageIcon,
   LayoutDashboard,
+  Landmark,
   LogOut,
   Menu,
   MessageSquareText,
@@ -29,6 +30,7 @@ const navigation = [
   { to: '/', label: '거래소', icon: LayoutDashboard, end: true },
   { to: '/news', label: '뉴스', icon: Newspaper },
   { to: '/portfolio', label: '내 자산', icon: WalletCards },
+  { to: '/loans', label: '대출', icon: Landmark },
   { to: '/orders', label: '주문 내역', icon: ClipboardList },
   { to: '/listing', label: '내 종목', icon: Building2 },
   { to: '/discussion', label: '종목토론방', icon: MessageSquareText },
@@ -48,7 +50,7 @@ export function AppShell() {
   const [profileError, setProfileError] = useState<string | null>(null)
   const visibleNavigation = isAdmin ? [...navigation, adminNavigation] : navigation
   const mobilePrimaryNavigation = visibleNavigation.filter(({ to }) => ['/', '/news', '/portfolio', '/discussion'].includes(to))
-  const mobileMoreNavigation = visibleNavigation.filter(({ to }) => ['/orders', '/listing', '/ranking', '/rewards', '/admin'].includes(to))
+  const mobileMoreNavigation = visibleNavigation.filter(({ to }) => ['/loans', '/orders', '/listing', '/ranking', '/rewards', '/admin'].includes(to))
   const nickname = myState?.participant?.nickname ?? '리그 참가 전'
   const profileImageUrl = myState?.participant?.profileImageUrl
   const marketStatus = market?.league?.status === 'active'

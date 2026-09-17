@@ -2,17 +2,19 @@ import {
   Building2,
   ClipboardList,
   Gift,
+  Landmark,
   Trophy,
   WalletCards,
 } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { ListingView } from '../features/ListingView'
+import { LoansView } from '../features/LoansView'
 import { OrdersView } from '../features/OrdersView'
 import { PortfolioView } from '../features/PortfolioView'
 import { RankingView } from '../features/RankingView'
 import { RewardsView } from '../features/RewardsView'
 
-type FeatureKind = 'portfolio' | 'orders' | 'listing' | 'ranking' | 'rewards'
+type FeatureKind = 'portfolio' | 'orders' | 'listing' | 'ranking' | 'rewards' | 'loans'
 
 interface FeaturePageProps {
   kind: FeatureKind
@@ -25,6 +27,7 @@ interface FeatureContent {
 }
 
 const content: Record<FeatureKind, FeatureContent> = {
+  loans: { eyebrow: '란도뱅크', title: '대출', icon: Landmark },
   portfolio: {
     eyebrow: '내 투자 현황', title: '내 자산', icon: WalletCards,
   },
@@ -43,6 +46,7 @@ const content: Record<FeatureKind, FeatureContent> = {
 }
 
 const views: Record<FeatureKind, ComponentType> = {
+  loans: LoansView,
   portfolio: PortfolioView,
   orders: OrdersView,
   listing: ListingView,

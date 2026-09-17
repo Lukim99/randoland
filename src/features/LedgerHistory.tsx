@@ -10,6 +10,7 @@ const labels: Record<string, string> = {
   receivable_created: '미수 RP 발생', receivable_repayment: '미수 RP 상환',
   leverage_borrow: '레버리지 사용', leverage_repayment: '레버리지 상환', leverage_fee: '레버리지 차감',
   ladder_reward: '홀짝 보상', dividend: '주식 배당', admin_adjustment: '운영 조정',
+  loan_borrow: '란도뱅크 대출', loan_repayment: '란도뱅크 자동 상환',
 }
 
 function LedgerPages({ leagueId, operationsOnly }: { leagueId: string; operationsOnly: boolean }) {
@@ -35,6 +36,8 @@ function LedgerPages({ leagueId, operationsOnly }: { leagueId: string; operation
   return <>
     <div className="ledger-history">{entries.map((entry) => {
       const operating = entry.type === 'admin_adjustment'
+      const loan = entry.type === 'loan_borrow' || entry.type === 'loan_repayment'
+      const balanceDetails = operating || loan
       const revoke = entry.metadata.direction === 'revoke' || entry.amount < 0
       const reason = typeof entry.metadata.reason === 'string' ? entry.metadata.reason : null
       return <article key={entry.id}>
@@ -42,12 +45,13 @@ function LedgerPages({ leagueId, operationsOnly }: { leagueId: string; operation
         <span><strong>{operating ? `운영 RP ${revoke ? '회수' : '지급'}` : labels[entry.type] ?? entry.type}</strong>
           <small>{formatKstDateTime(entry.createdAt)}</small>
           {operating && reason && <span className="ledger-reason">{reason}</span>}
+          {loan && <small>원금 {formatRp(Number(entry.metadata.principal ?? 0))} · 이자 {formatRp(Number(entry.metadata.interest ?? 0))}</small>}
           {operating && typeof entry.metadata.percent === 'number' && <small>기준 순자산 {formatRp(Number(entry.metadata.basisNetWorth))} × {entry.metadata.percent}%</small>}
         </span>
         <span><strong className={movementClass(entry.amount)}>{entry.amount > 0 ? '+' : ''}{formatRp(entry.amount)}</strong>
-          {operating && <small>현금 {revoke ? '차감' : '지급'} {formatRp(Number(entry.metadata.cashApplied ?? Math.abs(entry.amount)))}</small>}
-          {operating && Number(entry.metadata.receivableCreated) > 0 && <small>미수 발생 {formatRp(Number(entry.metadata.receivableCreated))}</small>}
-          {operating && Number(entry.metadata.receivableRepaid) > 0 && <small>미수 상환 {formatRp(Number(entry.metadata.receivableRepaid))}</small>}
+          {balanceDetails && <small>현금 {revoke ? '차감' : '지급'} {formatRp(Number(entry.metadata.cashApplied ?? Math.abs(entry.amount)))}</small>}
+          {balanceDetails && Number(entry.metadata.receivableCreated) > 0 && <small>미수 발생 {formatRp(Number(entry.metadata.receivableCreated))}</small>}
+          {balanceDetails && Number(entry.metadata.receivableRepaid) > 0 && <small>미수 상환 {formatRp(Number(entry.metadata.receivableRepaid))}</small>}
           <small>처리 후 예수금 {formatRp(entry.balanceAfter)}</small>
           {entry.receivableAfter > 0 && <small>처리 후 미수 {formatRp(entry.receivableAfter)}</small>}
         </span>

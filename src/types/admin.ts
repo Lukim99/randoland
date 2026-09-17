@@ -35,6 +35,8 @@ export interface AdminParticipant {
   receivableRp: number
   attendanceTokens: number
   netWorth: number
+  loanPrincipal: number
+  loanInterest: number
   longMarketValue: number
   shortExposure: number
   holdings: AdminParticipantHolding[]

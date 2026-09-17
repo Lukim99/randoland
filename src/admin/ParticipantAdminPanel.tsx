@@ -121,6 +121,7 @@ export function ParticipantAdminPanel({
             <div><span>주식 평가액</span><strong>{formatRp(selectedParticipant.longMarketValue)}</strong></div>
             <div><span>공매도 상환액</span><strong>{formatRp(selectedParticipant.shortExposure)}</strong></div>
             <div><span>미수 RP</span><strong>{formatRp(selectedParticipant.receivableRp)}</strong></div>
+            <div><span>대출 원리금</span><strong>{formatRp((selectedParticipant.loanPrincipal ?? 0) + (selectedParticipant.loanInterest ?? 0))}</strong></div>
             <div><span>출석토큰</span><strong>{formatPrice(selectedParticipant.attendanceTokens)}개</strong></div>
           </section>
 
