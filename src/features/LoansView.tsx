@@ -85,7 +85,7 @@ function LoanAccount({ leagueId }: { leagueId: string }) {
           <div className="loan-account-balance"><span>총 상환 예정액</span><strong>{formatRp(state.outstandingPrincipal + state.outstandingInterest)}</strong><small>상환 예정 대출 {outstanding.length}건</small></div>
           <dl className="loan-breakdown">
             <div><dt>미상환 원금</dt><dd>{formatRp(state.outstandingPrincipal)}</dd></div>
-            <div><dt>확정 이자</dt><dd>{formatRp(state.outstandingInterest)}</dd></div>
+            <div><dt>만기 상환 이자</dt><dd>{formatRp(state.outstandingInterest)}</dd></div>
           </dl>
           <div className="loan-next-payment"><CalendarClock size={20} aria-hidden="true" /><div><span>다음 자동 상환</span>{nextLoan ? <><strong>{formatKstDateTime(nextLoan.dueAt)}</strong><small>{formatRp(nextLoan.repaymentAmount)}</small></> : <strong>상환 예정인 대출이 없습니다.</strong>}</div></div>
           <Link className="loan-account-link" to="/portfolio">내 자산 확인<ArrowRight size={16} aria-hidden="true" /></Link>
@@ -104,7 +104,7 @@ function LoanAccount({ leagueId }: { leagueId: string }) {
               <button type="submit" className="primary-button" disabled={busy || (!uncertain && (!eligible || !state.isOpen))}>{busy ? '처리 중…' : uncertain ? '같은 요청 결과 확인' : confirming ? '확인 후 대출 실행' : '대출받기'}<ArrowRight size={17} aria-hidden="true" /></button>
               {confirming && !uncertain && <button type="button" className="secondary-button" disabled={busy} onClick={() => { request.current = null; setConfirming(false) }}>금액 수정</button>}
             </div>
-            <details className="loan-guide"><summary>대출 전 확인해 주세요<ChevronDown size={16} aria-hidden="true" /></summary><p>이율은 대출 건별로 한 번 적용하며, 1 RP 미만 이자는 올림합니다. 원금과 확정 이자는 즉시 순자산에서 차감됩니다. 받은 RP는 기존 미수 RP부터 상환합니다.</p></details>
+            <details className="loan-guide"><summary>대출 전 확인해 주세요<ChevronDown size={16} aria-hidden="true" /></summary><p>받은 RP는 총자산·공매도 한도·순위에 반영됩니다. 원금과 이자는 만기에 함께 차감합니다. 이율은 건별로 한 번 적용하며, 1 RP 미만 이자는 올림합니다. 받은 RP는 기존 미수 RP부터 상환합니다.</p></details>
             <p className="loan-note">만기에 현금이 부족하면 미수 RP가 발생하며, 주식은 자동으로 매도하지 않습니다.</p>
           </form>}
         </section>

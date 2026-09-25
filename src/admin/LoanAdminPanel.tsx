@@ -43,7 +43,7 @@ function LoanSettingsForm({ leagueId, settings, busy, onRun, onSaved }: { league
       </div>
       <p className="admin-form__hint">이율은 건별 1회 적용합니다. 0%는 무이자입니다.</p>
     </fieldset>
-    <details className="loan-guide loan-admin-guide"><summary>상환 및 적용 기준<ChevronDown size={15} aria-hidden="true" /></summary><p>1 RP 미만 이자는 올림합니다. 만기에는 원리금을 현금에서 차감하고 부족분을 미수 RP로 전환합니다. 보유 주식은 매도하지 않습니다.</p></details>
+    <details className="loan-guide loan-admin-guide"><summary>상환 및 적용 기준<ChevronDown size={15} aria-hidden="true" /></summary><p>대출 RP는 총자산·공매도 한도·순위에 반영됩니다. 원금과 이자는 만기에 함께 차감하며, 부족분은 미수 RP로 전환합니다. 1 RP 미만 이자는 올림하고 보유 주식은 매도하지 않습니다.</p></details>
     {error && <p role="alert" className="loan-feedback is-error">{error}</p>}
     <div className="loan-admin-footer"><p className="admin-form__hint">기존 대출의 이율과 상환일은 유지됩니다.</p><button className="primary-button" type="submit" disabled={busy}><Save size={15} aria-hidden="true" />{busy ? '처리 중…' : '대출 설정 저장'}</button></div>
   </form>
@@ -63,7 +63,7 @@ function LeagueLoanSettings({ leagueId, busy, onRun }: { leagueId: string; busy:
     <div className="loan-admin-status-row"><span className={`admin-status admin-status--${state?.isOpen ? 'active' : 'finished'}`}>{state ? state.isOpen ? '대출 가능' : '대출 닫힘' : '불러오는 중'}</span><button type="button" className="secondary-button" disabled={busy} onClick={() => setRevision((value) => value + 1)} aria-label="대출 설정 새로고침"><RefreshCw size={14} aria-hidden="true" />새로고침</button></div>
     {!state && !error && <p className="admin-empty-copy">대출 설정을 불러오는 중입니다.</p>}
     {state && <>
-      <dl className="loan-admin-metrics"><div><dt>미상환 원금</dt><dd>{formatRp(state.outstandingPrincipal)}</dd></div><div><dt>확정 이자</dt><dd>{formatRp(state.outstandingInterest)}</dd></div></dl>
+      <dl className="loan-admin-metrics"><div><dt>미상환 원금</dt><dd>{formatRp(state.outstandingPrincipal)}</dd></div><div><dt>만기 상환 이자</dt><dd>{formatRp(state.outstandingInterest)}</dd></div></dl>
       <LoanSettingsForm key={`${state.settings?.version ?? 'new'}:${revision}`} leagueId={leagueId} settings={state.settings} busy={busy} onRun={onRun} onSaved={() => setRevision((value) => value + 1)} />
       {state.loans.length > 0 && <details className="loan-admin-history"><summary>미상환 대출 {state.loans.length}건<ChevronDown size={15} aria-hidden="true" /></summary><div className="loan-admin-list">{state.loans.map((loan) => <article key={loan.id}><strong>{loan.nickname}</strong><span>원리금 {formatRp(loan.repaymentAmount)}</span><small>{formatKstDateTime(loan.dueAt)} 자동 상환</small></article>)}</div></details>}
     </>}
