@@ -249,6 +249,60 @@ export async function loadMarketSnapshot(leagueId?: string | null): Promise<Mark
   }
 }
 
+interface LatestNewsEditionRow {
+  id: string
+  round_id: string
+  main_headline: string
+  main_body: string
+  published_at: string
+  round: { round_number: number } | null
+  items: Array<{
+    id: string
+    stock_id: string
+    headline: string
+    body: string
+    change_percent: number
+    sort_order: number
+    stock: { ticker: string; name: string } | null
+  }> | null
+}
+
+// Same public RLS as randoland_get_news_feed, but only the latest edition for the market refresh.
+export async function loadLatestNewsFeed(leagueId: string): Promise<NewsFeed> {
+  const client = requireSupabase()
+  const { data, error } = await client
+    .from('randoland_news_editions')
+    .select('id, round_id, main_headline, main_body, published_at, round:randoland_rounds(round_number), items:randoland_news_items(id, stock_id, headline, body, change_percent, sort_order, stock:randoland_stocks!inner(ticker, name))')
+    .eq('league_id', leagueId)
+    .eq('format_version', 2)
+    .order('published_at', { ascending: false })
+    .limit(1)
+  throwIfError(error)
+
+  const rows = (data ?? []) as unknown as LatestNewsEditionRow[]
+  return {
+    editions: rows.map((row) => ({
+      id: row.id,
+      roundId: row.round_id,
+      roundNumber: row.round?.round_number ?? 0,
+      mainHeadline: row.main_headline,
+      mainBody: row.main_body,
+      publishedAt: row.published_at,
+      items: [...(row.items ?? [])]
+        .sort((left, right) => left.sort_order - right.sort_order)
+        .map((item) => ({
+          id: item.id,
+          stockId: item.stock_id,
+          ticker: item.stock?.ticker ?? '',
+          stockName: item.stock?.name ?? '',
+          headline: item.headline,
+          body: item.body,
+          changePercent: Number(item.change_percent),
+        })),
+    })),
+  }
+}
+
 export async function loadNewsFeed(leagueId: string): Promise<NewsFeed> {
   const client = requireSupabase()
   const { data, error } = await client.rpc('randoland_get_news_feed', {

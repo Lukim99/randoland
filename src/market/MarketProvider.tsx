@@ -14,6 +14,7 @@ import {
   loadDiscussionPosts as loadDiscussionPostsRequest,
   loadRecentDiscussionPosts as loadRecentDiscussionPostsRequest,
   loadStockFavoriteIds,
+  loadLatestNewsFeed,
   loadMarketSnapshot,
   loadMyState,
   loadNewsFeed,
@@ -58,6 +59,19 @@ const realtimeTables = [
   'randoland_league_awards',
 ] as const
 
+// Editions are published only when the round moves on, so the news payload is reused until then.
+interface NewsCache {
+  key: string
+  leagueId: string
+  latest: NewsFeed
+  full: NewsFeed | null
+}
+
+function getNewsKey(snapshot: MarketSnapshot) {
+  if (!snapshot.league) return null
+  return `${snapshot.league.id}:${snapshot.round?.id ?? ''}:${snapshot.round?.status ?? ''}`
+}
+
 function createClientRequestId() {
   const cryptoApi = globalThis.crypto
   if (typeof cryptoApi?.randomUUID === 'function') return cryptoApi.randomUUID()
@@ -82,12 +96,14 @@ export function MarketProvider({ children }: PropsWithChildren) {
   const [market, setMarket] = useState<MarketSnapshot | null>(null)
   const [myState, setMyState] = useState<MyState | null>(null)
   const [rankings, setRankings] = useState<RankingsSnapshot | null>(null)
-  const [newsFeed, setNewsFeed] = useState<NewsFeed | null>(null)
+  const [news, setNews] = useState<NewsCache | null>(null)
   const [favoriteStockIds, setFavoriteStockIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestSequence = useRef(0)
+  const newsCache = useRef<NewsCache | null>(null)
+  const fullNewsRequest = useRef<{ key: string; promise: Promise<NewsFeed> } | null>(null)
   const pendingOrderRequest = useRef<{ signature: string; key: string } | null>(null)
   const pendingLadderRequest = useRef<{ signature: string; key: string } | null>(null)
 
@@ -99,25 +115,31 @@ export function MarketProvider({ children }: PropsWithChildren) {
 
     try {
       const nextMarket = await loadMarketSnapshot()
+      const newsKey = getNewsKey(nextMarket)
+      const cachedNews = newsKey && newsCache.current?.key === newsKey ? newsCache.current : null
       let nextMyState: MyState | null = null
       let nextRankings: RankingsSnapshot | null = null
-      let nextNewsFeed: NewsFeed | null = null
+      let nextLatestNews: NewsFeed | null = null
       let nextFavoriteStockIds: string[] = []
 
       if (nextMarket.league) {
-        ;[nextMyState, nextRankings, nextNewsFeed, nextFavoriteStockIds] = await Promise.all([
+        ;[nextMyState, nextRankings, nextLatestNews, nextFavoriteStockIds] = await Promise.all([
           loadMyState(nextMarket.league.id),
           loadRankings(nextMarket.league.id),
-          loadNewsFeed(nextMarket.league.id),
+          cachedNews ? null : loadLatestNewsFeed(nextMarket.league.id),
           loadStockFavoriteIds(nextMarket.league.id),
         ])
       }
 
       if (requestSequence.current !== requestId) return
+      const nextNews = cachedNews ?? (nextMarket.league && newsKey && nextLatestNews
+        ? { key: newsKey, leagueId: nextMarket.league.id, latest: nextLatestNews, full: null }
+        : null)
+      newsCache.current = nextNews
       setMarket(nextMarket)
       setMyState(nextMyState)
       setRankings(nextRankings)
-      setNewsFeed(nextNewsFeed)
+      setNews(nextNews)
       setFavoriteStockIds(nextFavoriteStockIds)
     } catch (refreshError) {
       if (requestSequence.current !== requestId) return
@@ -131,6 +153,30 @@ export function MarketProvider({ children }: PropsWithChildren) {
   }, [])
 
   const refresh = useCallback(() => refreshData(true), [refreshData])
+
+  const newsKey = news?.key ?? null
+  const newsLeagueId = news?.leagueId ?? null
+  const newsFeedComplete = Boolean(news?.full)
+  const newsFeed = news?.full ?? news?.latest ?? null
+
+  // Only the news pages need every edition; they load it once per round.
+  const loadFullNewsFeed = useCallback(async () => {
+    if (!newsKey || !newsLeagueId || newsFeedComplete) return
+    const pending = fullNewsRequest.current
+    const request = pending?.key === newsKey ? pending.promise : loadNewsFeed(newsLeagueId)
+    fullNewsRequest.current = { key: newsKey, promise: request }
+
+    try {
+      const full = await request
+      const current = newsCache.current
+      if (current?.key !== newsKey || current.full) return
+      const nextNews = { ...current, full }
+      newsCache.current = nextNews
+      setNews(nextNews)
+    } finally {
+      if (fullNewsRequest.current?.promise === request) fullNewsRequest.current = null
+    }
+  }, [newsFeedComplete, newsKey, newsLeagueId])
 
   useEffect(() => {
     void refreshData(false)
@@ -321,6 +367,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
       myState,
       rankings,
       newsFeed,
+      newsFeedComplete,
+      loadFullNewsFeed,
       favoriteStockIds,
       loading,
       refreshing,
@@ -363,6 +411,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
       playLadderThird,
       rankings,
       newsFeed,
+      newsFeedComplete,
+      loadFullNewsFeed,
       favoriteStockIds,
       refresh,
       refreshing,

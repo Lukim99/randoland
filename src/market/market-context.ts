@@ -19,7 +19,10 @@ export interface MarketContextValue {
   market: MarketSnapshot | null
   myState: MyState | null
   rankings: RankingsSnapshot | null
+  /** Latest edition only, until a news page loads every edition. */
   newsFeed: NewsFeed | null
+  newsFeedComplete: boolean
+  loadFullNewsFeed: () => Promise<void>
   favoriteStockIds: string[]
   loading: boolean
   refreshing: boolean

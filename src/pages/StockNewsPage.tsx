@@ -1,11 +1,13 @@
-import { ArrowLeft, Newspaper } from 'lucide-react'
+import { ArrowLeft, Newspaper, RefreshCw } from 'lucide-react'
 import { Link, Navigate, useParams } from 'react-router'
 import { formatKstDateTime, formatPercent, movementClass } from '../lib/format'
+import { useFullNewsFeed } from '../market/useFullNewsFeed'
 import { useMarket } from '../market/useMarket'
 
 export function StockNewsPage() {
   const { stockId } = useParams()
   const { market, newsFeed, loading } = useMarket()
+  const fullNewsFeed = useFullNewsFeed()
 
   if (loading && !market) {
     return <div className="skeleton skeleton--chart" aria-label="종목 뉴스 불러오는 중" />
@@ -13,6 +15,26 @@ export function StockNewsPage() {
 
   const stock = market?.stocks.find((item) => item.id === stockId)
   if (!stock || !market) return <Navigate to="/" replace />
+
+  if (!fullNewsFeed.ready) {
+    return (
+      <div className="news-page stock-news-history-page">
+        <Link className="back-link" to={`/stock/${stock.id}`}><ArrowLeft size={16} /> {stock.name} 종목으로 돌아가기</Link>
+        {fullNewsFeed.error ? (
+          <section className="panel news-page-empty" role="alert">
+            <Newspaper size={30} />
+            <h2>뉴스를 불러오지 못했습니다</h2>
+            <p>{fullNewsFeed.error}</p>
+            <button type="button" onClick={fullNewsFeed.retry}>
+              <RefreshCw size={16} /> 다시 불러오기
+            </button>
+          </section>
+        ) : (
+          <div className="skeleton skeleton--chart" aria-label="종목 뉴스 불러오는 중" />
+        )}
+      </div>
+    )
+  }
 
   const editions = [...(newsFeed?.editions ?? [])]
     .sort((left, right) => right.roundNumber - left.roundNumber || Date.parse(right.publishedAt) - Date.parse(left.publishedAt))

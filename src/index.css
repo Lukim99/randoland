@@ -5432,7 +5432,8 @@ button:disabled {
 }
 
 .auth-callback-page button,
-.empty-state button {
+.empty-state button,
+.news-page-empty button {
   display: flex;
   align-items: center;
   gap: 7px;
@@ -7167,6 +7168,7 @@ button:disabled {
   .auth-error,
   .empty-state p,
   .empty-state button,
+  .news-page-empty button,
   .sprite-field span,
   .sprite-picker-preview small,
   .secondary-action-button {

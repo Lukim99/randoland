@@ -1,7 +1,8 @@
-import { ArrowDownRight, ArrowUpRight, Building2, CalendarClock, Minus, Newspaper, Radio } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Building2, CalendarClock, Minus, Newspaper, Radio, RefreshCw } from 'lucide-react'
 import { useState } from 'react'
 import { Link } from 'react-router'
 import { formatKstDateTime, formatPercent, movementClass } from '../lib/format'
+import { useFullNewsFeed } from '../market/useFullNewsFeed'
 import { useMarket } from '../market/useMarket'
 
 function MovementIcon({ value }: { value: number }) {
@@ -12,12 +13,27 @@ function MovementIcon({ value }: { value: number }) {
 
 export function NewsPage() {
   const { market, newsFeed, loading } = useMarket()
+  const fullNewsFeed = useFullNewsFeed()
   const [selectedEditionId, setSelectedEditionId] = useState<string | null>(null)
   const editions = newsFeed?.editions ?? []
   const selectedEdition = editions.find((edition) => edition.id === selectedEditionId) ?? editions[0]
 
   if (loading && !market) {
     return <div className="skeleton skeleton--chart" aria-label="뉴스 불러오는 중" />
+  }
+
+  if (market?.league && !fullNewsFeed.ready) {
+    if (!fullNewsFeed.error) return <div className="skeleton skeleton--chart" aria-label="뉴스 불러오는 중" />
+    return (
+      <section className="panel news-page-empty" role="alert">
+        <Newspaper size={30} />
+        <h2>뉴스를 불러오지 못했습니다</h2>
+        <p>{fullNewsFeed.error}</p>
+        <button type="button" onClick={fullNewsFeed.retry}>
+          <RefreshCw size={16} /> 다시 불러오기
+        </button>
+      </section>
+    )
   }
 
   if (!market?.league || !selectedEdition) {
