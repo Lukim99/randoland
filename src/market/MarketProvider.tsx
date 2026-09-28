@@ -39,15 +39,20 @@ import type {
 } from '../types/market'
 import { MarketContext, type MarketContextValue } from './market-context'
 
-const realtimeTables = [
+// Shared market rows change on settlement or admin work and need the full refresh.
+const marketRealtimeTables = [
   'randoland_leagues',
   'randoland_rounds',
   'randoland_stocks',
   'randoland_price_candles',
   'randoland_news',
   'randoland_news_editions',
-  'randoland_news_items',
-  'randoland_discussion_posts',
+  'randoland_rank_snapshots',
+  'randoland_league_awards',
+] as const
+
+// RLS delivers these rows only to their owner, and they only feed my state.
+const personalRealtimeTables = [
   'randoland_participants',
   'randoland_orders',
   'randoland_positions',
@@ -55,9 +60,10 @@ const realtimeTables = [
   'randoland_trade_cycles',
   'randoland_attendance',
   'randoland_ladder_games',
-  'randoland_rank_snapshots',
-  'randoland_league_awards',
 ] as const
+
+// Own actions reload my state right away; the realtime echo of that same change is skipped.
+const ACTION_ECHO_WINDOW_MS = 3000
 
 // Editions are published only when the round moves on, so the news payload is reused until then.
 interface NewsCache {
@@ -102,6 +108,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
   const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const requestSequence = useRef(0)
+  const myStateSequence = useRef(0)
+  const lastActionRefreshAt = useRef(0)
   const newsCache = useRef<NewsCache | null>(null)
   const fullNewsRequest = useRef<{ key: string; promise: Promise<NewsFeed> } | null>(null)
   const pendingOrderRequest = useRef<{ signature: string; key: string } | null>(null)
@@ -109,6 +117,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
 
   const refreshData = useCallback(async (quiet: boolean) => {
     const requestId = ++requestSequence.current
+    const myStateRequestId = ++myStateSequence.current
     if (quiet) setRefreshing(true)
     else setLoading(true)
     setError(null)
@@ -137,7 +146,8 @@ export function MarketProvider({ children }: PropsWithChildren) {
         : null)
       newsCache.current = nextNews
       setMarket(nextMarket)
-      setMyState(nextMyState)
+      // A my-state reload that started later already has newer data.
+      if (myStateSequence.current === myStateRequestId) setMyState(nextMyState)
       setRankings(nextRankings)
       setNews(nextNews)
       setFavoriteStockIds(nextFavoriteStockIds)
@@ -153,6 +163,23 @@ export function MarketProvider({ children }: PropsWithChildren) {
   }, [])
 
   const refresh = useCallback(() => refreshData(true), [refreshData])
+
+  // Trades, games and personal ledger changes never touch shared market data.
+  const refreshMyState = useCallback(async (leagueId: string) => {
+    const myStateRequestId = ++myStateSequence.current
+    try {
+      const nextMyState = await loadMyState(leagueId)
+      if (myStateSequence.current === myStateRequestId) setMyState(nextMyState)
+    } catch (refreshError) {
+      if (myStateSequence.current !== myStateRequestId) return
+      setError(refreshError instanceof Error ? refreshError.message : '내 자산 정보를 불러오지 못했습니다.')
+    }
+  }, [])
+
+  const refreshAfterAction = useCallback((leagueId: string) => {
+    lastActionRefreshAt.current = Date.now()
+    return refreshMyState(leagueId)
+  }, [refreshMyState])
 
   const newsKey = news?.key ?? null
   const newsLeagueId = news?.leagueId ?? null
@@ -188,18 +215,25 @@ export function MarketProvider({ children }: PropsWithChildren) {
     if (!client || !leagueId) return
 
     let refreshTimer: number | undefined
-    const scheduleRefresh = () => {
+    let pendingScope: 'market' | 'personal' | null = null
+    const scheduleRefresh = (scope: 'market' | 'personal') => {
+      if (scope === 'personal' && Date.now() - lastActionRefreshAt.current < ACTION_ECHO_WINDOW_MS) return
+      pendingScope = scope === 'market' || pendingScope === 'market' ? 'market' : 'personal'
       window.clearTimeout(refreshTimer)
-      refreshTimer = window.setTimeout(() => void refreshData(true), 180)
+      refreshTimer = window.setTimeout(() => {
+        const scopeToRefresh = pendingScope
+        pendingScope = null
+        if (scopeToRefresh === 'market') void refreshData(true)
+        else if (scopeToRefresh === 'personal') void refreshMyState(leagueId)
+      }, 180)
     }
 
     const channel = client.channel(`randoland-live-${leagueId}`)
-    realtimeTables.forEach((table) => {
-      channel.on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table },
-        scheduleRefresh,
-      )
+    marketRealtimeTables.forEach((table) => {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => scheduleRefresh('market'))
+    })
+    personalRealtimeTables.forEach((table) => {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => scheduleRefresh('personal'))
     })
     channel.subscribe()
 
@@ -207,7 +241,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       window.clearTimeout(refreshTimer)
       void client.removeChannel(channel)
     }
-  }, [market?.league?.id, refreshData])
+  }, [market?.league?.id, refreshData, refreshMyState])
 
   const requireLeagueId = useCallback(() => {
     const leagueId = market?.league?.id
@@ -251,20 +285,20 @@ export function MarketProvider({ children }: PropsWithChildren) {
     if (pendingOrderRequest.current?.key === pendingRequest.key) {
       pendingOrderRequest.current = null
     }
-    await refreshData(true)
-  }, [refreshData, requireLeagueId])
+    await refreshAfterAction(leagueId)
+  }, [refreshAfterAction, requireLeagueId])
 
   const cancelOrder = useCallback(async (orderId: string) => {
     await cancelOrderRequest(orderId)
-    await refreshData(true)
-  }, [refreshData])
+    await refreshAfterAction(requireLeagueId())
+  }, [refreshAfterAction, requireLeagueId])
 
   const uploadProfileImage = useCallback(async (file: File) => {
     const participant = myState?.participant
     if (!participant) throw new Error('리그 참가 후 프로필 이미지를 변경할 수 있습니다.')
     await uploadProfileImageRequest(participant.id, participant.profileImagePath, file)
-    await refreshData(true)
-  }, [myState?.participant, refreshData])
+    await refreshAfterAction(requireLeagueId())
+  }, [myState?.participant, refreshAfterAction, requireLeagueId])
 
   const loadDiscussionPosts = useCallback(
     (stockId: string, sort: DiscussionSort = 'latest') => loadDiscussionPostsRequest(stockId, sort),
@@ -315,10 +349,11 @@ export function MarketProvider({ children }: PropsWithChildren) {
   )
 
   const claimAttendance = useCallback(async () => {
-    const result = await claimAttendanceRequest(requireLeagueId())
-    await refreshData(true)
+    const leagueId = requireLeagueId()
+    const result = await claimAttendanceRequest(leagueId)
+    await refreshAfterAction(leagueId)
     return result
-  }, [refreshData, requireLeagueId])
+  }, [refreshAfterAction, requireLeagueId])
 
   const playLadder = useCallback(async (choice: LadderChoice) => {
     const leagueId = requireLeagueId()
@@ -333,33 +368,33 @@ export function MarketProvider({ children }: PropsWithChildren) {
     if (pendingLadderRequest.current?.key === pendingRequest.key) {
       pendingLadderRequest.current = null
     }
-    await refreshData(true)
+    await refreshAfterAction(leagueId)
     return result
-  }, [refreshData, requireLeagueId])
+  }, [refreshAfterAction, requireLeagueId])
 
   const chooseLadderAction = useCallback(async (gameId: string, action: 'go' | 'stop') => {
     const result = await chooseLadderActionRequest(gameId, action)
-    await refreshData(true)
+    await refreshAfterAction(requireLeagueId())
     return result
-  }, [refreshData])
+  }, [refreshAfterAction, requireLeagueId])
 
   const playLadderSecond = useCallback(async (gameId: string, choice: LadderChoice) => {
     const result = await playLadderSecondRequest(gameId, choice)
-    await refreshData(true)
+    await refreshAfterAction(requireLeagueId())
     return result
-  }, [refreshData])
+  }, [refreshAfterAction, requireLeagueId])
 
   const chooseLadderThirdAction = useCallback(async (gameId: string, action: 'go' | 'stop') => {
     const result = await chooseLadderThirdActionRequest(gameId, action)
-    await refreshData(true)
+    await refreshAfterAction(requireLeagueId())
     return result
-  }, [refreshData])
+  }, [refreshAfterAction, requireLeagueId])
 
   const playLadderThird = useCallback(async (gameId: string, choice: LadderChoice) => {
     const result = await playLadderThirdRequest(gameId, choice)
-    await refreshData(true)
+    await refreshAfterAction(requireLeagueId())
     return result
-  }, [refreshData])
+  }, [refreshAfterAction, requireLeagueId])
 
   const value = useMemo<MarketContextValue>(
     () => ({
