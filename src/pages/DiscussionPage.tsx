@@ -233,7 +233,7 @@ function DiscussionStockList({
       </div>
       <nav className="discussion-stock-links" aria-label="상장 종목 토론방 목록">
         {stocks.map((stock) => (
-          <div className="discussion-stock-link-row" key={stock.id}>
+          <div className={`discussion-stock-link-row${stock.status === 'delisted' ? ' is-delisted' : ''}`} key={stock.id}>
             <Link to={`/discussion/${stock.id}`}>
               <StockLogo
                 src={stock.logoImageUrl}
@@ -243,7 +243,7 @@ function DiscussionStockList({
               />
               <span>
                 <strong>{stock.name}</strong>
-                <small>{stock.ticker}</small>
+                <small>{stock.ticker}{stock.status === 'delisted' ? ' · 상장폐지' : ''}</small>
               </span>
               <ChevronRight size={18} aria-hidden="true" />
             </Link>
@@ -279,14 +279,14 @@ function DiscussionFavoriteStocks({ stocks }: { stocks: StockSummary[] }) {
       </div>
       <div className="discussion-favorite-links">
         {stocks.map((stock) => (
-          <Link key={stock.id} to={`/discussion/${stock.id}`}>
+          <Link key={stock.id} className={stock.status === 'delisted' ? 'is-delisted' : undefined} to={`/discussion/${stock.id}`}>
             <StockLogo
               src={stock.logoImageUrl}
               spriteIndex={stock.logoSpriteIndex}
               size="sm"
               label={`${stock.name} 로고`}
             />
-            <span><strong>{stock.name}</strong><small>{stock.ticker}</small></span>
+            <span><strong>{stock.name}</strong><small>{stock.ticker}{stock.status === 'delisted' ? ' · 상장폐지' : ''}</small></span>
             <ChevronRight size={16} aria-hidden="true" />
           </Link>
         ))}
@@ -583,7 +583,7 @@ function DiscussionRecentFeed({
                   label={`${post.stockName} 로고`}
                 />
                 <span className="discussion-recent-copy">
-                  <span className="discussion-recent-stock">{post.stockName} <small>{post.ticker}</small></span>
+                  <span className="discussion-recent-stock">{post.stockName} <small>{post.ticker}{stock?.status === 'delisted' ? ' · 상장폐지' : ''}</small></span>
                   <strong>{post.title}</strong>
                   <small className="discussion-recent-meta"><DiscussionAuthor nickname={post.authorNickname} isSpectator={post.authorIsSpectator} /><span aria-hidden="true">·</span><time dateTime={post.createdAt} title={formatKstDateTime(post.createdAt)}>{formatDiscussionTime(post.createdAt)}</time></small>
                   <span className="discussion-recent-reactions">
@@ -631,7 +631,7 @@ export function DiscussionPage() {
   } = useMarket()
   const favoriteStockIdSet = useMemo(() => new Set(favoriteStockIds), [favoriteStockIds])
   const discussionStocks = useMemo(() => {
-    const stocks = market?.stocks.filter((stock) => stock.status !== 'delisted') ?? []
+    const stocks = market?.stocks ?? []
     return [...stocks].sort((left, right) => Number(favoriteStockIdSet.has(right.id)) - Number(favoriteStockIdSet.has(left.id)))
   }, [favoriteStockIdSet, market?.stocks])
   const favoriteStocks = discussionStocks.filter((stock) => favoriteStockIdSet.has(stock.id))
@@ -977,6 +977,7 @@ export function DiscussionPage() {
               <span>
                 <span className="eyebrow">{selectedStock.ticker}</span>
                 <h1>{selectedStock.name} 토론방</h1>
+                {selectedStock.status === 'delisted' && <span className="stock-market-action stock-market-action--delist">상장폐지</span>}
               </span>
             </Link>
             <div className="discussion-board-actions">

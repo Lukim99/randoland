@@ -3230,9 +3230,29 @@ dd {
 }
 
 .stock-market-action--delist {
-  color: #ff8f9a;
-  background: rgba(255, 79, 96, 0.1);
-  border-color: rgba(255, 79, 96, 0.35);
+  color: #b6becb;
+  background: rgba(182, 190, 203, 0.08);
+  border-color: rgba(182, 190, 203, 0.25);
+}
+
+.is-delisted .sprite-icon--stock {
+  filter: grayscale(1);
+  opacity: 0.65;
+}
+
+.is-delisted .stock-identity strong,
+.is-delisted .admin-stock-row__copy strong,
+.discussion-stock-link-row.is-delisted strong,
+.discussion-favorite-links .is-delisted strong,
+.favorite-stock-bar .is-delisted {
+  color: #a3adbc;
+}
+
+.market-table tbody tr.is-delisted,
+.mobile-stock-card.is-delisted,
+.discussion-stock-link-row.is-delisted,
+.admin-stock-row.is-delisted {
+  background: rgba(182, 190, 203, 0.035);
 }
 
 .stock-detail-layout {

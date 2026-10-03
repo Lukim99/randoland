@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { useMarket } from './useMarket'
 
 // News pages list every edition, so they request the full feed that the market refresh skips.
-export function useFullNewsFeed() {
+export function useFullNewsFeed(enabled = true) {
   const { newsFeedComplete, loadFullNewsFeed } = useMarket()
   const [error, setError] = useState<string | null>(null)
 
@@ -14,8 +14,8 @@ export function useFullNewsFeed() {
   }, [loadFullNewsFeed])
 
   useEffect(() => {
-    load()
-  }, [load])
+    if (enabled) load()
+  }, [enabled, load])
 
   return { ready: newsFeedComplete, error, retry: load }
 }

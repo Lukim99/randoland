@@ -41,7 +41,7 @@ export function MarketList({
           </thead>
           <tbody>
             {stocks.map((stock) => (
-              <tr key={stock.id} className={stock.id === selectedId ? 'is-selected' : undefined}>
+              <tr key={stock.id} className={`${stock.id === selectedId ? 'is-selected' : ''}${stock.status === 'delisted' ? ' is-delisted' : ''}`}>
                 <td>
                   <button className="stock-identity" type="button" onClick={() => onSelect?.(stock)}>
                     <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
@@ -87,13 +87,13 @@ export function MarketList({
 
       <div className="mobile-market-list">
         {stocks.map((stock) => (
-          <article key={stock.id} className={`mobile-stock-card${stock.id === selectedId ? ' is-selected' : ''}`}>
+          <article key={stock.id} className={`mobile-stock-card${stock.id === selectedId ? ' is-selected' : ''}${stock.status === 'delisted' ? ' is-delisted' : ''}`}>
             <button className="mobile-stock-card__main" type="button" onClick={() => onSelect?.(stock)}>
               <span className="stock-identity">
                 <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                 <span>
                   <strong>{stock.name}</strong>
-                  <small>{stock.ticker} · {stock.theme}{stock.marketAction === 'halt' ? ' · 거래정지' : stock.marketAction === 'delist' ? ' · 상장폐지' : ''}</small>
+                  <small>{stock.ticker}{stock.marketAction === 'halt' ? ' · 거래정지' : stock.marketAction === 'delist' ? ' · 상장폐지' : ` · ${stock.theme}`}</small>
                 </span>
               </span>
               <span className="mobile-stock-card__quote">

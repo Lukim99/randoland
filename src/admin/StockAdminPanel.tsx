@@ -47,7 +47,7 @@ const stockStatusLabel: Record<string, string> = {
   pending: '설정 중',
   active: '거래 중',
   halted: '거래 정지',
-  delisted: '제거됨',
+  delisted: '상장폐지',
   rejected: '등록 취소',
 }
 
@@ -235,6 +235,7 @@ interface StockEditorProps {
 
 function StockEditor({ editor, participants, busy, onRun, onReload }: StockEditorProps) {
   const { stock, league } = editor
+  const readOnly = stock.status === 'delisted'
   const [ownerParticipantId, setOwnerParticipantId] = useState(stock.ownerParticipantId ?? '')
   const [ticker, setTicker] = useState(stock.ticker)
   const [name, setName] = useState(stock.name)
@@ -368,11 +369,11 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
 
   async function handleRemove(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    if (!window.confirm(`${stock.name} 종목을 시장에서 제거하시겠습니까? 거래와 뉴스 이력은 보존됩니다.`)) return
+    if (!window.confirm(`${stock.name} 종목을 상장폐지하시겠습니까? 거래가 차단되며 종목 목록·토론방·뉴스는 유지됩니다.`)) return
 
     const completed = await onRun(
       () => delistAdminStock(stock.id, removeReason),
-      `${stock.name} 종목을 시장에서 제거했습니다.`,
+      `${stock.name} 종목을 상장폐지했습니다.`,
     )
     if (completed) {
       setRemoveReason('')
@@ -400,6 +401,8 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
           {!stock.identityEditable && <span><CheckCircle2 size={14} /> 상장 식별정보 잠김</span>}
         </div>
 
+        {readOnly && <p className="admin-form__hint">상장폐지된 종목입니다. 종목 정보와 라운드 계획은 조회만 가능합니다.</p>}
+
         <div className="admin-stock-logo-field">
           <StockLogo src={logoPreviewUrl ?? (logoImagePath ? stock.logoImageUrl : null)} spriteIndex={logoSpriteIndex} size="lg" label={`${stock.name} 로고`} />
           <div><strong>종목 로고</strong><span>{logoFile?.name ?? (logoImagePath ? '업로드 이미지' : `기본 이미지 ${logoSpriteIndex + 1}`)}</span></div>
@@ -418,11 +421,11 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
           <label><span>티커</span><input value={ticker} onChange={(event) => setTicker(event.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))} disabled={!stock.identityEditable || busy} maxLength={8} required /></label>
           <label><span>종목명</span><input value={name} onChange={(event) => setName(event.target.value)} disabled={!stock.identityEditable || busy} minLength={2} maxLength={40} required /></label>
           <label><span>초기 가격</span><div className="input-with-unit"><input type="number" min="1" step="1" value={initialPrice} onChange={(event) => setInitialPrice(event.target.value)} disabled={!stock.identityEditable || busy} required /><span>RP</span></div></label>
-          <label><span>테마</span><input value={theme} onChange={(event) => setTheme(event.target.value)} disabled={busy} maxLength={120} /></label>
+          <label><span>테마</span><input value={theme} onChange={(event) => setTheme(event.target.value)} disabled={busy || readOnly} maxLength={120} /></label>
           <label><span>현재 가격</span><div className="admin-readonly-value">{formatPrice(stock.currentPrice)} RP</div></label>
         </div>
-        <label><span>종목 설명</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} disabled={busy} minLength={10} maxLength={1000} rows={4} required /></label>
-        <button className="secondary-button" type="submit" disabled={busy}><Save size={14} /> 종목 정보 저장</button>
+        <label><span>종목 설명</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} disabled={busy || readOnly} minLength={10} maxLength={1000} rows={4} required /></label>
+        <button className="secondary-button" type="submit" disabled={busy || readOnly}><Save size={14} /> 종목 정보 저장</button>
       </form>
 
       <section className="admin-round-plan-section">
@@ -434,7 +437,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
         <div className="admin-round-plan-list">
           {visiblePlans.map((plan) => (
             <details
-              className={`admin-round-plan${plan.editable ? '' : ' is-locked'}`}
+              className={`admin-round-plan${plan.editable && !readOnly ? '' : ' is-locked'}`}
               key={plan.roundNumber}
               open={plan.roundNumber === editor.currentRoundNumber || (stock.status === 'pending' && plan.roundNumber === activationStartRound)}
             >
@@ -457,7 +460,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                   <select
                     value={plan.roundAction}
                     onChange={(event) => updatePlanAction(plan.roundNumber, event.target.value as AdminStockRoundAction)}
-                    disabled={busy || !plan.editable}
+                    disabled={busy || readOnly || !plan.editable}
                   >
                     <option value="normal">정상 거래</option>
                     <option value="halt">거래정지 (0%)</option>
@@ -478,7 +481,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                         onChange={(event) => updatePlan(plan.roundNumber, {
                           changePercent: event.target.value === '' ? null : Number(event.target.value),
                         })}
-                        disabled={busy || !plan.editable || plan.roundAction !== 'normal'}
+                        disabled={busy || readOnly || !plan.editable || plan.roundAction !== 'normal'}
                         required={stock.status === 'active' && plan.roundNumber >= (editor.currentRoundNumber ?? 1)}
                       />
                       <span>%</span>
@@ -488,7 +491,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                         type="button"
                         aria-label={`${plan.roundNumber}라운드 등락률 0.1% 올리기`}
                         onClick={() => adjustPlanChange(plan, 0.1)}
-                        disabled={busy || !plan.editable || plan.roundAction !== 'normal' || (plan.changePercent ?? 0) >= 30}
+                        disabled={busy || readOnly || !plan.editable || plan.roundAction !== 'normal' || (plan.changePercent ?? 0) >= 30}
                       >
                         <ChevronUp size={13} aria-hidden="true" />
                       </button>
@@ -496,7 +499,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                         type="button"
                         aria-label={`${plan.roundNumber}라운드 등락률 0.1% 내리기`}
                         onClick={() => adjustPlanChange(plan, -0.1)}
-                        disabled={busy || !plan.editable || plan.roundAction !== 'normal' || (plan.changePercent ?? 0) <= -30}
+                        disabled={busy || readOnly || !plan.editable || plan.roundAction !== 'normal' || (plan.changePercent ?? 0) <= -30}
                       >
                         <ChevronDown size={13} aria-hidden="true" />
                       </button>
@@ -514,21 +517,21 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
                       onChange={(event) => updatePlan(plan.roundNumber, {
                         dividendRpPerShare: event.target.value === '' ? null : Number(event.target.value),
                       })}
-                      disabled={busy || !plan.editable}
+                      disabled={busy || readOnly || !plan.editable}
                       placeholder="배당 없음"
                     />
                     <span>RP</span>
                   </div>
                 </label>
-                <label className="admin-round-plan__headline"><span>개별기사 제목</span><input value={plan.newsHeadline ?? ''} onChange={(event) => updatePlan(plan.roundNumber, { newsHeadline: event.target.value })} disabled={busy || !plan.editable} maxLength={140} placeholder="기사가 없는 라운드는 비워 둡니다." /></label>
-                <label className="admin-round-plan__body"><span>개별기사 본문</span><textarea value={plan.newsBody ?? ''} onChange={(event) => updatePlan(plan.roundNumber, { newsBody: event.target.value })} disabled={busy || !plan.editable} maxLength={6000} rows={4} placeholder="게시할 문장 그대로 입력합니다." /></label>
+                <label className="admin-round-plan__headline"><span>개별기사 제목</span><input value={plan.newsHeadline ?? ''} onChange={(event) => updatePlan(plan.roundNumber, { newsHeadline: event.target.value })} disabled={busy || readOnly || !plan.editable} maxLength={140} placeholder="기사가 없는 라운드는 비워 둡니다." /></label>
+                <label className="admin-round-plan__body"><span>개별기사 본문</span><textarea value={plan.newsBody ?? ''} onChange={(event) => updatePlan(plan.roundNumber, { newsBody: event.target.value })} disabled={busy || readOnly || !plan.editable} maxLength={6000} rows={4} placeholder="게시할 문장 그대로 입력합니다." /></label>
               </div>
             </details>
           ))}
         </div>
 
         <div className="admin-round-plan-actions">
-          <button className="secondary-button" type="button" onClick={() => void handlePlansSave()} disabled={busy || invalidDividendPlans > 0}><Save size={14} /> 라운드 계획 저장</button>
+          <button className="secondary-button" type="button" onClick={() => void handlePlansSave()} disabled={busy || readOnly || invalidDividendPlans > 0}><Save size={14} /> 라운드 계획 저장</button>
           {stock.status === 'pending' && !stock.activationRequestedAt && (
             <button className="primary-button" type="button" onClick={() => void handleActivate()} disabled={busy || missingRequiredPlans > 0 || invalidDividendPlans > 0}>
               <PlayCircle size={15} /> {league.status === 'registration' ? '저장 후 상장 확정' : `저장 후 ${activationStartRound}라운드 상장 예약`}
@@ -545,10 +548,10 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
 
       {stock.status === 'pending' || stock.status === 'active' || stock.status === 'halted' ? (
         <form className="admin-form admin-form--danger" onSubmit={(event) => void handleRemove(event)}>
-          <h3><Trash2 size={16} aria-hidden="true" /> 시장에서 제거</h3>
-          <label><span>제거 사유</span><textarea value={removeReason} onChange={(event) => setRemoveReason(event.target.value)} minLength={5} maxLength={500} rows={3} required /></label>
-          <p className="admin-form__hint">포지션이 남은 종목은 제거할 수 없으며 가격·뉴스·거래 이력은 보존됩니다.</p>
-          <button className="danger-button" type="submit" disabled={busy}>종목 제거</button>
+          <h3><Trash2 size={16} aria-hidden="true" /> 수동 상장폐지</h3>
+          <label><span>상장폐지 사유</span><textarea value={removeReason} onChange={(event) => setRemoveReason(event.target.value)} minLength={5} maxLength={500} rows={3} required /></label>
+          <p className="admin-form__hint">포지션이 남은 종목은 수동 상장폐지할 수 없습니다. 종목 목록·토론방·뉴스와 거래 이력은 유지됩니다.</p>
+          <button className="danger-button" type="submit" disabled={busy}>상장폐지</button>
         </form>
       ) : null}
 
@@ -575,7 +578,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
 
 export function StockAdminPanel({ leagues, participants, stocks, busy, onRun, onInspectStock }: StockAdminPanelProps) {
   const manageableStocks = useMemo(
-    () => stocks.filter(({ status }) => status !== 'delisted' && status !== 'rejected'),
+    () => stocks.filter(({ status }) => status !== 'rejected'),
     [stocks],
   )
   const [selectedStockId, setSelectedStockId] = useState<string | null>(
@@ -642,7 +645,7 @@ export function StockAdminPanel({ leagues, participants, stocks, busy, onRun, on
             <button
               type="button"
               key={stock.id}
-              className={`admin-stock-row${stock.id === selectedStockId ? ' is-selected' : ''}`}
+              className={`admin-stock-row${stock.id === selectedStockId ? ' is-selected' : ''}${stock.status === 'delisted' ? ' is-delisted' : ''}`}
               onClick={() => setSelectedStockId(stock.id)}
             >
               <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="sm" label={`${stock.name} 로고`} />

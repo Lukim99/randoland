@@ -41,7 +41,7 @@ export function DashboardPage() {
   const { nextSettlement, remaining, elapsed } = useRoundClock(market?.round?.settlesAt)
   const favoriteStockIdSet = useMemo(() => new Set(favoriteStockIds), [favoriteStockIds])
   const listedStocks = useMemo(() => {
-    const stocks = market?.stocks.filter((stock) => stock.status !== 'delisted') ?? []
+    const stocks = market?.stocks ?? []
     return [...stocks].sort((left, right) => {
       const favoriteOrder = Number(favoriteStockIdSet.has(right.id)) - Number(favoriteStockIdSet.has(left.id))
       if (favoriteOrder !== 0) return favoriteOrder
@@ -168,6 +168,11 @@ export function DashboardPage() {
                   <div>
                     <span className="eyebrow">{selectedStock.ticker}</span>
                     <h2>{selectedStock.name}</h2>
+                    {selectedStock.marketAction !== 'normal' && (
+                      <span className={`stock-market-action stock-market-action--${selectedStock.marketAction}`}>
+                        {selectedStock.marketAction === 'halt' ? '거래정지' : '상장폐지'}
+                      </span>
+                    )}
                   </div>
                 </div>
                 <div className="stock-live-quote">
@@ -199,6 +204,7 @@ export function DashboardPage() {
               stockId={selectedStock.id}
               stockName={selectedStock.name}
               edition={latestEdition}
+              showLastPublished={selectedStock.status === 'delisted'}
             />
             <OrderPanel stock={selectedStock} />
           </div>
@@ -231,14 +237,14 @@ export function DashboardPage() {
                 <span>즐겨찾기</span>
                 <div>
                   {favoriteStocks.map((stock) => (
-                    <button key={stock.id} type="button" onClick={() => setSelectedId(stock.id)}>
+                    <button key={stock.id} className={stock.status === 'delisted' ? 'is-delisted' : undefined} type="button" onClick={() => setSelectedId(stock.id)}>
                       <StockLogo
                         src={stock.logoImageUrl}
                         spriteIndex={stock.logoSpriteIndex}
                         size="sm"
                         label={`${stock.name} 종목 이미지`}
                       />
-                      <span>{stock.name}</span>
+                      <span>{stock.name}{stock.status === 'delisted' ? ' · 상장폐지' : ''}</span>
                     </button>
                   ))}
                 </div>

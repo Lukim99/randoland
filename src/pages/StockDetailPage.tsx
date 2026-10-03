@@ -51,18 +51,16 @@ export function StockDetailPage() {
               className={`secondary-action-button${isFavorite ? ' is-favorite' : ''}`}
               type="button"
               aria-pressed={isFavorite}
-              disabled={!myState?.joined || stock.status === 'delisted'}
+              disabled={!myState?.joined}
               onClick={() => void handleFavorite()}
               title={myState?.joined ? undefined : '리그 참가 후 즐겨찾기를 사용할 수 있습니다.'}
             >
               <Star size={16} fill={isFavorite ? 'currentColor' : 'none'} />
               {isFavorite ? '즐겨찾기 해제' : '즐겨찾기'}
             </button>
-            {stock.status !== 'delisted' && (
-              <Link className="secondary-action-button" to={`/discussion/${stock.id}`}>
-                <MessageSquareText size={16} /> 종목토론방
-              </Link>
-            )}
+            <Link className="secondary-action-button" to={`/discussion/${stock.id}`}>
+              <MessageSquareText size={16} /> 종목토론방
+            </Link>
           </div>
           <div className="stock-detail-quote">
             <small>현재가</small>
@@ -100,6 +98,7 @@ export function StockDetailPage() {
             stockId={stock.id}
             stockName={stock.name}
             edition={latestEdition}
+            showLastPublished={stock.status === 'delisted'}
           />
 
           <section className="stock-info-grid">

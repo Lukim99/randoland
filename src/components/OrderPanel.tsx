@@ -45,14 +45,15 @@ export function OrderPanel({ stock }: OrderPanelProps) {
     return { amount, borrowed, own: amount - borrowed, shortProfit }
   }, [leverage, quantity, shortPosition, side, stock.currentPrice])
 
-  const disabledReason = !myState?.joined
+  const isDelisted = stock.status === 'delisted' || stock.marketAction === 'delist'
+  const disabledReason = isDelisted
+    ? '상장폐지된 종목은 거래할 수 없습니다.'
+    : !myState?.joined
     ? '리그 참가 후 주문할 수 있습니다.'
     : isOwnStock
       ? '본인이 상장한 종목은 거래할 수 없습니다.'
       : stock.marketAction === 'halt'
         ? '이 종목은 현재 라운드에서 거래정지 상태입니다.'
-        : stock.marketAction === 'delist'
-          ? '이 종목은 현재 라운드에 상장폐지되므로 주문할 수 없습니다.'
       : market?.round?.status !== 'open' || elapsed
         ? '현재 거래 가능 시간이 아닙니다.'
         : participant && participant.receivableRp > 0 && (side === 'buy' || side === 'short')
@@ -146,6 +147,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
             className={side === orderType ? `is-active ${orderTone(orderType)}` : ''}
             type="button"
             aria-pressed={side === orderType}
+            disabled={isDelisted}
             onClick={() => selectSide(orderType)}
             key={orderType}
           >
@@ -172,6 +174,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
           min="1"
           step="1"
           value={quantity}
+          disabled={isDelisted}
           onChange={(event) => setQuantity(Number(event.target.value))}
         />
         <span>주</span>
@@ -192,6 +195,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
             max="50"
             step="5"
             value={leverage}
+            disabled={isDelisted}
             onChange={(event) => setLeverage(Number(event.target.value))}
             aria-label="레버리지 비율"
           />

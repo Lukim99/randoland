@@ -64,7 +64,7 @@ const errorTranslations: Array<[string, string]> = [
   ['This account is banned from Randoland participation', '운영 정책 위반으로 이후 리그 참가가 제한된 계정입니다.'],
   ['The stock is not available for trading', '현재 거래할 수 없는 종목입니다.'],
   ['Trading is halted for this stock in the current round', '이 종목은 현재 라운드에서 거래정지 상태입니다.'],
-  ['This stock is scheduled for delisting in the current round', '이 종목은 현재 라운드에 상장폐지되므로 주문할 수 없습니다.'],
+  ['This stock is scheduled for delisting in the current round', '상장폐지된 종목은 거래할 수 없습니다.'],
   ['A participant cannot trade their own listed stock', '본인이 상장한 종목은 매매할 수 없습니다.'],
   ['cannot trade their own listed stock', '본인이 상장한 종목은 매매할 수 없습니다.'],
   ['Orders are not being accepted', '현재 주문 접수 시간이 아닙니다.'],
