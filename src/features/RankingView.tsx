@@ -1,6 +1,8 @@
-import { Award, CalendarClock, EyeOff, Trophy } from 'lucide-react'
+import { Award, CalendarClock, ChartNoAxesCombined, ChevronRight, EyeOff, Trophy } from 'lucide-react'
+import { useState } from 'react'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
-import { formatKstDateTime } from '../lib/format'
+import { ParticipantAssetHistoryDialog } from '../components/ParticipantAssetHistoryDialog'
+import { formatKstDateTime, formatRp } from '../lib/format'
 import { useMarket } from '../market/useMarket'
 import type { LeagueAward } from '../types/market'
 
@@ -20,6 +22,7 @@ function formatAwardMetric(award: LeagueAward) {
 
 export function RankingView() {
   const { market, myState, rankings } = useMarket()
+  const [selected, setSelected] = useState<{ leagueId: string; nickname: string } | null>(null)
 
   if (!market?.league) return <LeagueJoinCard compact />
 
@@ -28,20 +31,24 @@ export function RankingView() {
       <section className="panel ranking-locked-card">
         <span><EyeOff size={27} /></span>
         <div>
-          <h2>첫 주간 순위를 집계하고 있습니다</h2>
-          <p>순위는 과도한 눈치 싸움을 막기 위해 매주 일요일 오전 9시에만 새 스냅샷으로 공개됩니다.</p>
+          <h2>{market.league.status === 'finished' ? '최종 순위를 집계하고 있습니다' : '첫 주간 순위를 집계하고 있습니다'}</h2>
+          <p>{market.league.status === 'finished' ? '집계가 완료되면 최종 보유자산과 자산 기록을 확인할 수 있습니다.' : '순위는 과도한 눈치 싸움을 막기 위해 매주 일요일 오전 9시에만 새 스냅샷으로 공개됩니다.'}</p>
         </div>
-        <div className="ranking-schedule"><CalendarClock size={16} /><span>매주 일요일<strong>09:00 KST</strong></span></div>
+        {market.league.status !== 'finished' && <div className="ranking-schedule"><CalendarClock size={16} /><span>매주 일요일<strong>09:00 KST</strong></span></div>}
       </section>
     )
   }
 
   const ownNickname = myState?.participant?.nickname
+  const isFinal = market.league.status === 'finished' && rankings.isFinal
+  const selectedEntry = selected?.leagueId === market.league.id
+    ? rankings.rankings.find((entry) => entry.nickname === selected.nickname)
+    : undefined
 
   return (
     <div className="feature-stack">
       <section className="panel ranking-summary">
-        <div><Trophy size={24} /><span><small>{rankings.isFinal ? '최종 결과' : '공개 라운드'}</small><strong>{rankings.roundNumber}라운드</strong></span></div>
+        <div><Trophy size={24} /><span><small>{isFinal ? '최종 결과' : '공개 라운드'}</small><strong>{rankings.roundNumber}라운드</strong></span></div>
         <div><small>공개 시각</small><strong>{formatKstDateTime(rankings.publishedAt)}</strong></div>
         <div><small>참가자</small><strong>{rankings.rankings.length}명</strong></div>
       </section>
@@ -66,9 +73,18 @@ export function RankingView() {
         </section>
       )}
       <section className="panel live-section">
-        <div className="section-heading section-heading--compact"><div><h2>{rankings.isFinal ? '최종 순위' : '공개 순위'}</h2></div><Award size={19} /></div>
+        <div className="section-heading section-heading--compact"><div><h2>{isFinal ? '최종 순위' : '공개 순위'}</h2>{isFinal && <p>참가자를 누르면 일자별 자산 변동을 볼 수 있습니다.</p>}</div><Award size={19} /></div>
         <div className="ranking-list">
-          {rankings.rankings.map((entry) => (
+          {rankings.rankings.map((entry) => isFinal ? (
+            <button type="button" className={`ranking-row ranking-row--final${entry.nickname === ownNickname ? ' is-me' : ''}`}
+              key={entry.nickname} aria-haspopup="dialog" aria-label={`${entry.rank}위 ${entry.nickname}, 최종 보유자산 ${formatRp(entry.netWorth)}, 자산 변동 보기`}
+              onClick={() => setSelected({ leagueId: market.league!.id, nickname: entry.nickname })}>
+              <span className={`rank-number rank-${Math.min(entry.rank, 4)}`}>{entry.rank}</span>
+              <div className="ranking-row__participant"><strong>{entry.nickname}{entry.nickname === ownNickname && <span className="ranking-me-label">나</span>}</strong><small>매매 {entry.completedTradeCycles}회 · 최장 보유 {entry.longestHoldingRounds}라운드</small></div>
+              <div className="ranking-row__assets"><small>최종 보유자산 (순자산)</small><strong>{formatRp(entry.netWorth)}</strong></div>
+              <span className="ranking-row__chart"><ChartNoAxesCombined size={17} /><span>자산 변동</span><ChevronRight size={15} /></span>
+            </button>
+          ) : (
             <article className={`ranking-row${entry.nickname === ownNickname ? ' is-me' : ''}`} key={`${entry.rank}-${entry.nickname}`}>
               <span className={`rank-number rank-${Math.min(entry.rank, 4)}`}>{entry.rank}</span>
               <div><strong>{entry.nickname}</strong><small>매매 {entry.completedTradeCycles}회 · 최장 보유 {entry.longestHoldingRounds}라운드</small></div>
@@ -76,6 +92,9 @@ export function RankingView() {
           ))}
         </div>
       </section>
+      {isFinal && selectedEntry && (
+        <ParticipantAssetHistoryDialog key={`${market.league.id}:${selectedEntry.nickname}:${rankings.publishedAt}:${selectedEntry.netWorth}`} leagueId={market.league.id} entry={selectedEntry} onClose={() => setSelected(null)} />
+      )}
     </div>
   )
 }

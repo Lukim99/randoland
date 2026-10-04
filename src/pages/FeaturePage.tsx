@@ -13,6 +13,7 @@ import { OrdersView } from '../features/OrdersView'
 import { PortfolioView } from '../features/PortfolioView'
 import { RankingView } from '../features/RankingView'
 import { RewardsView } from '../features/RewardsView'
+import { useMarket } from '../market/useMarket'
 
 type FeatureKind = 'portfolio' | 'orders' | 'listing' | 'ranking' | 'rewards' | 'loans'
 
@@ -55,6 +56,7 @@ const views: Record<FeatureKind, ComponentType> = {
 }
 
 export function FeaturePage({ kind }: FeaturePageProps) {
+  const { market, rankings } = useMarket()
   const page = content[kind]
   const Icon = page.icon
   const ActiveView = views[kind]
@@ -63,7 +65,7 @@ export function FeaturePage({ kind }: FeaturePageProps) {
     <div className={`feature-page${kind === 'loans' ? ' feature-page--loans' : ''}`}>
       <header className="feature-header">
         <span className="feature-icon"><Icon size={28} /></span>
-        <h1>{page.title}</h1>
+        <h1>{kind === 'ranking' && market?.league?.status === 'finished' && rankings?.isFinal ? '최종 순위' : page.title}</h1>
       </header>
       <div className="feature-layout feature-layout--live">
         <div className="feature-live-content"><ActiveView /></div>

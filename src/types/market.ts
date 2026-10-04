@@ -398,6 +398,24 @@ export interface RankingEntry {
   longestHoldingRounds: number
 }
 
+/** A recorded or reconstructed asset value with an explicit valuation cutoff. */
+export interface AssetHistoryPoint {
+  date: string
+  asOf: string
+  asOfInclusive: boolean
+  netWorth: number
+  roundNumber: number | null
+  kind: 'day_end' | 'correction' | 'snapshot'
+}
+
+export interface ParticipantAssetHistory {
+  source: 'reconstructed_daily' | 'published_snapshots'
+  status: 'ready' | 'updating'
+  formulaMode: 'current_canonical_networth' | null
+  correctionAt: string | null
+  points: AssetHistoryPoint[]
+}
+
 export type LeagueAwardCode =
   | 'prize_1'
   | 'prize_2'
