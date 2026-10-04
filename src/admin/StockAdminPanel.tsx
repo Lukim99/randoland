@@ -19,6 +19,7 @@ import { formatPercent, formatPrice, movementClass } from '../lib/format'
 import {
   activateAdminStock,
   delistAdminStock,
+  deleteAdminStock,
   listAdminStock,
   loadAdminStockEditor,
   saveAdminStockRoundPlans,
@@ -249,6 +250,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
   const [spritePickerOpen, setSpritePickerOpen] = useState(false)
   const [logoUploadOpen, setLogoUploadOpen] = useState(false)
   const [removeReason, setRemoveReason] = useState('')
+  const [deleteTicker, setDeleteTicker] = useState('')
   const logoPreviewUrl = useObjectUrl(logoFile)
   const eligibleParticipants = participants.filter((participant) => (
     participant.leagueId === stock.leagueId && !participant.disqualifiedAt
@@ -379,6 +381,16 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
       setRemoveReason('')
       await onReload()
     }
+  }
+
+  async function handleDelete(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (busy || stock.deleteBlockedReason || deleteTicker !== stock.ticker) return
+    if (!window.confirm(`${stock.name} (${stock.ticker}) 종목을 완전히 삭제하시겠습니까? 종목 정보·라운드 계획·토론 글·즐겨찾기가 삭제되며 복구할 수 없습니다. 운영 기록은 남습니다.`)) return
+    await onRun(
+      () => deleteAdminStock(stock.id, deleteTicker, stock.updatedAt),
+      `${stock.name} 종목을 완전히 삭제했습니다.`,
+    )
   }
 
   return (
@@ -554,6 +566,17 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
           <button className="danger-button" type="submit" disabled={busy}>상장폐지</button>
         </form>
       ) : null}
+
+      <form className="admin-form admin-form--danger" onSubmit={(event) => void handleDelete(event)}>
+        <h3><Trash2 size={16} aria-hidden="true" /> 종목 완전 삭제</h3>
+        <p className="admin-form__hint">보유·주문·정산·공개 뉴스 이력이 없는 종목만 삭제할 수 있습니다. 종목 정보·라운드 계획·토론 글·즐겨찾기가 함께 삭제되며 운영 기록은 남습니다.</p>
+        {stock.deleteBlockedReason ? (
+          <p className="form-message" role="status">{stock.deleteBlockedReason}</p>
+        ) : (
+          <label><span>삭제 확인: {stock.ticker} 입력</span><input value={deleteTicker} onChange={(event) => setDeleteTicker(event.target.value)} autoComplete="off" spellCheck={false} disabled={busy} required /></label>
+        )}
+        <button className="danger-button" type="submit" disabled={busy || Boolean(stock.deleteBlockedReason) || deleteTicker !== stock.ticker}>종목 완전 삭제</button>
+      </form>
 
       {spritePickerOpen && (
         <SpritePickerDialog

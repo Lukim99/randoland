@@ -401,6 +401,16 @@ export async function delistAdminStock(stockId: string, reason: string) {
   return data
 }
 
+export async function deleteAdminStock(stockId: string, confirmTicker: string, expectedUpdatedAt: string) {
+  const { data, error } = await requireSupabase().rpc('randoland_admin_console_delete_stock', {
+    p_stock_id: stockId,
+    p_confirm_ticker: confirmTicker,
+    p_expected_updated_at: expectedUpdatedAt,
+  })
+  throwIfError(error)
+  return data
+}
+
 export async function loadAdminSettlementState(
   leagueId: string,
 ): Promise<AdminSettlementState> {

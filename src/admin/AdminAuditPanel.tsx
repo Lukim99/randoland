@@ -25,7 +25,8 @@ const actionLabels: Record<string, string> = {
   stock_activated: '종목 상장 확정',
   stock_activation_scheduled: '종목 상장 예약',
   stock_activated_for_round: '예약 종목 거래 시작',
-  stock_delisted: '종목 제거',
+  stock_delisted: '종목 상장폐지',
+  stock_deleted: '종목 완전 삭제',
 }
 
 export function AdminAuditPanel({ entries }: AdminAuditPanelProps) {
@@ -40,7 +41,10 @@ export function AdminAuditPanel({ entries }: AdminAuditPanelProps) {
           {entries.slice(0, 12).map((entry) => (
             <li key={entry.id}>
               <span className="admin-audit-list__dot" />
-              <div><strong>{actionLabels[entry.action] ?? entry.action}</strong><span>{formatKstDateTime(entry.createdAt)}</span></div>
+              <div>
+                <strong>{actionLabels[entry.action] ?? entry.action}{entry.action === 'stock_deleted' && typeof entry.details.name === 'string' ? ` · ${entry.details.name}` : ''}</strong>
+                <span>{formatKstDateTime(entry.createdAt)}</span>
+              </div>
             </li>
           ))}
         </ol>

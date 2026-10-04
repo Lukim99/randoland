@@ -269,6 +269,7 @@ export interface AdminStockRoundPlan {
 export interface AdminStockEditor {
   stock: Omit<AdminStock, 'totalPlanCount' | 'completedPlanCount' | 'articleCount' | 'missingPlanCount'> & {
     identityEditable: boolean
+    deleteBlockedReason: string | null
   }
   league: Pick<AdminLeague, 'id' | 'name' | 'status' | 'startsAt' | 'endsAt'>
   roundCount: number
