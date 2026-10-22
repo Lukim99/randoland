@@ -287,7 +287,7 @@ export async function listAdminStock(input: AdminStockListingInput) {
   const logoImagePath = input.logoFile ? await uploadAdminStockLogo(input.logoFile) : null
 
   try {
-    const { data, error } = await client.rpc('randoland_admin_console_list_stock', {
+    const { data, error } = await client.rpc('randoland_admin_console_list_stock_v2', {
       p_league_id: input.leagueId,
       p_owner_participant_id: input.ownerParticipantId,
       p_ticker: input.ticker,
@@ -297,6 +297,8 @@ export async function listAdminStock(input: AdminStockListingInput) {
       p_theme: input.theme,
       p_logo_sprite_index: input.logoSpriteIndex,
       p_logo_image_path: logoImagePath,
+      p_asset_kind: input.assetKind,
+      p_coin_volatility: input.coinVolatility,
     })
     throwIfError(error)
     return data
@@ -335,7 +337,7 @@ export async function updateAdminStock(input: AdminStockDetailsInput) {
   const nextLogoPath = uploadedPath ?? input.logoImagePath
 
   try {
-    const { data, error } = await client.rpc('randoland_admin_console_update_stock_v2', {
+    const { data, error } = await client.rpc('randoland_admin_console_update_stock_v3', {
       p_stock_id: input.stockId,
       p_expected_updated_at: input.expectedUpdatedAt,
       p_owner_participant_id: input.ownerParticipantId,
@@ -346,6 +348,8 @@ export async function updateAdminStock(input: AdminStockDetailsInput) {
       p_theme: input.theme,
       p_logo_sprite_index: input.logoSpriteIndex,
       p_logo_image_path: nextLogoPath,
+      p_asset_kind: input.assetKind,
+      p_coin_volatility: input.coinVolatility,
     })
     throwIfError(error)
 

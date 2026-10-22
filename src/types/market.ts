@@ -2,6 +2,8 @@ export type LeagueStatus = 'registration' | 'active' | 'finished'
 export type RoundStatus = 'scheduled' | 'open' | 'locked' | 'settling' | 'settled' | 'failed'
 export type OrderSide = 'buy' | 'sell' | 'short' | 'cover'
 export type OrderStatus = 'pending' | 'cancelled' | 'locked' | 'executed' | 'rejected'
+export type AssetKind = 'stock' | 'coin'
+export type CoinVolatility = 'very_low' | 'low' | 'medium' | 'high' | 'very_high'
 export type LadderChoice = 'odd' | 'even'
 export type LadderState =
   | 'awaiting_decision'
@@ -44,6 +46,7 @@ export interface LeagueSummary {
   settlementHour: number
   joinClosesAt: string | null
   listingClosesAt: string | null
+  leverageMaxPercent: number
 }
 
 export interface RoundSummary {
@@ -58,6 +61,10 @@ export interface RoundSummary {
 
 export interface StockSummary {
   id: string
+  assetKind: AssetKind
+  coinVolatility: CoinVolatility
+  quoteUpdatedAt: string | null
+  updatedAt: string
   logoSpriteIndex: number
   logoImagePath: string | null
   logoImageUrl: string | null

@@ -46,7 +46,7 @@ export function MarketList({
                   <button className="stock-identity" type="button" onClick={() => onSelect?.(stock)}>
                     <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                     <span>
-                      <strong>{stock.name}</strong>
+                      <strong>{stock.name}{stock.assetKind === 'coin' && <span className="asset-kind-badge">코인</span>}</strong>
                       <small>{stock.ticker}{stock.marketAction === 'halt' ? ' · 거래정지' : stock.marketAction === 'delist' ? ' · 상장폐지' : ''}</small>
                     </span>
                   </button>
@@ -92,7 +92,7 @@ export function MarketList({
               <span className="stock-identity">
                 <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="md" label={`${stock.name} 종목 이미지`} />
                 <span>
-                  <strong>{stock.name}</strong>
+                  <strong>{stock.name}{stock.assetKind === 'coin' && <span className="asset-kind-badge">코인</span>}</strong>
                   <small>{stock.ticker}{stock.marketAction === 'halt' ? ' · 거래정지' : stock.marketAction === 'delist' ? ' · 상장폐지' : ` · ${stock.theme}`}</small>
                 </span>
               </span>

@@ -7,6 +7,9 @@ interface AdminAuditPanelProps {
 }
 
 const actionLabels: Record<string, string> = {
+  bank_product_saved: '란도뱅크 상품 조건 저장',
+  leverage_settings_saved: '레버리지 한도 변경',
+  stock_market_settings_saved: '종목 구분·변동성 변경',
   loan_settings_updated: '란도뱅크 대출 설정 변경',
   admin_access_granted: '관리자 권한 부여',
   admin_access_revoked: '관리자 권한 해제',

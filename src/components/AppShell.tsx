@@ -30,7 +30,7 @@ const navigation = [
   { to: '/', label: '거래소', icon: LayoutDashboard, end: true },
   { to: '/news', label: '뉴스', icon: Newspaper },
   { to: '/portfolio', label: '내 자산', icon: WalletCards },
-  { to: '/loans', label: '대출', icon: Landmark },
+  { to: '/loans', label: '란도뱅크', icon: Landmark },
   { to: '/orders', label: '주문 내역', icon: ClipboardList },
   { to: '/listing', label: '내 종목', icon: Building2 },
   { to: '/discussion', label: '종목토론방', icon: MessageSquareText },

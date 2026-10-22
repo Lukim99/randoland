@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { CandlestickSeries, ColorType, createChart, type Time } from 'lightweight-charts'
+import { CandlestickSeries, ColorType, createChart, type Time, type UTCTimestamp } from 'lightweight-charts'
 import { formatPercent, formatPrice, movementClass } from '../lib/format'
 import type { CandlePoint } from '../types/market'
 
@@ -7,13 +7,14 @@ interface CandlestickChartProps {
   candles: CandlePoint[]
   label: string
   height?: number
+  interval?: 'day' | 'minute'
 }
 
 function chartTimeKey(time: Time): string | null {
   if (typeof time === 'string') return time
 
   if (typeof time === 'number') {
-    return new Date(time * 1000).toISOString().slice(0, 10)
+    return String(time)
   }
 
   if ('year' in time && 'month' in time && 'day' in time) {
@@ -28,7 +29,7 @@ function formatCandleDate(value: string) {
   return `${year}.${month}.${day}`
 }
 
-export function CandlestickChart({ candles, label, height = 330 }: CandlestickChartProps) {
+export function CandlestickChart({ candles, label, height = 330, interval = 'day' }: CandlestickChartProps) {
   const containerRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -54,7 +55,8 @@ export function CandlestickChart({ candles, label, height = 330 }: CandlestickCh
       },
       timeScale: {
         borderColor: '#1C2925',
-        timeVisible: false,
+        timeVisible: interval === 'minute',
+        ...(interval === 'minute' ? { tickMarkFormatter: (time: Time) => typeof time === 'number' ? new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(time * 1000)) : '' } : {}),
         rightOffset: 1,
         barSpacing: 21,
       },
@@ -79,7 +81,7 @@ export function CandlestickChart({ candles, label, height = 330 }: CandlestickCh
       },
     })
 
-    const candleByTime = new Map(candles.map((candle) => [candle.time, candle]))
+    const candleByTime = new Map(candles.map((candle) => [interval === 'minute' ? String(Math.floor(Date.parse(candle.time) / 1000)) : candle.time, candle]))
     const tooltip = document.createElement('div')
     const tooltipDate = document.createElement('strong')
     const tooltipClose = document.createElement('span')
@@ -92,7 +94,7 @@ export function CandlestickChart({ candles, label, height = 330 }: CandlestickCh
     series.setData(
       candles.map((candle) => ({
         ...candle,
-        time: candle.time as Time,
+        time: interval === 'minute' ? Math.floor(Date.parse(candle.time) / 1000) as UTCTimestamp : candle.time as Time,
       })),
     )
     chart.timeScale().fitContent()
@@ -105,7 +107,7 @@ export function CandlestickChart({ candles, label, height = 330 }: CandlestickCh
         return
       }
 
-      tooltipDate.textContent = formatCandleDate(timeKey!)
+      tooltipDate.textContent = interval === 'minute' ? new Intl.DateTimeFormat('ko-KR', { timeZone: 'Asia/Seoul', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', hour12: false }).format(new Date(candle.time)) : formatCandleDate(timeKey!)
       tooltipClose.textContent = `종가 ${formatPrice(candle.close)} RP`
       tooltipChange.textContent = `등락률 ${formatPercent(candle.changePercent ?? 0)}`
       tooltipChange.className = movementClass(candle.changePercent ?? 0)
@@ -136,19 +138,19 @@ export function CandlestickChart({ candles, label, height = 330 }: CandlestickCh
       tooltip.remove()
       chart.remove()
     }
-  }, [candles, height])
+  }, [candles, height, interval])
 
   return (
-    <div className="chart-wrap" aria-label={`${label} 일봉 캔들 차트`}>
+    <div className="chart-wrap" aria-label={`${label} ${interval === 'minute' ? '분봉' : '일봉'} 캔들 차트`}>
       <div ref={containerRef} className="candlestick-chart" />
       {candles.length === 0 && (
         <div className="chart-empty">
           <strong>첫 캔들을 기다리고 있습니다</strong>
-          <span>첫 일일 정산 후 가격 흐름이 표시됩니다.</span>
+          <span>{interval === 'minute' ? '첫 분당 가격 갱신 후 표시됩니다.' : '첫 일일 정산 후 가격 흐름이 표시됩니다.'}</span>
         </div>
       )}
       <span className="sr-only">
-        {label}의 최근 {candles.length}개 라운드 시가, 고가, 저가, 종가 차트
+        {label}의 최근 {candles.length}개 {interval === 'minute' ? '분봉' : '일봉'} 시가, 고가, 저가, 종가 차트
       </span>
     </div>
   )

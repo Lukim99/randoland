@@ -32,18 +32,20 @@ export function OrderPanel({ stock }: OrderPanelProps) {
   const { elapsed } = useRoundClock(market?.round?.locksAt)
 
   const participant = myState?.participant
+  const leverageLimit = market?.league?.leverageMaxPercent ?? 50
+  const appliedLeverage = Math.min(leverage, leverageLimit)
   const position = myState?.positions.find((item) => item.stockId === stock.id)
   const shortPosition = myState?.shortPositions.find((item) => item.stockId === stock.id)
   const ownListings = myState?.listings ?? (myState?.listing ? [myState.listing] : [])
   const isOwnStock = ownListings.some((listing) => listing.id === stock.id)
   const estimate = useMemo(() => {
     const amount = stock.currentPrice * Math.max(0, quantity || 0)
-    const borrowed = side === 'buy' ? Math.floor((amount * leverage) / (100 + leverage)) : 0
+    const borrowed = side === 'buy' ? Math.floor((amount * appliedLeverage) / (100 + appliedLeverage)) : 0
     const shortProfit = side === 'cover' && shortPosition
       ? (shortPosition.averageEntryPrice - stock.currentPrice) * Math.max(0, quantity || 0)
       : 0
     return { amount, borrowed, own: amount - borrowed, shortProfit }
-  }, [leverage, quantity, shortPosition, side, stock.currentPrice])
+  }, [appliedLeverage, quantity, shortPosition, side, stock.currentPrice])
 
   const isDelisted = stock.status === 'delisted' || stock.marketAction === 'delist'
   const disabledReason = isDelisted
@@ -78,7 +80,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
     setCapacityBusy(true)
     setMessage(null)
     try {
-      const capacity = await getOrderCapacity(stock.id, side, side === 'buy' ? leverage : 0)
+      const capacity = await getOrderCapacity(stock.id, side, side === 'buy' ? appliedLeverage : 0)
       const maximum = Math.max(0, Math.floor(capacity.maxQuantity))
       setQuantity(maximum)
       if (maximum <= 0) setMessage('현재 주문 가능한 수량이 없습니다.')
@@ -93,7 +95,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
     setMessage(null)
 
     if (!Number.isInteger(quantity) || quantity < 1) {
-      setMessage('주문 수량은 1주 이상의 정수로 입력해 주세요.')
+      setMessage('주문 수량은 1 이상의 정수로 입력해 주세요.')
       return
     }
     if (disabledReason) {
@@ -115,7 +117,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
 
     setSubmitting(true)
     try {
-      await placeOrder(stock.id, side, quantity, side === 'buy' ? leverage : 0)
+      await placeOrder(stock.id, side, quantity, side === 'buy' ? appliedLeverage : 0)
       setMessage(`${orderTypeLabel[side]} 주문이 현재가로 체결되었습니다.`)
     } catch (orderError) {
       setMessage(orderError instanceof Error ? orderError.message : '주문 체결에 실패했습니다.')
@@ -177,7 +179,7 @@ export function OrderPanel({ stock }: OrderPanelProps) {
           disabled={isDelisted}
           onChange={(event) => setQuantity(Number(event.target.value))}
         />
-        <span>주</span>
+        <span>{stock.assetKind === 'coin' ? '개' : '주'}</span>
         <button type="button" onClick={() => void fillMaximum()} disabled={capacityBusy || Boolean(disabledReason)}>
           {capacityBusy ? '계산 중' : '최대'}
         </button>
@@ -187,25 +189,25 @@ export function OrderPanel({ stock }: OrderPanelProps) {
         <div className="leverage-field">
           <div className="field-label">
             <span>레버리지</span>
-            <strong>{leverage}%</strong>
+            <strong>{appliedLeverage}%</strong>
           </div>
           <input
             type="range"
             min="0"
-            max="50"
-            step="5"
-            value={leverage}
+            max={leverageLimit}
+            step="0.01"
+            value={appliedLeverage}
             disabled={isDelisted}
             onChange={(event) => setLeverage(Number(event.target.value))}
             aria-label="레버리지 비율"
           />
-          <div className="range-labels"><span>0%</span><span>25%</span><span>50%</span></div>
+          <div className="range-labels"><span>0%</span><span>{leverageLimit / 2}%</span><span>{leverageLimit}%</span></div>
         </div>
       )}
 
       <dl className="order-estimate">
         <div><dt>주문금액</dt><dd>{formatRp(estimate.amount)}</dd></div>
-        {side === 'buy' && leverage > 0 && (
+        {side === 'buy' && appliedLeverage > 0 && (
           <>
             <div><dt>자기자금</dt><dd>{formatRp(estimate.own)}</dd></div>
             <div><dt>레버리지</dt><dd className="accent-text">{formatRp(estimate.borrowed)}</dd></div>
@@ -229,8 +231,8 @@ export function OrderPanel({ stock }: OrderPanelProps) {
       </button>
 
       <p className="order-rule-note"><Zap size={15} aria-hidden="true" />주문 제출 즉시 현재가로 체결됩니다.</p>
-      {side === 'buy' && leverage > 0 && (
-        <p className="order-fee-note">2라운드 뒤 정산에서 레버리지 수량을 1주 단위로 내림해 자동 청산하고 원금을 전액 상환합니다. 자동 청산 금액의 5%가 차감되며, 상환 부족분은 예수금에서 차감하고 모자라면 미수 RP로 기록합니다.</p>
+      {side === 'buy' && appliedLeverage > 0 && (
+        <p className="order-fee-note">2라운드 뒤 정산에서 레버리지 수량을 정수 단위로 내림해 자동 청산하고 원금을 전액 상환합니다. 자동 청산 금액의 5%가 차감되며, 상환 부족분은 예수금에서 차감하고 모자라면 미수 RP로 기록합니다.</p>
       )}
       {side === 'short' && <p className="order-fee-note">공매도 판매대금은 예수금에 포함되지 않습니다.</p>}
       {disabledReason && <p className="order-disabled-note">{disabledReason}</p>}

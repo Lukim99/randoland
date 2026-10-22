@@ -6,6 +6,7 @@ import { AdminAuditPanel } from './AdminAuditPanel'
 import { GlobalNewsAdminPanel } from './GlobalNewsAdminPanel'
 import { LeagueAdminPanel } from './LeagueAdminPanel'
 import { LoanAdminPanel } from './LoanAdminPanel'
+import { BankAdminPanel } from './BankAdminPanel'
 import { AdminOrderMonitorPanel } from './AdminOrderMonitorPanel'
 import { AdminStockPositionsDialog } from './AdminStockPositionsDialog'
 import { ParticipantAdminPanel } from './ParticipantAdminPanel'
@@ -119,6 +120,7 @@ export function AdminPage() {
         />
         <LeagueAdminPanel leagues={consoleState.leagues} busy={busy} onRun={runAction} />
         <LoanAdminPanel leagues={consoleState.leagues} busy={busy} onRun={runAction} />
+        <BankAdminPanel leagues={consoleState.leagues} busy={busy} onRun={runAction} />
         <ParticipantAdminPanel
           onInspectStock={setInspectedStock}
           leagues={consoleState.leagues}

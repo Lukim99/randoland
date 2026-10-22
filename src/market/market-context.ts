@@ -28,6 +28,7 @@ export interface MarketContextValue {
   refreshing: boolean
   error: string | null
   refresh: () => Promise<void>
+  refreshPersonal: () => Promise<void>
   joinCurrentLeague: (nickname: string) => Promise<void>
   getOrderCapacity: (
     stockId: string,

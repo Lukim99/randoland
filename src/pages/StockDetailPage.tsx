@@ -2,6 +2,7 @@ import { ArrowLeft, Layers3, MessageSquareText, Star } from 'lucide-react'
 import { useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router'
 import { CandlestickChart } from '../components/CandlestickChart'
+import { CoinPriceChart } from '../components/CoinPriceChart'
 import { OrderPanel } from '../components/OrderPanel'
 import { StockLogo } from '../components/StockLogo'
 import { StockNewsPanel } from '../components/StockNewsPanel'
@@ -12,6 +13,7 @@ export function StockDetailPage() {
   const { stockId } = useParams()
   const { market, myState, newsFeed, favoriteStockIds, loading, setStockFavorite } = useMarket()
   const [favoriteError, setFavoriteError] = useState<string | null>(null)
+  const [chartInterval, setChartInterval] = useState<'day' | 'minute'>('minute')
 
   if (loading && !market) return <div className="skeleton skeleton--chart" aria-label="종목 불러오는 중" />
 
@@ -41,7 +43,7 @@ export function StockDetailPage() {
         <div className="stock-title-block">
           <StockLogo src={stock.logoImageUrl} spriteIndex={stock.logoSpriteIndex} size="xl" label={`${stock.name} 종목 이미지`} />
           <div>
-            <h1>{stock.name}</h1>
+            <h1>{stock.name}{stock.assetKind === 'coin' && <span className="asset-kind-badge">코인</span>}</h1>
             <p>{stock.description}</p>
           </div>
         </div>
@@ -81,10 +83,10 @@ export function StockDetailPage() {
           <section className="panel detail-chart-panel">
             <div className="section-heading section-heading--compact">
               <div><h2>가격 흐름</h2></div>
-              <span className="theme-pill">1라운드 = 1일</span>
+              {stock.assetKind === 'coin' ? <div className="bank-action-tabs" aria-label="차트 간격"><button type="button" aria-pressed={chartInterval === 'minute'} onClick={() => setChartInterval('minute')}>1분</button><button type="button" aria-pressed={chartInterval === 'day'} onClick={() => setChartInterval('day')}>1일</button></div> : <span className="theme-pill">1라운드 = 1일</span>}
             </div>
-            <CandlestickChart candles={stock.candles} label={stock.name} height={400} />
-            {latest && (
+            {stock.assetKind === 'coin' && chartInterval === 'minute' ? <CoinPriceChart key={stock.id} stockId={stock.id} label={stock.name} quoteUpdatedAt={stock.quoteUpdatedAt} roundRevision={`${market.round?.id}:${market.round?.status}`} /> : <CandlestickChart candles={stock.candles} label={stock.name} height={400} />}
+            {latest && (stock.assetKind !== 'coin' || chartInterval === 'day') && (
               <dl className="ohlc-grid">
                 <div><dt>시가</dt><dd>{formatPrice(latest.open)}</dd></div>
                 <div><dt>고가</dt><dd className="is-up">{formatPrice(latest.high)}</dd></div>

@@ -8,7 +8,7 @@ import {
 } from 'lucide-react'
 import type { ComponentType } from 'react'
 import { ListingView } from '../features/ListingView'
-import { LoansView } from '../features/LoansView'
+import { BankView } from '../features/BankView'
 import { OrdersView } from '../features/OrdersView'
 import { PortfolioView } from '../features/PortfolioView'
 import { RankingView } from '../features/RankingView'
@@ -28,7 +28,7 @@ interface FeatureContent {
 }
 
 const content: Record<FeatureKind, FeatureContent> = {
-  loans: { eyebrow: '란도뱅크', title: '대출', icon: Landmark },
+  loans: { eyebrow: '란도뱅크', title: '란도뱅크', icon: Landmark },
   portfolio: {
     eyebrow: '내 투자 현황', title: '내 자산', icon: WalletCards,
   },
@@ -47,7 +47,7 @@ const content: Record<FeatureKind, FeatureContent> = {
 }
 
 const views: Record<FeatureKind, ComponentType> = {
-  loans: LoansView,
+  loans: BankView,
   portfolio: PortfolioView,
   orders: OrdersView,
   listing: ListingView,

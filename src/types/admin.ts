@@ -106,6 +106,8 @@ export interface AdminBulkAssetResult {
 
 export interface AdminStock {
   id: string
+  assetKind: import('./market').AssetKind
+  coinVolatility: import('./market').CoinVolatility
   leagueId: string
   ticker: string
   name: string
@@ -230,6 +232,8 @@ export interface CreateLeagueInput {
 
 export interface AdminStockListingInput {
   leagueId: string
+  assetKind: import('./market').AssetKind
+  coinVolatility: import('./market').CoinVolatility
   ownerParticipantId: string | null
   ticker: string
   name: string
@@ -242,6 +246,8 @@ export interface AdminStockListingInput {
 
 export interface AdminStockDetailsInput {
   stockId: string
+  assetKind: import('./market').AssetKind
+  coinVolatility: import('./market').CoinVolatility
   expectedUpdatedAt: string
   ownerParticipantId: string | null
   ticker: string

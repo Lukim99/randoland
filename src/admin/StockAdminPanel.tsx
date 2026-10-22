@@ -16,6 +16,7 @@ import { SpritePickerDialog } from '../components/SpritePickerDialog'
 import { StockLogo } from '../components/StockLogo'
 import { StockLogoUploadDialog } from '../components/StockLogoUploadDialog'
 import { formatPercent, formatPrice, movementClass } from '../lib/format'
+import type { AssetKind, CoinVolatility } from '../types/market'
 import {
   activateAdminStock,
   delistAdminStock,
@@ -95,6 +96,16 @@ function normalizePlans(plans: AdminStockRoundPlan[]) {
   }))
 }
 
+function MarketKindFields({ kind, volatility, onKind, onVolatility, identityDisabled, disabled }: {
+  kind: AssetKind; volatility: CoinVolatility; onKind: (value: AssetKind) => void
+  onVolatility: (value: CoinVolatility) => void; identityDisabled: boolean; disabled: boolean
+}) {
+  return <>
+    <label><span>종목 구분</span><select value={kind} disabled={identityDisabled} onChange={(event) => onKind(event.target.value as AssetKind)}><option value="stock">주식</option><option value="coin">코인</option></select></label>
+    {kind === 'coin' && <label><span>분당 가격 변동성</span><select value={volatility} disabled={disabled} onChange={(event) => onVolatility(event.target.value as CoinVolatility)}><option value="very_high">매우 높음</option><option value="high">높음</option><option value="medium">중간</option><option value="low">낮음</option><option value="very_low">매우 낮음</option></select></label>}
+  </>
+}
+
 function DraftStockForm({
   leagues,
   participants,
@@ -108,6 +119,8 @@ function DraftStockForm({
   const [ticker, setTicker] = useState('')
   const [name, setName] = useState('')
   const [initialPrice, setInitialPrice] = useState('10000')
+  const [assetKind, setAssetKind] = useState<AssetKind>('stock')
+  const [coinVolatility, setCoinVolatility] = useState<CoinVolatility>('medium')
   const [description, setDescription] = useState('')
   const [theme, setTheme] = useState('')
   const [logoSpriteIndex, setLogoSpriteIndex] = useState(0)
@@ -134,6 +147,8 @@ function DraftStockForm({
     const completed = await onRun(
       () => listAdminStock({
         leagueId: selectedLeagueId,
+        assetKind,
+        coinVolatility,
         ownerParticipantId: selectedOwnerId || null,
         ticker: normalizedTicker,
         name: name.trim(),
@@ -178,6 +193,7 @@ function DraftStockForm({
       </div>
 
       <div className="admin-form__columns">
+        <MarketKindFields kind={assetKind} volatility={coinVolatility} onKind={setAssetKind} onVolatility={setCoinVolatility} identityDisabled={busy} disabled={busy} />
         <label>
           <span>리그</span>
           <select value={selectedLeagueId} onChange={(event) => { setLeagueId(event.target.value); setOwnerParticipantId('') }} disabled={busy || operatingLeagues.length === 0}>
@@ -244,6 +260,8 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
   const [description, setDescription] = useState(stock.description)
   const [theme, setTheme] = useState(stock.theme)
   const [logoSpriteIndex, setLogoSpriteIndex] = useState(stock.logoSpriteIndex)
+  const [assetKind, setAssetKind] = useState<AssetKind>(stock.assetKind)
+  const [coinVolatility, setCoinVolatility] = useState<CoinVolatility>(stock.coinVolatility)
   const [logoImagePath, setLogoImagePath] = useState<string | null>(stock.logoImagePath)
   const [logoFile, setLogoFile] = useState<File | null>(null)
   const [plans, setPlans] = useState<AdminStockRoundPlan[]>(editor.plans)
@@ -325,6 +343,8 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
     const completed = await onRun(
       () => updateAdminStock({
         stockId: stock.id,
+        assetKind,
+        coinVolatility,
         expectedUpdatedAt: stock.updatedAt,
         ownerParticipantId: ownerParticipantId || null,
         ticker: ticker.trim().toUpperCase(),
@@ -435,6 +455,7 @@ function StockEditor({ editor, participants, busy, onRun, onReload }: StockEdito
           <label><span>초기 가격</span><div className="input-with-unit"><input type="number" min="1" step="1" value={initialPrice} onChange={(event) => setInitialPrice(event.target.value)} disabled={!stock.identityEditable || busy} required /><span>RP</span></div></label>
           <label><span>테마</span><input value={theme} onChange={(event) => setTheme(event.target.value)} disabled={busy || readOnly} maxLength={120} /></label>
           <label><span>현재 가격</span><div className="admin-readonly-value">{formatPrice(stock.currentPrice)} RP</div></label>
+          <MarketKindFields kind={assetKind} volatility={coinVolatility} onKind={setAssetKind} onVolatility={setCoinVolatility} identityDisabled={busy || !stock.identityEditable} disabled={busy || readOnly} />
         </div>
         <label><span>종목 설명</span><textarea value={description} onChange={(event) => setDescription(event.target.value)} disabled={busy || readOnly} minLength={10} maxLength={1000} rows={4} required /></label>
         <button className="secondary-button" type="submit" disabled={busy || readOnly}><Save size={14} /> 종목 정보 저장</button>

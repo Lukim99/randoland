@@ -195,58 +195,35 @@ export async function loadMarketSnapshot(leagueId?: string | null): Promise<Mark
   throwIfError(error)
 
   const snapshot = data as unknown as MarketSnapshot
-  const stockIds = (snapshot.stocks ?? []).map((stock) => stock.id)
-  const spriteIndexByStockId = new Map<string, number>()
-  const logoImagePathByStockId = new Map<string, string | null>()
-
-  if (stockIds.length > 0) {
-    const { data: spriteRows, error: spriteError } = await client
-      .from('randoland_stocks')
-      .select('id, logo_sprite_index, logo_image_path')
-      .in('id', stockIds)
-    throwIfError(spriteError)
-
-    spriteRows?.forEach((row) => {
-      spriteIndexByStockId.set(row.id, row.logo_sprite_index)
-      logoImagePathByStockId.set(row.id, row.logo_image_path)
-    })
-  }
-
-  let joinClosesAt: string | null = null
-  let listingClosesAt: string | null = null
-  if (snapshot.league?.id) {
-    const { data: leagueWindows, error: leagueWindowsError } = await client
-      .from('randoland_leagues')
-      .select('join_closes_at, listing_closes_at')
-      .eq('id', snapshot.league.id)
-      .single()
-    throwIfError(leagueWindowsError)
-    if (!leagueWindows) throw new Error('리그 참가 기간 정보를 불러오지 못했습니다.')
-    joinClosesAt = leagueWindows.join_closes_at
-    listingClosesAt = leagueWindows.listing_closes_at
-  }
-
   return {
     ...snapshot,
-    league: snapshot.league ? {
-      ...snapshot.league,
-      joinClosesAt,
-      listingClosesAt,
-    } : null,
     stocks: (snapshot.stocks ?? []).map((stock) => ({
       ...stock,
       marketAction: stock.marketAction
         ?? (stock.status === 'halted' ? 'halt' : stock.status === 'delisted' ? 'delist' : 'normal'),
-      logoSpriteIndex: spriteIndexByStockId.get(stock.id) ?? 0,
-      logoImagePath: logoImagePathByStockId.get(stock.id) ?? null,
-      logoImageUrl: logoImagePathByStockId.get(stock.id)
-        ? getPublicImageUrl(STOCK_LOGO_BUCKET, logoImagePathByStockId.get(stock.id)!)
+      logoImageUrl: stock.logoImagePath
+        ? getPublicImageUrl(STOCK_LOGO_BUCKET, stock.logoImagePath)
         : null,
       owner: stock.listedBy ?? stock.owner ?? (stock.isBaseStock ? '기본 상장' : '상장자 비공개'),
       candles: normalizeCandleDates(stock.candles ?? []),
     })),
     news: snapshot.news ?? [],
   }
+}
+
+export async function loadMyValuation(leagueId: string): Promise<{
+  participantId: string; metrics: Partial<NonNullable<MyState['participant']>>
+  positions: MyState['positions']; shortPositions: MyState['shortPositions']
+}> {
+  const { data, error } = await requireSupabase().rpc('randoland_get_my_valuation', { p_league_id: leagueId })
+  throwIfError(error)
+  return data
+}
+
+export async function loadCoinCandles(stockId: string, after: string | null): Promise<CandlePoint[]> {
+  const { data, error } = await requireSupabase().rpc('randoland_get_coin_candles', { p_stock_id: stockId, p_after: after })
+  throwIfError(error)
+  return data as CandlePoint[]
 }
 
 interface LatestNewsEditionRow {

@@ -12,6 +12,7 @@ import {
 import { useMemo, useState } from 'react'
 import { Link } from 'react-router'
 import { CandlestickChart } from '../components/CandlestickChart'
+import { CoinPriceChart } from '../components/CoinPriceChart'
 import { LeagueJoinCard } from '../components/LeagueJoinCard'
 import { MarketList } from '../components/MarketList'
 import { OrderPanel } from '../components/OrderPanel'
@@ -167,7 +168,7 @@ export function DashboardPage() {
                   <StockLogo src={selectedStock.logoImageUrl} spriteIndex={selectedStock.logoSpriteIndex} size="lg" label={`${selectedStock.name} 종목 이미지`} />
                   <div>
                     <span className="eyebrow">{selectedStock.ticker}</span>
-                    <h2>{selectedStock.name}</h2>
+                    <h2>{selectedStock.name}{selectedStock.assetKind === 'coin' && <span className="asset-kind-badge">코인</span>}</h2>
                     {selectedStock.marketAction !== 'normal' && (
                       <span className={`stock-market-action stock-market-action--${selectedStock.marketAction}`}>
                         {selectedStock.marketAction === 'halt' ? '거래정지' : '상장폐지'}
@@ -183,15 +184,15 @@ export function DashboardPage() {
                 </div>
               </div>
               <div className="chart-subnav">
-                <span className="is-active">일봉</span>
-                {latestCandle && (
+                <span className="is-active">{selectedStock.assetKind === 'coin' ? '1분봉' : '일봉'}</span>
+                {latestCandle && selectedStock.assetKind !== 'coin' && (
                   <span className="ohlc-summary">
                     시 {formatPrice(latestCandle.open)} · 고 {formatPrice(latestCandle.high)} · 저{' '}
                     {formatPrice(latestCandle.low)} · 종 {formatPrice(latestCandle.close)}
                   </span>
                 )}
               </div>
-              <CandlestickChart candles={selectedStock.candles} label={selectedStock.name} />
+              {selectedStock.assetKind === 'coin' ? <CoinPriceChart key={selectedStock.id} stockId={selectedStock.id} label={selectedStock.name} quoteUpdatedAt={selectedStock.quoteUpdatedAt} roundRevision={`${market.round?.id}:${market.round?.status}`} height={330} /> : <CandlestickChart candles={selectedStock.candles} label={selectedStock.name} />}
               <div className="chart-description">
                 <p>{selectedStock.description}</p>
                 <Link to={`/stock/${selectedStock.id}`}>
@@ -212,7 +213,7 @@ export function DashboardPage() {
           <section className="panel market-section">
             <div className="section-heading">
               <div>
-                <h2>상장기업 현황</h2>
+                <h2>상장종목 현황</h2>
                 <p>종목을 선택하면 위 차트와 주문서가 함께 변경됩니다.</p>
               </div>
               <div className="market-list-controls">

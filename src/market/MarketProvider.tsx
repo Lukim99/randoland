@@ -17,6 +17,7 @@ import {
   loadLatestNewsFeed,
   loadMarketSnapshot,
   loadMyState,
+  loadMyValuation,
   loadNewsFeed,
   loadRankings,
   placeOrder as placeOrderRequest,
@@ -114,6 +115,9 @@ export function MarketProvider({ children }: PropsWithChildren) {
   const fullNewsRequest = useRef<{ key: string; promise: Promise<NewsFeed> } | null>(null)
   const pendingOrderRequest = useRef<{ signature: string; key: string } | null>(null)
   const pendingLadderRequest = useRef<{ signature: string; key: string } | null>(null)
+  const marketRef = useRef(market)
+  const myStateRef = useRef(myState)
+  useEffect(() => { marketRef.current = market; myStateRef.current = myState }, [market, myState])
 
   const refreshData = useCallback(async (quiet: boolean) => {
     const requestId = ++requestSequence.current
@@ -181,6 +185,21 @@ export function MarketProvider({ children }: PropsWithChildren) {
     return refreshMyState(leagueId)
   }, [refreshMyState])
 
+  const refreshPersonal = useCallback(async () => {
+    if (market?.league) await refreshAfterAction(market.league.id)
+  }, [market?.league, refreshAfterAction])
+
+  const refreshValuation = useCallback(async (leagueId: string) => {
+    const requestId = ++myStateSequence.current
+    try {
+      const next = await loadMyValuation(leagueId)
+      if (myStateSequence.current !== requestId) return
+      setMyState((current) => current?.participant?.id === next.participantId ? {
+        ...current, participant: { ...current.participant, ...next.metrics }, positions: next.positions, shortPositions: next.shortPositions,
+      } : current)
+    } catch (next: unknown) { setError(next instanceof Error ? next.message : '평가액을 불러오지 못했습니다.') }
+  }, [])
+
   const newsKey = news?.key ?? null
   const newsLeagueId = news?.leagueId ?? null
   const newsFeedComplete = Boolean(news?.full)
@@ -215,33 +234,52 @@ export function MarketProvider({ children }: PropsWithChildren) {
     if (!client || !leagueId) return
 
     let refreshTimer: number | undefined
-    let pendingScope: 'market' | 'personal' | null = null
-    const scheduleRefresh = (scope: 'market' | 'personal') => {
+    let pendingScope: 'market' | 'personal' | 'valuation' | null = null
+    const scheduleRefresh = (scope: 'market' | 'personal' | 'valuation') => {
+      if (document.hidden) return
       if (scope === 'personal' && Date.now() - lastActionRefreshAt.current < ACTION_ECHO_WINDOW_MS) return
-      pendingScope = scope === 'market' || pendingScope === 'market' ? 'market' : 'personal'
+      pendingScope = scope === 'market' || pendingScope === 'market' ? 'market'
+        : scope === 'personal' || pendingScope === 'personal' ? 'personal' : 'valuation'
       window.clearTimeout(refreshTimer)
       refreshTimer = window.setTimeout(() => {
         const scopeToRefresh = pendingScope
         pendingScope = null
         if (scopeToRefresh === 'market') void refreshData(true)
         else if (scopeToRefresh === 'personal') void refreshMyState(leagueId)
+        else if (scopeToRefresh === 'valuation') void refreshValuation(leagueId)
       }, 180)
     }
 
     const channel = client.channel(`randoland-live-${leagueId}`)
     marketRealtimeTables.forEach((table) => {
-      channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => scheduleRefresh('market'))
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, (payload) => {
+        const row = payload.new as Record<string, unknown>
+        const stock = table === 'randoland_stocks' ? marketRef.current?.stocks.find(({ id }) => id === row.id) : null
+        if (payload.eventType === 'UPDATE' && stock?.assetKind === 'coin' && row.updated_at === stock.updatedAt && row.quote_updated_at !== stock.quoteUpdatedAt) {
+          const price = Number(row.current_price)
+          const previous = Number(row.previous_close)
+          setMarket((current) => current ? { ...current, stocks: current.stocks.map((item) => item.id === stock.id ? {
+            ...item, currentPrice: price, previousClose: previous, quoteUpdatedAt: row.quote_updated_at as string,
+            changePercent: (price - previous) * 100 / previous,
+          } : item) } : current)
+          const own = myStateRef.current
+          if (price !== stock.currentPrice && (own?.positions.some(({ stockId }) => stockId === stock.id) || own?.shortPositions.some(({ stockId }) => stockId === stock.id))) scheduleRefresh('valuation')
+        } else scheduleRefresh('market')
+      })
     })
     personalRealtimeTables.forEach((table) => {
       channel.on('postgres_changes', { event: '*', schema: 'public', table }, () => scheduleRefresh('personal'))
     })
     channel.subscribe()
+    const onVisible = () => { if (!document.hidden) scheduleRefresh('market') }
+    document.addEventListener('visibilitychange', onVisible)
 
     return () => {
       window.clearTimeout(refreshTimer)
       void client.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [market?.league?.id, refreshData, refreshMyState])
+  }, [market?.league?.id, refreshData, refreshMyState, refreshValuation])
 
   const requireLeagueId = useCallback(() => {
     const leagueId = market?.league?.id
@@ -409,6 +447,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       refreshing,
       error,
       refresh,
+      refreshPersonal,
       joinCurrentLeague,
       getOrderCapacity,
       placeOrder,
@@ -450,6 +489,7 @@ export function MarketProvider({ children }: PropsWithChildren) {
       loadFullNewsFeed,
       favoriteStockIds,
       refresh,
+      refreshPersonal,
       refreshing,
       uploadProfileImage,
       loadRecentDiscussionPosts,

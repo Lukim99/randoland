@@ -11,6 +11,7 @@ const labels: Record<string, string> = {
   leverage_borrow: '레버리지 사용', leverage_repayment: '레버리지 상환', leverage_fee: '레버리지 차감',
   ladder_reward: '홀짝 보상', dividend: '주식 배당', admin_adjustment: '운영 조정',
   loan_borrow: '란도뱅크 대출', loan_repayment: '란도뱅크 자동 상환',
+  savings_deposit: '적금 가입', savings_maturity: '적금 만기 수령', fund_subscribe: '펀드 투자', fund_redeem: '펀드 환매', fund_maturity: '펀드 만기 수령',
 }
 
 function LedgerPages({ leagueId, operationsOnly }: { leagueId: string; operationsOnly: boolean }) {
@@ -37,7 +38,8 @@ function LedgerPages({ leagueId, operationsOnly }: { leagueId: string; operation
     <div className="ledger-history">{entries.map((entry) => {
       const operating = entry.type === 'admin_adjustment'
       const loan = entry.type === 'loan_borrow' || entry.type === 'loan_repayment'
-      const balanceDetails = operating || loan
+      const bank = entry.referenceType === 'randobank_product'
+      const balanceDetails = operating || loan || bank
       const revoke = entry.metadata.direction === 'revoke' || entry.amount < 0
       const reason = typeof entry.metadata.reason === 'string' ? entry.metadata.reason : null
       return <article key={entry.id}>
@@ -46,6 +48,7 @@ function LedgerPages({ leagueId, operationsOnly }: { leagueId: string; operation
           <small>{formatKstDateTime(entry.createdAt)}</small>
           {operating && reason && <span className="ledger-reason">{reason}</span>}
           {loan && <small>원금 {formatRp(Number(entry.metadata.principal ?? 0))} · 이자 {formatRp(Number(entry.metadata.interest ?? 0))}</small>}
+          {bank && <small>{String(entry.metadata.productName ?? '란도뱅크 상품')}</small>}
           {operating && typeof entry.metadata.percent === 'number' && <small>기준 순자산 {formatRp(Number(entry.metadata.basisNetWorth))} × {entry.metadata.percent}%</small>}
         </span>
         <span><strong className={movementClass(entry.amount)}>{entry.amount > 0 ? '+' : ''}{formatRp(entry.amount)}</strong>

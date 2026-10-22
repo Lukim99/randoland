@@ -1,0 +1,58 @@
+.bank-tabs,.bank-action-tabs{display:flex;gap:4px;padding:5px;border:1px solid var(--border);border-radius:12px;background:var(--surface)}
+.bank-tabs{margin-bottom:24px;max-width:420px}
+.bank-tabs button,.bank-action-tabs button{flex:1;border:0;border-radius:8px;padding:10px 16px;background:transparent;color:var(--text-muted);font:inherit;cursor:pointer;transition:background 180ms,color 180ms}
+.bank-tabs button[aria-pressed=true],.bank-action-tabs button[aria-pressed=true]{background:#17352b;color:var(--accent)}
+.bank-action-tabs{padding:3px;max-width:280px}
+.bank-action-tabs button{padding:7px 12px;font-size:12px}
+.bank-account{display:grid;gap:24px;min-width:0}
+.bank-overview{display:flex;justify-content:space-between;gap:32px;padding:28px;align-items:center}
+.bank-overview h2{margin:8px 0 12px;font-size:24px;letter-spacing:-.04em}
+.bank-overview p{color:var(--text-muted);font-size:13px;margin:0;word-break:keep-all;line-height:1.7}
+.bank-overview dl{display:flex;gap:32px;margin:0;flex-shrink:0}
+.bank-overview dt{font-size:12px;color:var(--text-muted);margin-bottom:10px}
+.bank-overview dd{margin:0;font-size:21px;font-weight:700;white-space:nowrap;font-variant-numeric:tabular-nums}
+.bank-section-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}
+.bank-section-heading h2,.bank-history h2{margin:0;font-size:17px}
+.bank-product-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+.bank-product{padding:24px;min-width:0;display:flex;flex-direction:column;gap:18px}
+.bank-product header h3{font-size:21px;margin:14px 0 10px;word-break:keep-all;overflow-wrap:anywhere}
+.bank-product header p{font-size:13px;color:var(--text-muted);line-height:1.8;white-space:pre-wrap;word-break:keep-all;margin:0}
+.bank-product .loan-terms{margin:0}
+.bank-product .loan-terms dd{display:flex;align-items:center;gap:5px;text-align:right;font-variant-numeric:tabular-nums}
+.bank-trade-form{display:grid;gap:12px;margin-top:auto;padding-top:18px;border-top:1px solid var(--border)}
+.bank-trade-form label{display:grid;gap:8px;color:var(--text-muted);font-size:12px}
+.bank-trade-form input{width:100%;min-width:0;border:1px solid var(--border);background:var(--bg);border-radius:9px;padding:13px 14px;color:var(--text);font:inherit;font-size:18px;font-variant-numeric:tabular-nums}
+.bank-trade-form input:focus{outline:2px solid var(--accent);outline-offset:2px}
+.bank-form-limit{display:flex;justify-content:space-between;align-items:center;color:var(--text-muted);font-size:12px;gap:12px}
+.bank-form-actions{display:flex;flex-wrap:wrap;gap:8px}
+.bank-form-actions .primary-button{flex:1}
+.bank-confirmation{border:1px solid #285443;background:#10231b;border-radius:10px;padding:15px}
+.bank-confirmation strong{font-size:16px;font-variant-numeric:tabular-nums}
+.bank-confirmation p,.bank-pending{font-size:12px;color:var(--text-muted);line-height:1.8;word-break:keep-all;margin:8px 0 0}
+.bank-pending{color:var(--warning);margin:0}
+.bank-empty{display:grid;justify-items:center;gap:14px;padding:48px 20px;color:var(--text-muted);grid-column:1/-1}
+.bank-history{padding:24px;min-width:0}
+.bank-history h2{margin-bottom:20px}
+.bank-holding{border-top:1px solid var(--border)}
+.bank-holding summary{display:flex;align-items:center;gap:18px;cursor:pointer;padding:18px 0;list-style:none}
+.bank-holding summary::-webkit-details-marker{display:none}
+.bank-holding summary>span{display:grid;gap:8px;min-width:0}
+.bank-holding summary>span:nth-child(2){margin-left:auto;text-align:right;flex-shrink:0}
+.bank-holding summary strong{font-size:14px;word-break:keep-all;font-variant-numeric:tabular-nums}
+.bank-holding summary small{font-size:11px;color:var(--text-muted)}
+.bank-holding .loan-terms{padding:0 0 18px;margin:0}
+.admin-panel--bank{grid-column:1/-1;min-width:0}
+.bank-admin-toolbar{display:flex;justify-content:flex-end;padding:0 24px 12px}
+.bank-admin-product-list{display:flex;gap:8px;flex-wrap:wrap;padding:20px 24px;border-top:1px solid var(--border)}
+.bank-admin-product-list .is-active{color:var(--accent);border-color:#31604f}
+.bank-leverage-form{border-top:1px solid var(--border);padding-bottom:24px}
+.bank-leverage-form label{max-width:320px}
+.bank-product-form{border-top:1px solid var(--border)}
+.bank-round-returns{border:1px solid var(--border);border-radius:10px;padding:16px;min-width:0}
+.bank-round-returns legend{padding:0 8px;font-size:13px}
+.bank-round-returns .admin-form__columns{grid-template-columns:repeat(4,minmax(0,1fr))}
+.asset-kind-badge{display:inline-flex;vertical-align:middle;margin-left:8px;padding:2px 6px;border:1px solid #32614e;border-radius:4px;color:var(--accent);font-size:10px;font-weight:500;line-height:1.5;white-space:nowrap}
+@media(max-width:1100px){.bank-overview{align-items:flex-start;flex-direction:column;gap:24px}.bank-overview dl{width:100%;justify-content:space-between;gap:18px}}
+@media(max-width:680px){.bank-tabs{max-width:none;margin-bottom:18px}.bank-account{gap:20px}.bank-overview{padding:21px}.bank-overview h2{font-size:21px}.bank-overview dd{font-size:18px}.bank-product-grid{grid-template-columns:minmax(0,1fr);gap:16px}.bank-product,.bank-history{padding:20px}.bank-holding summary{gap:10px}.bank-holding summary strong{font-size:12px}.bank-holding summary small{font-size:10px}.bank-round-returns .admin-form__columns{grid-template-columns:repeat(2,minmax(0,1fr))}.bank-admin-product-list{padding:18px}.bank-admin-toolbar{padding-right:18px}}
+@media(prefers-reduced-motion:reduce){.bank-tabs button,.bank-action-tabs button{transition:none}}
+@media(max-width:680px){.bank-overview dl{display:grid;grid-template-columns:minmax(0,1fr);gap:18px}.bank-overview dl>div{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:6px 12px}.bank-overview dt{margin:0}.bank-holding summary{display:grid;grid-template-columns:minmax(0,1fr) auto}.bank-holding summary>span:first-child{grid-column:1/-1}.bank-holding summary>span:nth-child(2){margin-left:0;text-align:left}.bank-holding summary strong{overflow-wrap:anywhere}}
