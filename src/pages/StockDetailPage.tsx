@@ -83,7 +83,7 @@ export function StockDetailPage() {
           <section className="panel detail-chart-panel">
             <div className="section-heading section-heading--compact">
               <div><h2>가격 흐름</h2></div>
-              {stock.assetKind === 'coin' ? <div className="bank-action-tabs" aria-label="차트 간격"><button type="button" aria-pressed={chartInterval === 'minute'} onClick={() => setChartInterval('minute')}>1분</button><button type="button" aria-pressed={chartInterval === 'day'} onClick={() => setChartInterval('day')}>1일</button></div> : <span className="theme-pill">1라운드 = 1일</span>}
+              {stock.assetKind === 'coin' ? <div className="bank-action-tabs" role="group" aria-label="차트 간격"><button type="button" aria-pressed={chartInterval === 'minute'} onClick={() => setChartInterval('minute')}>1분봉</button><button type="button" aria-pressed={chartInterval === 'day'} onClick={() => setChartInterval('day')}>일봉</button></div> : <span className="theme-pill">1라운드 = 1일</span>}
             </div>
             {stock.assetKind === 'coin' && chartInterval === 'minute' ? <CoinPriceChart key={stock.id} stockId={stock.id} label={stock.name} quoteUpdatedAt={stock.quoteUpdatedAt} roundRevision={`${market.round?.id}:${market.round?.status}`} /> : <CandlestickChart candles={stock.candles} label={stock.name} height={400} />}
             {latest && (stock.assetKind !== 'coin' || chartInterval === 'day') && (

@@ -226,6 +226,17 @@ export async function loadCoinCandles(stockId: string, after: string | null): Pr
   return data as CandlePoint[]
 }
 
+export interface CoinCandlePage {
+  candles: CandlePoint[]
+  hasEarlier: boolean
+}
+
+export async function loadCoinCandlePage(stockId: string, before: string | null): Promise<CoinCandlePage> {
+  const { data, error } = await requireSupabase().rpc('randoland_get_coin_candle_page', { p_stock_id: stockId, p_before: before })
+  throwIfError(error)
+  return data as CoinCandlePage
+}
+
 interface LatestNewsEditionRow {
   id: string
   round_id: string

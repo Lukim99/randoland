@@ -880,6 +880,56 @@ dd {
   white-space: nowrap;
 }
 
+.chart-subnav .bank-action-tabs {
+  flex-shrink: 0;
+  margin-block: 4px;
+}
+
+.chart-subnav .bank-action-tabs button,
+.detail-chart-panel .bank-action-tabs button {
+  white-space: nowrap;
+}
+
+.coin-chart-history {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 12px;
+}
+
+.coin-chart-range {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px 6px;
+  margin: 0;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.coin-chart-range time {
+  white-space: nowrap;
+}
+
+.coin-chart-history__buttons {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.coin-chart-history__buttons button {
+  min-height: 36px;
+  white-space: nowrap;
+}
+
+.coin-chart-loading {
+  display: grid;
+  place-items: center;
+  color: var(--text-muted);
+}
+
 .chart-wrap {
   position: relative;
   width: 100%;

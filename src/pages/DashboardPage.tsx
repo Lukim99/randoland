@@ -39,6 +39,7 @@ export function DashboardPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [favoriteError, setFavoriteError] = useState<string | null>(null)
   const [changeSort, setChangeSort] = useState<MarketChangeSort>('default')
+  const [chartInterval, setChartInterval] = useState<'day' | 'minute'>('minute')
   const { nextSettlement, remaining, elapsed } = useRoundClock(market?.round?.settlesAt)
   const favoriteStockIdSet = useMemo(() => new Set(favoriteStockIds), [favoriteStockIds])
   const listedStocks = useMemo(() => {
@@ -57,6 +58,7 @@ export function DashboardPage() {
   }, [changeSort, favoriteStockIdSet, market?.stocks])
   const favoriteStocks = listedStocks.filter((stock) => favoriteStockIdSet.has(stock.id))
   const selectedStock = listedStocks.find((stock) => stock.id === selectedId) ?? listedStocks[0]
+  const showMinuteChart = selectedStock?.assetKind === 'coin' && chartInterval === 'minute'
 
   async function handleFavorite(stockId: string, favorited: boolean) {
     setFavoriteError(null)
@@ -184,15 +186,20 @@ export function DashboardPage() {
                 </div>
               </div>
               <div className="chart-subnav">
-                <span className="is-active">{selectedStock.assetKind === 'coin' ? '1분봉' : '일봉'}</span>
-                {latestCandle && selectedStock.assetKind !== 'coin' && (
+                {selectedStock.assetKind === 'coin' ? (
+                  <div className="bank-action-tabs" role="group" aria-label="차트 간격">
+                    <button type="button" aria-pressed={chartInterval === 'minute'} onClick={() => setChartInterval('minute')}>1분봉</button>
+                    <button type="button" aria-pressed={chartInterval === 'day'} onClick={() => setChartInterval('day')}>일봉</button>
+                  </div>
+                ) : <span className="is-active">일봉</span>}
+                {latestCandle && !showMinuteChart && (
                   <span className="ohlc-summary">
                     시 {formatPrice(latestCandle.open)} · 고 {formatPrice(latestCandle.high)} · 저{' '}
                     {formatPrice(latestCandle.low)} · 종 {formatPrice(latestCandle.close)}
                   </span>
                 )}
               </div>
-              {selectedStock.assetKind === 'coin' ? <CoinPriceChart key={selectedStock.id} stockId={selectedStock.id} label={selectedStock.name} quoteUpdatedAt={selectedStock.quoteUpdatedAt} roundRevision={`${market.round?.id}:${market.round?.status}`} height={330} /> : <CandlestickChart candles={selectedStock.candles} label={selectedStock.name} />}
+              {showMinuteChart ? <CoinPriceChart key={selectedStock.id} stockId={selectedStock.id} label={selectedStock.name} quoteUpdatedAt={selectedStock.quoteUpdatedAt} roundRevision={`${market.round?.id}:${market.round?.status}`} height={330} /> : <CandlestickChart candles={selectedStock.candles} label={selectedStock.name} />}
               <div className="chart-description">
                 <p>{selectedStock.description}</p>
                 <Link to={`/stock/${selectedStock.id}`}>
